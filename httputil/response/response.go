@@ -55,13 +55,13 @@ func (r *Responder) writeWithStatus(w http.ResponseWriter, req *http.Request, da
 		r.Before(w, req, data)
 	}
 
-	w.WriteHeader(statusCode)
 	if err := r.Encoder.Encode(w, data); err != nil {
 		if r.OnError != nil {
 			r.OnError(w, req, err)
 		}
 		return
 	}
+	w.WriteHeader(statusCode)
 
 	if r.After != nil {
 		r.After(w, req, data)

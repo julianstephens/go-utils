@@ -178,3 +178,29 @@ func TestNewConstructors(t *testing.T) {
 		t.Error("NewCustom() should provide defaults when nil is passed")
 	}
 }
+
+func TestWriteOK(t *testing.T) {
+	responder := response.New()
+	
+	// Create test request and response recorder
+	req := httptest.NewRequest("GET", "/test", nil)
+	w := httptest.NewRecorder()
+	
+	// Call WriteOK
+	responder.OK(w, req, map[string]string{"status": "success"})
+	
+	// Verify response
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+	
+	contentType := w.Header().Get("Content-Type")
+	if contentType != "application/json" {
+		t.Errorf("Expected Content-Type application/json, got %s", contentType)
+	}
+	
+	body := w.Body.String()
+	if body != "{\"status\":\"success\"}\n" {
+		t.Errorf("Expected response body to be '{\"status\":\"success\"}', got %s", body)
+	}
+}
