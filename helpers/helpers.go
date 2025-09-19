@@ -33,6 +33,15 @@ func If[T any](cond bool, vtrue T, vfalse T) T {
 	return vfalse
 }
 
+// Default returns defaultVal if val is the zero value for its type, otherwise returns val
+func Default[T any](val T, defaultVal T) T {
+	var zero T
+	if reflect.DeepEqual(val, zero) {
+		return defaultVal
+	}
+	return val
+}
+
 // Difference implements slice subtraction s.t. a - b
 func Difference(a []string, b []string) []string {
 	mb := make(map[string]struct{}, len(b))

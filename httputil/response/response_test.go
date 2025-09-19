@@ -10,7 +10,7 @@ import (
 	"github.com/julianstephens/go-utils/httputil/response"
 )
 
-func TestResponder_Write(t *testing.T) {
+func TestResponder_WriteWithStatus(t *testing.T) {
 	responder := response.New()
 
 	// Test data
@@ -20,8 +20,8 @@ func TestResponder_Write(t *testing.T) {
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
 
-	// Call Write
-	responder.Write(w, req, data)
+	// Call WriteWithStatus
+	responder.WriteWithStatus(w, req, data, http.StatusOK)
 
 	// Verify response
 	if w.Code != http.StatusOK {
@@ -39,16 +39,16 @@ func TestResponder_Write(t *testing.T) {
 	}
 }
 
-func TestResponder_Error(t *testing.T) {
+func TestResponder_ErrorWithStatus(t *testing.T) {
 	responder := response.New()
 
 	// Create test request and response recorder
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
 
-	// Call Error
+	// Call ErrorWithStatus
 	err := errors.New("test error")
-	responder.Error(w, req, err)
+	responder.ErrorWithStatus(w, req, http.StatusInternalServerError, err)
 
 	// Verify error response
 	if w.Code != http.StatusInternalServerError {
@@ -128,7 +128,7 @@ func TestHooks(t *testing.T) {
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
 
-	responder.Write(w, req, map[string]string{"test": "data"})
+	responder.WriteWithStatus(w, req, map[string]string{"test": "data"}, http.StatusOK)
 
 	if !beforeCalled {
 		t.Error("Before hook was not called")
@@ -146,10 +146,10 @@ func TestHooks(t *testing.T) {
 	errorCalled = false
 
 	w = httptest.NewRecorder()
-	responder.Error(w, req, errors.New("test error"))
+	responder.ErrorWithStatus(w, req, http.StatusInternalServerError, errors.New("test error"))
 
 	if !errorCalled {
-		t.Error("OnError hook should have been called during Error method")
+		t.Error("OnError hook should have been called during ErrorWithStatus method")
 	}
 }
 
@@ -181,24 +181,24 @@ func TestNewConstructors(t *testing.T) {
 
 func TestWriteOK(t *testing.T) {
 	responder := response.New()
-	
+
 	// Create test request and response recorder
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
-	
+
 	// Call WriteOK
 	responder.OK(w, req, map[string]string{"status": "success"})
-	
+
 	// Verify response
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
-	
+
 	contentType := w.Header().Get("Content-Type")
 	if contentType != "application/json" {
 		t.Errorf("Expected Content-Type application/json, got %s", contentType)
 	}
-	
+
 	body := w.Body.String()
 	if body != "{\"status\":\"success\"}\n" {
 		t.Errorf("Expected response body to be '{\"status\":\"success\"}', got %s", body)
