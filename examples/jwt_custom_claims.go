@@ -20,6 +20,8 @@ func main() {
 
 	// Custom claims - can be any JSON-serializable data
 	customClaims := map[string]interface{}{
+		"username":    username,    // username and email can be in custom claims
+		"email":       email,       // or passed via convenience methods
 		"department":  "engineering",
 		"level":       5,
 		"is_manager":  true,
@@ -31,13 +33,33 @@ func main() {
 		"last_login": time.Now().Unix(),
 	}
 
-	// Generate token with custom claims
-	token, err := manager.GenerateTokenWithClaims(userID, username, email, roles, customClaims)
+	// Method 1: Generate token with custom claims (simplified signature)
+	// Username and email are included in custom claims
+	token, err := manager.GenerateTokenWithClaims(userID, roles, customClaims)
 	if err != nil {
 		log.Fatalf("Failed to generate token: %v", err)
 	}
 
-	fmt.Printf("Generated JWT Token:\n%s\n\n", token)
+	fmt.Printf("Method 1 - Generated JWT Token with custom claims:\n%s\n\n", token)
+
+	// Method 2: Generate token with user info (convenience method)
+	// This automatically puts username and email in custom claims
+	token2, err := manager.GenerateTokenWithUserInfo(userID, username, email, roles)
+	if err != nil {
+		log.Fatalf("Failed to generate token with user info: %v", err)
+	}
+
+	fmt.Printf("Method 2 - Generated JWT Token with user info:\n%s\n\n", token2)
+
+	// Method 3: Most basic approach - just user ID and roles
+	token3, err := manager.GenerateToken(userID, roles)
+	if err != nil {
+		log.Fatalf("Failed to generate basic token: %v", err)
+	}
+
+	fmt.Printf("Method 3 - Generated basic JWT Token:\n%s\n\n", token3)
+
+	// Use the first token for validation examples
 
 	// Validate token
 	claims, err := manager.ValidateToken(token)

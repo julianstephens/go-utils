@@ -19,8 +19,8 @@ var (
 // Claims represents the JWT claims structure
 type Claims struct {
 	UserID       string                 `json:"user_id"`
-	Username     string                 `json:"username"`
-	Email        string                 `json:"email"`
+	Username     string                 `json:"username,omitempty"`
+	Email        string                 `json:"email,omitempty"`
 	Roles        []string               `json:"roles,omitempty"`
 	IssuedAt     time.Time              `json:"iat"`
 	CustomClaims map[string]interface{} `json:"custom_claims,omitempty"`
@@ -44,13 +44,25 @@ func NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string)
 }
 
 // GenerateToken creates a new JWT token with the provided claims
-func (j *JWTManager) GenerateToken(userID, username, email string, roles []string) (string, error) {
-	return j.GenerateTokenWithClaims(userID, username, email, roles, nil)
+func (j *JWTManager) GenerateToken(userID string, roles []string) (string, error) {
+	return j.GenerateTokenWithClaims(userID, roles, nil)
 }
 
 // GenerateTokenWithClaims creates a new JWT token with the provided claims and custom claims
-func (j *JWTManager) GenerateTokenWithClaims(userID, username, email string, roles []string, customClaims map[string]interface{}) (string, error) {
+func (j *JWTManager) GenerateTokenWithClaims(userID string, roles []string, customClaims map[string]interface{}) (string, error) {
 	now := time.Now()
+	
+	// Extract username and email from custom claims if provided
+	var username, email string
+	if customClaims != nil {
+		if u, ok := customClaims["username"].(string); ok {
+			username = u
+		}
+		if e, ok := customClaims["email"].(string); ok {
+			email = e
+		}
+	}
+	
 	claims := Claims{
 		UserID:       userID,
 		Username:     username,
@@ -63,11 +75,47 @@ func (j *JWTManager) GenerateTokenWithClaims(userID, username, email string, rol
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
 			Issuer:    j.issuer,
+			Subject:   userID,
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(j.secretKey)
+}
+
+// GenerateTokenWithUserInfo creates a new JWT token with user ID, username, email, and roles
+// This is a convenience method for backward compatibility
+func (j *JWTManager) GenerateTokenWithUserInfo(userID, username, email string, roles []string) (string, error) {
+	customClaims := make(map[string]interface{})
+	if username != "" {
+		customClaims["username"] = username
+	}
+	if email != "" {
+		customClaims["email"] = email
+	}
+	
+	if len(customClaims) == 0 {
+		customClaims = nil
+	}
+	
+	return j.GenerateTokenWithClaims(userID, roles, customClaims)
+}
+
+// GenerateTokenWithUserInfoAndClaims creates a new JWT token with user info and additional custom claims
+// This is a convenience method for backward compatibility
+func (j *JWTManager) GenerateTokenWithUserInfoAndClaims(userID, username, email string, roles []string, customClaims map[string]interface{}) (string, error) {
+	if customClaims == nil {
+		customClaims = make(map[string]interface{})
+	}
+	
+	if username != "" {
+		customClaims["username"] = username
+	}
+	if email != "" {
+		customClaims["email"] = email
+	}
+	
+	return j.GenerateTokenWithClaims(userID, roles, customClaims)
 }
 
 // ValidateToken validates a JWT token and returns the claims if valid
@@ -123,7 +171,19 @@ func (j *JWTManager) RefreshToken(tokenString string) (string, error) {
 	}
 
 	// Generate new token with same claims but updated timestamps
-	return j.GenerateTokenWithClaims(claims.UserID, claims.Username, claims.Email, claims.Roles, claims.CustomClaims)
+	// Preserve username and email in custom claims if they exist
+	refreshCustomClaims := claims.CustomClaims
+	if refreshCustomClaims == nil {
+		refreshCustomClaims = make(map[string]interface{})
+	}
+	if claims.Username != "" {
+		refreshCustomClaims["username"] = claims.Username
+	}
+	if claims.Email != "" {
+		refreshCustomClaims["email"] = claims.Email
+	}
+	
+	return j.GenerateTokenWithClaims(claims.UserID, claims.Roles, refreshCustomClaims)
 }
 
 // ExtractTokenFromHeader extracts JWT token from Authorization header

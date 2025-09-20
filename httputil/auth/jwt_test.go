@@ -23,11 +23,9 @@ func TestGenerateToken(t *testing.T) {
 	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
 
 	userID := "user123"
-	username := "testuser"
-	email := "test@example.com"
 	roles := []string{"user", "admin"}
 
-	token, err := manager.GenerateToken(userID, username, email, roles)
+	token, err := manager.GenerateToken(userID, roles)
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -52,7 +50,7 @@ func TestValidateToken(t *testing.T) {
 	roles := []string{"user", "admin"}
 
 	// Generate a token
-	token, err := manager.GenerateToken(userID, username, email, roles)
+	token, err := manager.GenerateTokenWithUserInfo(userID, username, email, roles)
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -109,7 +107,7 @@ func TestValidateExpiredToken(t *testing.T) {
 	// Create manager with very short expiration
 	manager := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
 
-	token, err := manager.GenerateToken("user123", "testuser", "test@example.com", []string{"user"})
+	token, err := manager.GenerateToken("user123", []string{"user"})
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -130,7 +128,7 @@ func TestRefreshToken(t *testing.T) {
 	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
 
 	// Generate original token
-	originalToken, err := manager.GenerateToken("user123", "testuser", "test@example.com", []string{"user"})
+	originalToken, err := manager.GenerateToken("user123", []string{"user"})
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -165,7 +163,7 @@ func TestRefreshExpiredToken(t *testing.T) {
 	// Create manager with very short expiration for initial token
 	shortManager := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
 
-	token, err := shortManager.GenerateToken("user123", "testuser", "test@example.com", []string{"user"})
+	token, err := shortManager.GenerateToken("user123", []string{"user"})
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -318,7 +316,7 @@ func TestClaimsIsExpired(t *testing.T) {
 	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
 
 	// Generate a valid token
-	token, err := manager.GenerateToken("user123", "testuser", "test@example.com", []string{"user"})
+	token, err := manager.GenerateToken("user123", []string{"user"})
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -335,7 +333,7 @@ func TestClaimsIsExpired(t *testing.T) {
 
 	// Test with expired token
 	expiredManager := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
-	expiredToken, err := expiredManager.GenerateToken("user123", "testuser", "test@example.com", []string{"user"})
+	expiredToken, err := expiredManager.GenerateToken("user123", []string{"user"})
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -362,7 +360,7 @@ func TestTokenValidationWithDifferentSecrets(t *testing.T) {
 	manager2 := auth.NewJWTManager("secret2", time.Hour, "issuer2")
 
 	// Generate token with first manager
-	token, err := manager1.GenerateToken("user123", "testuser", "test@example.com", []string{"user"})
+	token, err := manager1.GenerateToken("user123", []string{"user"})
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
 	}
@@ -389,7 +387,7 @@ func TestGenerateTokenWithClaims(t *testing.T) {
 		"metadata":    map[string]string{"region": "us-west", "tenant": "acme"},
 	}
 
-	token, err := manager.GenerateTokenWithClaims(userID, username, email, roles, customClaims)
+	token, err := manager.GenerateTokenWithUserInfoAndClaims(userID, username, email, roles, customClaims)
 	if err != nil {
 		t.Fatalf("GenerateTokenWithClaims failed: %v", err)
 	}
@@ -488,7 +486,7 @@ func TestCustomClaimsInRefreshToken(t *testing.T) {
 	}
 
 	// Generate original token with custom claims
-	originalToken, err := manager.GenerateTokenWithClaims("user123", "testuser", "test@example.com", []string{"user"}, customClaims)
+	originalToken, err := manager.GenerateTokenWithUserInfoAndClaims("user123", "testuser", "test@example.com", []string{"user"}, customClaims)
 	if err != nil {
 		t.Fatalf("GenerateTokenWithClaims failed: %v", err)
 	}
@@ -527,7 +525,7 @@ func TestCustomClaimsWithJSONNumberTypes(t *testing.T) {
 		"large_int":    int64(9223372036854775807),
 	}
 
-	token, err := manager.GenerateTokenWithClaims("user123", "testuser", "test@example.com", []string{"user"}, customClaims)
+	token, err := manager.GenerateTokenWithUserInfoAndClaims("user123", "testuser", "test@example.com", []string{"user"}, customClaims)
 	if err != nil {
 		t.Fatalf("GenerateTokenWithClaims failed: %v", err)
 	}
@@ -547,7 +545,7 @@ func TestEmptyCustomClaims(t *testing.T) {
 	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
 
 	// Generate token with nil custom claims
-	token, err := manager.GenerateTokenWithClaims("user123", "testuser", "test@example.com", []string{"user"}, nil)
+	token, err := manager.GenerateTokenWithUserInfo("user123", "testuser", "test@example.com", []string{"user"})
 	if err != nil {
 		t.Fatalf("GenerateTokenWithClaims failed: %v", err)
 	}
@@ -574,5 +572,94 @@ func TestEmptyCustomClaims(t *testing.T) {
 	claims.SetCustomClaim("new_claim", "value")
 	if !claims.HasCustomClaim("new_claim") {
 		t.Error("SetCustomClaim should initialize custom claims map")
+	}
+}
+
+func TestSimplifiedTokenGeneration(t *testing.T) {
+	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+
+	// Test basic token generation with just user ID and roles
+	token, err := manager.GenerateToken("user123", []string{"user", "admin"})
+	if err != nil {
+		t.Fatalf("GenerateToken failed: %v", err)
+	}
+
+	if token == "" {
+		t.Error("Generated token should not be empty")
+	}
+
+	// Validate the token
+	claims, err := manager.ValidateToken(token)
+	if err != nil {
+		t.Fatalf("ValidateToken failed: %v", err)
+	}
+
+	// Verify basic claims
+	if claims.UserID != "user123" {
+		t.Errorf("Expected UserID 'user123', got %s", claims.UserID)
+	}
+
+	if len(claims.Roles) != 2 || claims.Roles[0] != "user" || claims.Roles[1] != "admin" {
+		t.Errorf("Expected roles [user admin], got %v", claims.Roles)
+	}
+
+	// Username and Email should be empty
+	if claims.Username != "" {
+		t.Errorf("Expected empty Username, got %s", claims.Username)
+	}
+
+	if claims.Email != "" {
+		t.Errorf("Expected empty Email, got %s", claims.Email)
+	}
+
+	// Verify Subject claim is set to UserID
+	if claims.RegisteredClaims.Subject != "user123" {
+		t.Errorf("Expected Subject claim 'user123', got %s", claims.RegisteredClaims.Subject)
+	}
+}
+
+func TestTokenGenerationWithCustomClaimsOnly(t *testing.T) {
+	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+
+	customClaims := map[string]interface{}{
+		"username":   "john_doe",
+		"email":      "john@example.com",
+		"department": "engineering",
+		"level":      5,
+	}
+
+	// Test token generation with custom claims
+	token, err := manager.GenerateTokenWithClaims("user123", []string{"user"}, customClaims)
+	if err != nil {
+		t.Fatalf("GenerateTokenWithClaims failed: %v", err)
+	}
+
+	// Validate the token
+	claims, err := manager.ValidateToken(token)
+	if err != nil {
+		t.Fatalf("ValidateToken failed: %v", err)
+	}
+
+	// Verify that username and email were extracted from custom claims
+	if claims.Username != "john_doe" {
+		t.Errorf("Expected Username 'john_doe', got %s", claims.Username)
+	}
+
+	if claims.Email != "john@example.com" {
+		t.Errorf("Expected Email 'john@example.com', got %s", claims.Email)
+	}
+
+	// Verify custom claims
+	if dept, ok := claims.GetCustomClaimString("department"); !ok || dept != "engineering" {
+		t.Errorf("Expected department 'engineering', got %s (exists: %t)", dept, ok)
+	}
+
+	if level, ok := claims.GetCustomClaimInt("level"); !ok || level != 5 {
+		t.Errorf("Expected level 5, got %d (exists: %t)", level, ok)
+	}
+
+	// Verify Subject claim is set to UserID
+	if claims.RegisteredClaims.Subject != "user123" {
+		t.Errorf("Expected Subject claim 'user123', got %s", claims.RegisteredClaims.Subject)
 	}
 }
