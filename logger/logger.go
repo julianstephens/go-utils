@@ -100,6 +100,15 @@ func (l *Logger) Fatalf(format string, args ...interface{}) {
 	l.entry.Fatalf(format, args...)
 }
 
+// Tracef logs a message at trace level with printf-style formatting.
+func (l *Logger) Tracef(format string, args ...interface{}) {
+	l.entry.Tracef(format, args...)
+}
+
+// Panicf logs a message at panic level with printf-style formatting and then panics.
+func (l *Logger) Panicf(format string, args ...interface{}) {
+	l.entry.Panicf(format, args...)
+}
 // Debug logs a message at debug level.
 func (l *Logger) Debug(args ...interface{}) {
 	l.entry.Debug(args...)
