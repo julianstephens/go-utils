@@ -3,6 +3,7 @@
 - adds `slices`
 - adds `logger`
 - adds `config`
+- adds `generic`
 
 ## v0.1.3
 
