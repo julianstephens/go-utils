@@ -12,7 +12,7 @@ func TestHashPassword(t *testing.T) {
 	if err != nil {
 		t.Fatalf("HashPassword failed: %v", err)
 	}
-	
+
 	if hash == password {
 		t.Errorf("Hash should not be the same as the password")
 	}
@@ -27,7 +27,7 @@ func TestCheckPasswordHash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("HashPassword failed: %v", err)
 	}
-	
+
 	if !auth.CheckPasswordHash(password, hash) {
 		t.Errorf("CheckPasswordHash should return true for correct password")
 	}

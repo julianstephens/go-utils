@@ -14,7 +14,7 @@ import (
 func TestGlobalSetLogLevel(t *testing.T) {
 	// Test setting valid levels
 	validLevels := []string{"debug", "info", "warn", "error", "fatal", "panic"}
-	
+
 	for _, level := range validLevels {
 		t.Run(level, func(t *testing.T) {
 			err := logger.SetLogLevel(level)
@@ -39,10 +39,10 @@ func TestGlobalLoggingMethods(t *testing.T) {
 	logger.SetLogLevel("debug")
 
 	tests := []struct {
-		name     string
-		logFunc  func()
-		level    string
-		message  string
+		name    string
+		logFunc func()
+		level   string
+		message string
 	}{
 		{
 			name:    "Global Debug",
@@ -220,10 +220,10 @@ func TestGlobalWithFields(t *testing.T) {
 	logger.SetLogLevel("info")
 
 	fields := map[string]interface{}{
-		"service":    "test-service",
-		"version":    "1.0.0",
-		"env":        "test",
-		"port":       8080,
+		"service": "test-service",
+		"version": "1.0.0",
+		"env":     "test",
+		"port":    8080,
 	}
 
 	contextLogger := logger.WithFields(fields)

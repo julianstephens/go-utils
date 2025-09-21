@@ -71,6 +71,7 @@ func Fatalf(format string, args ...interface{}) {
 func Panicf(format string, args ...interface{}) {
 	defaultLogger.Panicf(format, args...)
 }
+
 // Debug logs a message at debug level using the default logger.
 func Debug(args ...interface{}) {
 	defaultLogger.Debug(args...)

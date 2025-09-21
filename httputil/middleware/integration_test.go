@@ -185,7 +185,7 @@ func TestMiddlewareOrder(t *testing.T) {
 	// Verify middleware order
 	expectedOrder := []string{
 		"first-before",
-		"second-before", 
+		"second-before",
 		"third-before",
 		"handler",
 		"third-after",

@@ -55,7 +55,7 @@ func TestSetLogLevel(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.level, func(t *testing.T) {
 			err := log.SetLogLevel(tt.level)
-			
+
 			if tt.hasError {
 				if err == nil {
 					t.Errorf("Expected error for invalid level '%s'", tt.level)
@@ -80,10 +80,10 @@ func TestLoggingMethods(t *testing.T) {
 	log := logger.NewWithOptions(&buf, logrus.DebugLevel, &logrus.JSONFormatter{})
 
 	tests := []struct {
-		name     string
-		logFunc  func()
-		level    string
-		message  string
+		name    string
+		logFunc func()
+		level   string
+		message string
 	}{
 		{
 			name:    "Debug",

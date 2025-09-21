@@ -20,8 +20,8 @@ func main() {
 
 	// Custom claims - can be any JSON-serializable data
 	customClaims := map[string]interface{}{
-		"username":    username,    // username and email can be in custom claims
-		"email":       email,       // or passed via convenience methods
+		"username":    username, // username and email can be in custom claims
+		"email":       email,    // or passed via convenience methods
 		"department":  "engineering",
 		"level":       5,
 		"is_manager":  true,

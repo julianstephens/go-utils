@@ -48,20 +48,20 @@ func Logging(logger *log.Logger) func(http.Handler) http.Handler {
 	if logger == nil {
 		logger = log.Default()
 	}
-	
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			
+
 			// Wrap the response writer to capture status code
 			rw := &responseWriter{
 				ResponseWriter: w,
 				statusCode:     http.StatusOK,
 			}
-			
+
 			// Call the next handler
 			next.ServeHTTP(rw, r)
-			
+
 			// Log the request
 			duration := time.Since(start)
 			logger.Printf("%s %s %d %v", r.Method, r.URL.Path, rw.statusCode, duration)
@@ -74,14 +74,14 @@ func Recovery(logger *log.Logger) func(http.Handler) http.Handler {
 	if logger == nil {
 		logger = log.Default()
 	}
-	
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
 					// Log the panic with stack trace
 					logger.Printf("Panic in %s %s: %v\n%s", r.Method, r.URL.Path, err, debug.Stack())
-					
+
 					// Return HTTP 500 with generic message
 					// Check if we can still write to the response
 					if rw, ok := w.(*responseWriter); ok && !rw.written {
@@ -92,7 +92,7 @@ func Recovery(logger *log.Logger) func(http.Handler) http.Handler {
 					}
 				}
 			}()
-			
+
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -100,23 +100,23 @@ func Recovery(logger *log.Logger) func(http.Handler) http.Handler {
 
 // CORSConfig holds CORS configuration options
 type CORSConfig struct {
-	AllowedOrigins []string
-	AllowedMethods []string
-	AllowedHeaders []string
-	ExposedHeaders []string
+	AllowedOrigins   []string
+	AllowedMethods   []string
+	AllowedHeaders   []string
+	ExposedHeaders   []string
 	AllowCredentials bool
-	MaxAge         int
+	MaxAge           int
 }
 
 // DefaultCORSConfig returns a default CORS configuration
 func DefaultCORSConfig() CORSConfig {
 	return CORSConfig{
-		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
-		ExposedHeaders: []string{},
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
+		ExposedHeaders:   []string{},
 		AllowCredentials: false,
-		MaxAge:         86400, // 24 hours
+		MaxAge:           86400, // 24 hours
 	}
 }
 
@@ -125,41 +125,41 @@ func CORS(config CORSConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
-			
+
 			// Check if origin is allowed
 			if len(config.AllowedOrigins) == 1 && config.AllowedOrigins[0] == "*" {
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 			} else if origin != "" && isOriginAllowed(origin, config.AllowedOrigins) {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 			}
-			
+
 			// Set other CORS headers
 			if len(config.AllowedMethods) > 0 {
 				w.Header().Set("Access-Control-Allow-Methods", strings.Join(config.AllowedMethods, ", "))
 			}
-			
+
 			if len(config.AllowedHeaders) > 0 {
 				w.Header().Set("Access-Control-Allow-Headers", strings.Join(config.AllowedHeaders, ", "))
 			}
-			
+
 			if len(config.ExposedHeaders) > 0 {
 				w.Header().Set("Access-Control-Expose-Headers", strings.Join(config.ExposedHeaders, ", "))
 			}
-			
+
 			if config.AllowCredentials {
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 			}
-			
+
 			if config.MaxAge > 0 {
 				w.Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", config.MaxAge))
 			}
-			
+
 			// Handle preflight requests
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}
-			
+
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -192,14 +192,14 @@ func RequestID() func(http.Handler) http.Handler {
 				// Generate a new request ID
 				requestID = generateRequestID()
 			}
-			
+
 			// Add request ID to response header
 			w.Header().Set(RequestIDHeader, requestID)
-			
+
 			// Add request ID to context
 			ctx := context.WithValue(r.Context(), RequestIDKey, requestID)
 			r = r.WithContext(ctx)
-			
+
 			next.ServeHTTP(w, r)
 		})
 	}

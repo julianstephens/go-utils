@@ -49,13 +49,13 @@ For more control, you can create your own logger instances:
 Log Levels:
 
 The logger supports the following log levels (from highest to lowest priority):
-	• panic - Logs and then calls panic()
-	• fatal - Logs and then calls os.Exit(1)
-	• error - Error conditions
-	• warn  - Warning conditions
-	• info  - Informational messages (default)
-	• debug - Debug-level messages
-	• trace - Very detailed debug information
+  - panic - Logs and then calls panic()
+  - fatal - Logs and then calls os.Exit(1)
+  - error - Error conditions
+  - warn  - Warning conditions
+  - info  - Informational messages (default)
+  - debug - Debug-level messages
+  - trace - Very detailed debug information
 
 Structured Logging:
 

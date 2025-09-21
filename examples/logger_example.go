@@ -45,7 +45,7 @@ func main() {
 		"method":     "POST",
 		"path":       "/api/users",
 	})
-	
+
 	requestLogger.Info("Processing request")
 	requestLogger.Debugf("Request body size: %d bytes", 256)
 	requestLogger.Info("Request completed successfully")
@@ -62,7 +62,7 @@ func main() {
 func processOrder(orderID string) error {
 	// Simulate processing
 	logger.WithField("order_id", orderID).Info("Starting order processing")
-	
+
 	// Simulate an error
 	return nil // In real code, this might return an actual error
 }

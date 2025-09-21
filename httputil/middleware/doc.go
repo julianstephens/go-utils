@@ -6,10 +6,10 @@ and used with any HTTP router that follows the standard Go HTTP middleware patte
 
 Available Middleware:
 
-	• Logging - Logs HTTP requests and responses
-	• Recovery - Recovers from panics and returns HTTP 500
-	• CORS - Handles Cross-Origin Resource Sharing
-	• RequestID - Injects unique request IDs into requests
+  - Logging - Logs HTTP requests and responses
+  - Recovery - Recovers from panics and returns HTTP 500
+  - CORS - Handles Cross-Origin Resource Sharing
+  - RequestID - Injects unique request IDs into requests
 
 Basic Usage:
 
@@ -99,7 +99,7 @@ The request ID middleware injects a unique identifier into each request:
 	router.HandleFunc("/api/endpoint", func(w http.ResponseWriter, r *http.Request) {
 		requestID := middleware.GetRequestID(r.Context())
 		log.Printf("Processing request %s", requestID)
-		
+
 		// Request ID is also automatically added to response headers as X-Request-ID
 		w.Write([]byte("OK"))
 	})
@@ -123,9 +123,9 @@ making them compatible with other middleware libraries:
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Pre-processing
 			start := time.Now()
-			
+
 			next.ServeHTTP(w, r)
-			
+
 			// Post-processing
 			duration := time.Since(start)
 			log.Printf("Request took %v", duration)
