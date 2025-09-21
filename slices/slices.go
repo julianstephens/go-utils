@@ -35,13 +35,13 @@ func ContainsAll[T comparable](mainSlice, subset []T) bool {
 		return true
 	}
 
-	mainMap := make(map[T]bool)
+	mainMap := make(map[T]struct{})
 	for _, item := range mainSlice {
-		mainMap[item] = true
+		mainMap[item] = struct{}{}
 	}
 
 	for _, item := range subset {
-		if !mainMap[item] {
+		if _, found := mainMap[item]; !found {
 			return false
 		}
 	}
