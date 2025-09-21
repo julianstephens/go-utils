@@ -1,10 +1,3 @@
-## v0.1.5
-
-- adds `cliutil` package for command-line interface utilities
-- adds argument parsing, flag handling, and interactive prompts
-- adds colored output, progress indicators, and table formatting
-- adds comprehensive validation functions and CLI patterns
-
 ## v0.1.4
 
 - adds `slices`
@@ -12,6 +5,7 @@
 - adds `config`
 - adds `generic`
 - adds `jsonutil`
+- adds `cliutil`
 
 ## v0.1.3
 

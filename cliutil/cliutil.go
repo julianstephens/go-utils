@@ -29,11 +29,11 @@ func ParseArgs(args []string) *Args {
 
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
-		
-		if strings.HasPrefix(arg, "--") {
+
+		if after, ok := strings.CutPrefix(arg, "--"); ok {
 			// Long flag
-			flagName := strings.TrimPrefix(arg, "--")
-			
+			flagName := after
+
 			if strings.Contains(flagName, "=") {
 				// --flag=value format
 				parts := strings.SplitN(flagName, "=", 2)
@@ -42,7 +42,7 @@ func ParseArgs(args []string) *Args {
 				// Check if next argument looks like a value (not starting with -)
 				// But we need to be smarter about boolean flags
 				nextArg := args[i+1]
-				
+
 				// If the next argument is a common boolean value, treat as boolean
 				lowerNext := strings.ToLower(nextArg)
 				if lowerNext == "true" || lowerNext == "false" {
@@ -66,7 +66,7 @@ func ParseArgs(args []string) *Args {
 		} else if strings.HasPrefix(arg, "-") && len(arg) > 1 {
 			// Short flag
 			flagName := strings.TrimPrefix(arg, "-")
-			
+
 			if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
 				// Check if this looks like a boolean flag
 				if isBooleanFlag(flagName) {
@@ -95,9 +95,9 @@ var commonBoolFlags = map[string]bool{
 	"debug": true, "d": true,
 	"help": true, "h": true,
 	"version": true,
-	"quiet": true, "q": true,
+	"quiet":   true, "q": true,
 	"force": true, "f": true,
-	"dry-run": true,
+	"dry-run":     true,
 	"interactive": true, "i": true,
 	"recursive": true, "r": true,
 	"all": true, "a": true,
@@ -141,8 +141,8 @@ func GetFlagValue(args []string, flag, defaultValue string) string {
 		if arg == flag && i+1 < len(args) {
 			return args[i+1]
 		}
-		if strings.HasPrefix(arg, flag+"=") {
-			return strings.TrimPrefix(arg, flag+"=")
+		if after, ok := strings.CutPrefix(arg, flag+"="); ok {
+			return after
 		}
 	}
 	return defaultValue
@@ -191,7 +191,7 @@ func PromptChoice(prompt string, options []string) int {
 	for i, option := range options {
 		fmt.Printf("  %d) %s\n", i+1, option)
 	}
-	
+
 	for {
 		input := PromptString("Enter your choice (number): ")
 		choice, err := strconv.Atoi(input)
@@ -291,7 +291,7 @@ func PrintTable(data [][]string) {
 			fmt.Printf("%-*s", colWidths[j]+2, cell)
 		}
 		fmt.Println()
-		
+
 		// Print separator after header
 		if i == 0 {
 			for j := range row {
@@ -349,16 +349,18 @@ func (pb *ProgressBar) render() {
 
 	// Ensure current is within bounds
 	current := pb.current
+
 	if current < 0 {
 		current = 0
 	}
+
 	if current > pb.total {
 		current = pb.total
 	}
 
 	percentage := float64(current) / float64(pb.total)
 	filled := int(percentage * float64(pb.width))
-	
+
 	// Ensure filled is within bounds
 	if filled < 0 {
 		filled = 0
@@ -366,19 +368,19 @@ func (pb *ProgressBar) render() {
 	if filled > pb.width {
 		filled = pb.width
 	}
-	
+
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", pb.width-filled)
-	
-	fmt.Printf("\r%s: [%s] %.1f%% (%d/%d)", 
+
+	fmt.Printf("\r%s: [%s] %.1f%% (%d/%d)",
 		pb.prefix, bar, percentage*100, current, pb.total)
 }
 
 // Spinner represents a console spinner
 type Spinner struct {
-	message   string
-	frames    []string
-	active    bool
-	stopChan  chan bool
+	message  string
+	frames   []string
+	active   bool
+	stopChan chan bool
 }
 
 // NewSpinner creates a new spinner
@@ -395,7 +397,7 @@ func (s *Spinner) Start() {
 	if s.active {
 		return
 	}
-	
+
 	s.active = true
 	go func() {
 		i := 0
@@ -417,7 +419,7 @@ func (s *Spinner) Stop() {
 	if !s.active {
 		return
 	}
-	
+
 	s.active = false
 	select {
 	case s.stopChan <- true:
