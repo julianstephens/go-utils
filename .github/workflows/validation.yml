@@ -36,7 +36,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: "${{ env.gomod_path }}go.mod"
+          go-version-file: "${{ inputs.gomod_path }}go.mod"
 
       - name: Set PR number
         id: prmeta
@@ -45,14 +45,14 @@ jobs:
 
       - name: Format code
         id: fmt
-        if: ${{ env.DO_FMT == 'true' }}
+        if: ${{ inputs.DO_FMT == 'true' }}
         run: |
           go fmt ./...
           git diff --exit-code || (echo "Go code is not properly formatted" && exit 1)
         continue-on-error: true
 
       - name: Comment on PR if formatting fails
-        if: steps.fmt.outcome == 'failure' && ${{ env.DO_FMT == 'true' }}
+        if: steps.fmt.outcome == 'failure' && ${{ inputs.DO_FMT == 'true' }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -63,20 +63,20 @@ jobs:
               body: `:x: **Go Format Failed**
               Please format your code with \`go fmt\` before merging.
               [See failed workflow run](${{
-                github.server_url }}/${
+                github.server_url }}/${{
                 github.repository
-              }/actions/runs/${{ github.run_id }})`
+              }}/actions/runs/${{ github.run_id }})`
             })
 
       - name: Run tests
         id: test
-        if: ${{ env.DO_TEST == 'true' }}
+        if: ${{ inputs.DO_TEST == 'true' }}
         run: |
           go test -v ./...
         continue-on-error: true
 
       - name: Comment on PR if tests fail
-        if: steps.test.outcome == 'failure' && ${{ env.DO_TEST == 'true' }}
+        if: steps.test.outcome == 'failure' && ${{ inputs.DO_TEST == 'true' }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -87,20 +87,20 @@ jobs:
               body: `:x: **Go Tests Failed**
               Please fix test failures before merging.
               [See failed workflow run](${{
-                github.server_url }}/${
+                github.server_url }}/${{
                 github.repository
-              }/actions/runs/${{ github.run_id }})`
+              }}/actions/runs/${{ github.run_id }})`
             })
 
       - name: Build project
         id: build
-        if: ${{ env.DO_BUILD == 'true' }}
+        if: ${{ inputs.DO_BUILD == 'true' }}
         run: |
           go build ./...
         continue-on-error: true
 
       - name: Comment on PR if build fails
-        if: steps.build.outcome == 'failure' && ${{ env.DO_BUILD  == 'true' }}
+        if: steps.build.outcome == 'failure' && ${{ inputs.DO_BUILD  == 'true' }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -111,7 +111,7 @@ jobs:
               body: `:x: **Go Build Failed**
               Please fix build errors before merging.
               [See failed workflow run](${{
-                github.server_url }}/${
+                github.server_url }}/${{
                 github.repository
-              }/actions/runs/${{ github.run_id }})`
+              }}/actions/runs/${{ github.run_id }})`
             })
