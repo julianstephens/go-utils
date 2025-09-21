@@ -1,3 +1,7 @@
+## v0.1.4
+
+- adds `slices`
+
 ## v0.1.3
 
 - adds `httputil.auth.utils`
