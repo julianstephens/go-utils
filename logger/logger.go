@@ -11,7 +11,6 @@ import (
 // It offers structured logging with configurable levels, custom formatting, and contextual logging support.
 type Logger struct {
 	entry *logrus.Entry
-	level logrus.Level
 }
 
 // New creates a new Logger instance with default configuration.
@@ -26,7 +25,6 @@ func New() *Logger {
 
 	return &Logger{
 		entry: logrus.NewEntry(logrusLogger),
-		level: logrus.InfoLevel,
 	}
 }
 
@@ -39,7 +37,6 @@ func NewWithOptions(output io.Writer, level logrus.Level, formatter logrus.Forma
 
 	return &Logger{
 		entry: logrus.NewEntry(logrusLogger),
-		level: level,
 	}
 }
 
@@ -50,8 +47,7 @@ func (l *Logger) SetLogLevel(level string) error {
 	if err != nil {
 		return err
 	}
-	
-	l.level = logLevel
+
 	l.entry.Logger.SetLevel(logLevel)
 	return nil
 }
@@ -61,7 +57,6 @@ func (l *Logger) SetLogLevel(level string) error {
 func (l *Logger) WithField(key string, value interface{}) *Logger {
 	return &Logger{
 		entry: l.entry.WithField(key, value),
-		level: l.level,
 	}
 }
 
@@ -70,7 +65,6 @@ func (l *Logger) WithField(key string, value interface{}) *Logger {
 func (l *Logger) WithFields(fields map[string]interface{}) *Logger {
 	return &Logger{
 		entry: l.entry.WithFields(logrus.Fields(fields)),
-		level: l.level,
 	}
 }
 
@@ -109,6 +103,7 @@ func (l *Logger) Tracef(format string, args ...interface{}) {
 func (l *Logger) Panicf(format string, args ...interface{}) {
 	l.entry.Panicf(format, args...)
 }
+
 // Debug logs a message at debug level.
 func (l *Logger) Debug(args ...interface{}) {
 	l.entry.Debug(args...)
@@ -144,7 +139,8 @@ func (l *Logger) Trace(args ...interface{}) {
 func (l *Logger) Panic(args ...interface{}) {
 	l.entry.Panic(args...)
 }
+
 // GetLevel returns the current logging level.
 func (l *Logger) GetLevel() string {
-	return l.level.String()
+	return l.entry.Logger.GetLevel().String()
 }
