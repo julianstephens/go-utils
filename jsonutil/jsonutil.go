@@ -51,7 +51,7 @@ type DecoderOptions struct {
 
 // Marshal marshals the given value to JSON with enhanced error context.
 // It provides the same functionality as json.Marshal but with better error messages.
-func Marshal(v interface{}) ([]byte, error) {
+func Marshal(v any) ([]byte, error) {
 	data, err := json.Marshal(v)
 	if err != nil {
 		return nil, fmt.Errorf("jsonutil: marshal failed: %w", err)
@@ -61,7 +61,7 @@ func Marshal(v interface{}) ([]byte, error) {
 
 // MarshalIndent marshals the given value to JSON with indentation.
 // It's equivalent to json.MarshalIndent but with enhanced error context.
-func MarshalIndent(v interface{}, prefix, indent string) ([]byte, error) {
+func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
 	data, err := json.MarshalIndent(v, prefix, indent)
 	if err != nil {
 		return nil, fmt.Errorf("jsonutil: marshal indent failed: %w", err)
@@ -70,7 +70,7 @@ func MarshalIndent(v interface{}, prefix, indent string) ([]byte, error) {
 }
 
 // MarshalWithOptions marshals the given value to JSON using the provided options.
-func MarshalWithOptions(v interface{}, opts *MarshalOptions) ([]byte, error) {
+func MarshalWithOptions(v any, opts *MarshalOptions) ([]byte, error) {
 	if opts == nil {
 		return Marshal(v)
 	}
@@ -97,7 +97,7 @@ func MarshalWithOptions(v interface{}, opts *MarshalOptions) ([]byte, error) {
 }
 
 // Unmarshal unmarshals JSON data into the given value with enhanced error context.
-func Unmarshal(data []byte, v interface{}) error {
+func Unmarshal(data []byte, v any) error {
 	if err := json.Unmarshal(data, v); err != nil {
 		return fmt.Errorf("jsonutil: unmarshal failed: %w", err)
 	}
@@ -106,7 +106,7 @@ func Unmarshal(data []byte, v interface{}) error {
 
 // UnmarshalStrict unmarshals JSON data with strict field matching.
 // It returns an error if the JSON contains fields not present in the destination struct.
-func UnmarshalStrict(data []byte, v interface{}) error {
+func UnmarshalStrict(data []byte, v any) error {
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(v); err != nil {
@@ -116,7 +116,7 @@ func UnmarshalStrict(data []byte, v interface{}) error {
 }
 
 // UnmarshalWithOptions unmarshals JSON data using the provided options.
-func UnmarshalWithOptions(data []byte, v interface{}, opts *UnmarshalOptions) error {
+func UnmarshalWithOptions(data []byte, v any, opts *UnmarshalOptions) error {
 	if opts == nil {
 		return Unmarshal(data, v)
 	}
@@ -138,7 +138,7 @@ func UnmarshalWithOptions(data []byte, v interface{}, opts *UnmarshalOptions) er
 }
 
 // EncodeWriter encodes the given value as JSON and writes it to the provided writer.
-func EncodeWriter(w io.Writer, v interface{}, opts *EncoderOptions) error {
+func EncodeWriter(w io.Writer, v any, opts *EncoderOptions) error {
 	encoder := json.NewEncoder(w)
 
 	if opts != nil {
@@ -155,7 +155,7 @@ func EncodeWriter(w io.Writer, v interface{}, opts *EncoderOptions) error {
 }
 
 // DecodeReader decodes JSON from the provided reader into the given value.
-func DecodeReader(r io.Reader, v interface{}, opts *DecoderOptions) error {
+func DecodeReader(r io.Reader, v any, opts *DecoderOptions) error {
 	decoder := json.NewDecoder(r)
 
 	if opts != nil {
@@ -174,7 +174,7 @@ func DecodeReader(r io.Reader, v interface{}, opts *DecoderOptions) error {
 }
 
 // DecodeReaderStrict decodes JSON from the provided reader with strict field matching.
-func DecodeReaderStrict(r io.Reader, v interface{}) error {
+func DecodeReaderStrict(r io.Reader, v any) error {
 	opts := &DecoderOptions{DisallowUnknownFields: true}
 	return DecodeReader(r, v, opts)
 }

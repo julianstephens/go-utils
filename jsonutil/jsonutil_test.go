@@ -25,7 +25,7 @@ type strictTestStruct struct {
 func TestMarshal(t *testing.T) {
 	tests := []struct {
 		name    string
-		input   interface{}
+		input   any
 		wantErr bool
 	}{
 		{
@@ -40,7 +40,7 @@ func TestMarshal(t *testing.T) {
 		},
 		{
 			name:    "map",
-			input:   map[string]interface{}{"key": "value", "number": 42},
+			input:   map[string]any{"key": "value", "number": 42},
 			wantErr: false,
 		},
 		{
@@ -87,7 +87,7 @@ func TestMarshalIndent(t *testing.T) {
 }
 
 func TestMarshalWithOptions(t *testing.T) {
-	input := map[string]interface{}{
+	input := map[string]any{
 		"name":   "Alice & Bob",
 		"script": "<script>alert('test')</script>",
 		"age":    30,
@@ -146,7 +146,7 @@ func TestUnmarshal(t *testing.T) {
 	tests := []struct {
 		name    string
 		data    string
-		target  interface{}
+		target  any
 		wantErr bool
 	}{
 		{
@@ -158,7 +158,7 @@ func TestUnmarshal(t *testing.T) {
 		{
 			name:    "valid JSON into map",
 			data:    validJSON,
-			target:  &map[string]interface{}{},
+			target:  &map[string]any{},
 			wantErr: false,
 		},
 		{
@@ -189,7 +189,7 @@ func TestUnmarshalStrict(t *testing.T) {
 	tests := []struct {
 		name    string
 		data    string
-		target  interface{}
+		target  any
 		wantErr bool
 	}{
 		{
@@ -557,8 +557,7 @@ func BenchmarkEncodeWriter(b *testing.B) {
 func BenchmarkDecodeReader(b *testing.B) {
 	jsonData := `{"name":"Alice","age":30,"active":true}`
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		reader := strings.NewReader(jsonData)
 		var target testStruct
 		err := jsonutil.DecodeReader(reader, &target, nil)

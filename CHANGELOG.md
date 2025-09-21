@@ -4,6 +4,7 @@
 - adds `logger`
 - adds `config`
 - adds `generic`
+- adds `jsonutil`
 
 ## v0.1.3
 
