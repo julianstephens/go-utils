@@ -19,9 +19,9 @@ func main() {
 	router := mux.NewRouter()
 
 	// Apply middleware in the correct order
-	router.Use(middleware.RequestID())                    // First - adds ID to all requests
-	router.Use(middleware.Logging(logger))                // Second - logs with request ID
-	router.Use(middleware.Recovery(errorLogger))          // Third - catches panics
+	router.Use(middleware.RequestID())                          // First - adds ID to all requests
+	router.Use(middleware.Logging(logger))                      // Second - logs with request ID
+	router.Use(middleware.Recovery(errorLogger))                // Third - catches panics
 	router.Use(middleware.CORS(middleware.DefaultCORSConfig())) // Fourth - handles CORS
 
 	// Add routes
@@ -41,13 +41,13 @@ func main() {
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	// Get request ID from context
 	requestID := middleware.GetRequestID(r.Context())
-	
+
 	response := map[string]interface{}{
 		"status":     "ok",
 		"request_id": requestID,
 		"message":    "Service is healthy",
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -56,14 +56,14 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["id"]
 	requestID := middleware.GetRequestID(r.Context())
-	
+
 	response := map[string]interface{}{
 		"user_id":    userID,
 		"request_id": requestID,
 		"name":       "John Doe",
 		"email":      "john@example.com",
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }

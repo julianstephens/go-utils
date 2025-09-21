@@ -1,6 +1,7 @@
 ## v0.1.4
 
 - adds `slices`
+- adds `logger`
 
 ## v0.1.3
 
@@ -24,4 +25,3 @@
 
 - adds mux response package
 - adds common helpers
-

@@ -51,7 +51,7 @@ func (j *JWTManager) GenerateToken(userID string, roles []string) (string, error
 // GenerateTokenWithClaims creates a new JWT token with the provided claims and custom claims
 func (j *JWTManager) GenerateTokenWithClaims(userID string, roles []string, customClaims map[string]interface{}) (string, error) {
 	now := time.Now()
-	
+
 	// Extract username and email from custom claims if provided
 	var username, email string
 	if customClaims != nil {
@@ -62,7 +62,7 @@ func (j *JWTManager) GenerateTokenWithClaims(userID string, roles []string, cust
 			email = e
 		}
 	}
-	
+
 	claims := Claims{
 		UserID:       userID,
 		Username:     username,
@@ -93,11 +93,11 @@ func (j *JWTManager) GenerateTokenWithUserInfo(userID, username, email string, r
 	if email != "" {
 		customClaims["email"] = email
 	}
-	
+
 	if len(customClaims) == 0 {
 		customClaims = nil
 	}
-	
+
 	return j.GenerateTokenWithClaims(userID, roles, customClaims)
 }
 
@@ -107,14 +107,14 @@ func (j *JWTManager) GenerateTokenWithUserInfoAndClaims(userID, username, email 
 	if customClaims == nil {
 		customClaims = make(map[string]interface{})
 	}
-	
+
 	if username != "" {
 		customClaims["username"] = username
 	}
 	if email != "" {
 		customClaims["email"] = email
 	}
-	
+
 	return j.GenerateTokenWithClaims(userID, roles, customClaims)
 }
 
@@ -182,7 +182,7 @@ func (j *JWTManager) RefreshToken(tokenString string) (string, error) {
 	if claims.Email != "" {
 		refreshCustomClaims["email"] = claims.Email
 	}
-	
+
 	return j.GenerateTokenWithClaims(claims.UserID, claims.Roles, refreshCustomClaims)
 }
 

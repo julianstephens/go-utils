@@ -135,12 +135,12 @@ func TestRecoveryNoPanic(t *testing.T) {
 
 func TestCORS(t *testing.T) {
 	config := middleware.CORSConfig{
-		AllowedOrigins: []string{"https://example.com", "https://test.com"},
-		AllowedMethods: []string{"GET", "POST"},
-		AllowedHeaders: []string{"Content-Type", "Authorization"},
-		ExposedHeaders: []string{"X-Total-Count"},
+		AllowedOrigins:   []string{"https://example.com", "https://test.com"},
+		AllowedMethods:   []string{"GET", "POST"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		ExposedHeaders:   []string{"X-Total-Count"},
 		AllowCredentials: true,
-		MaxAge:         3600,
+		MaxAge:           3600,
 	}
 
 	handler := middleware.CORS(config)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
