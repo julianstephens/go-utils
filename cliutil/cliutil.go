@@ -90,19 +90,20 @@ func ParseArgs(args []string) *Args {
 }
 
 // isBooleanFlag checks if a flag name is commonly used as a boolean flag
+var commonBoolFlags = map[string]bool{
+	"verbose": true, "v": true,
+	"debug": true, "d": true,
+	"help": true, "h": true,
+	"version": true,
+	"quiet": true, "q": true,
+	"force": true, "f": true,
+	"dry-run": true,
+	"interactive": true, "i": true,
+	"recursive": true, "r": true,
+	"all": true, "a": true,
+}
+
 func isBooleanFlag(flagName string) bool {
-	commonBoolFlags := map[string]bool{
-		"verbose": true, "v": true,
-		"debug": true, "d": true,
-		"help": true, "h": true,
-		"version": true,
-		"quiet": true, "q": true,
-		"force": true, "f": true,
-		"dry-run": true,
-		"interactive": true, "i": true,
-		"recursive": true, "r": true,
-		"all": true, "a": true,
-	}
 	return commonBoolFlags[flagName]
 }
 
