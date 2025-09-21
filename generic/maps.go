@@ -1,5 +1,10 @@
 package generic
 
+import (
+	"maps"
+	maps0 "maps"
+)
+
 // Keys returns a slice containing all keys from the map.
 // The order of keys is not guaranteed.
 func Keys[K comparable, V any](m map[K]V) []K {
@@ -109,9 +114,7 @@ func MapMap[K1 comparable, V1 any, K2 comparable, V2 any](m map[K1]V1, f func(K1
 func MergeMap[K comparable, V any](maps ...map[K]V) map[K]V {
 	result := make(map[K]V)
 	for _, m := range maps {
-		for k, v := range m {
-			result[k] = v
-		}
+		maps0.Copy(result, m)
 	}
 	return result
 }
@@ -122,8 +125,6 @@ func CopyMap[K comparable, V any](m map[K]V) map[K]V {
 		return nil
 	}
 	result := make(map[K]V, len(m))
-	for k, v := range m {
-		result[k] = v
-	}
+	maps.Copy(result, m)
 	return result
 }

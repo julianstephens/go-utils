@@ -14,7 +14,7 @@ func BenchmarkMap(b *testing.B) {
 	for i := range input {
 		input[i] = i
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = generic.Map(input, func(x int) string {
@@ -28,7 +28,7 @@ func BenchmarkFilter(b *testing.B) {
 	for i := range input {
 		input[i] = i
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = generic.Filter(input, func(x int) bool {
@@ -42,7 +42,7 @@ func BenchmarkReduce(b *testing.B) {
 	for i := range input {
 		input[i] = i
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = generic.Reduce(input, 0, func(acc, x int) int {
@@ -56,7 +56,7 @@ func BenchmarkContains(b *testing.B) {
 	for i := range input {
 		input[i] = i
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = generic.Contains(input, 500)
@@ -68,7 +68,7 @@ func BenchmarkUnique(b *testing.B) {
 	for i := range input {
 		input[i] = i % 100 // Create duplicates
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = generic.Unique(input)
@@ -84,7 +84,7 @@ func BenchmarkDifference(b *testing.B) {
 	for i := range b_slice {
 		b_slice[i] = i * 2
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = generic.Difference(a, b_slice)
@@ -96,7 +96,7 @@ func BenchmarkKeys(b *testing.B) {
 	for i := 0; i < 1000; i++ {
 		m[i] = strconv.Itoa(i)
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = generic.Keys(m)
@@ -108,7 +108,7 @@ func BenchmarkValues(b *testing.B) {
 	for i := 0; i < 1000; i++ {
 		m[i] = strconv.Itoa(i)
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = generic.Values(m)
@@ -120,12 +120,12 @@ func BenchmarkSliceToMap(b *testing.B) {
 		ID   int
 		Name string
 	}
-	
+
 	items := make([]Item, 1000)
 	for i := range items {
 		items[i] = Item{ID: i, Name: strconv.Itoa(i)}
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = generic.SliceToMap(items,
@@ -149,7 +149,7 @@ func BenchmarkPtr(b *testing.B) {
 func BenchmarkDeref(b *testing.B) {
 	value := 42
 	ptr := &value
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = generic.Deref(ptr)

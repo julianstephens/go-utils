@@ -1,13 +1,10 @@
 package generic
 
+import "slices"
+
 // Contains returns true if the slice contains the specified value.
 func Contains[T comparable](slice []T, value T) bool {
-	for _, v := range slice {
-		if v == value {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(slice, value)
 }
 
 // ContainsAll returns true if all elements in subset are present in mainSlice.
@@ -134,21 +131,21 @@ func Intersection[T comparable](a, b []T) []T {
 func Union[T comparable](a, b []T) []T {
 	seen := make(map[T]struct{})
 	var union []T
-	
+
 	for _, x := range a {
 		if _, exists := seen[x]; !exists {
 			seen[x] = struct{}{}
 			union = append(union, x)
 		}
 	}
-	
+
 	for _, x := range b {
 		if _, exists := seen[x]; !exists {
 			seen[x] = struct{}{}
 			union = append(union, x)
 		}
 	}
-	
+
 	return union
 }
 
@@ -158,13 +155,10 @@ func Chunk[T any](slice []T, size int) [][]T {
 	if size <= 0 || len(slice) == 0 {
 		return nil
 	}
-	
+
 	var chunks [][]T
 	for i := 0; i < len(slice); i += size {
-		end := i + size
-		if end > len(slice) {
-			end = len(slice)
-		}
+		end := min(i+size, len(slice))
 		chunks = append(chunks, slice[i:end])
 	}
 	return chunks

@@ -1,5 +1,7 @@
 package generic
 
+import "slices"
+
 // Map applies a function to each element of a slice and returns a new slice with the results.
 // The function f is applied to each element of type T and produces an element of type U.
 func Map[T, U any](slice []T, f func(T) U) []U {
@@ -53,12 +55,7 @@ func Find[T any](slice []T, predicate func(T) bool) (T, bool) {
 
 // Any returns true if any element in the slice satisfies the predicate function.
 func Any[T any](slice []T, predicate func(T) bool) bool {
-	for _, v := range slice {
-		if predicate(v) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(slice, predicate)
 }
 
 // All returns true if all elements in the slice satisfy the predicate function.
