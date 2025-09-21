@@ -83,11 +83,30 @@ func DefaultTransactionOptions() *TransactionOptions {
 // It converts CamelCase to snake_case (e.g., "UserID" -> "user_id").
 func DefaultFieldMapper(fieldName string) string {
 	var result strings.Builder
-	for i, r := range fieldName {
-		if i > 0 && 'A' <= r && r <= 'Z' {
-			result.WriteByte('_')
+	runes := []rune(fieldName)
+	for i := 0; i < len(runes); i++ {
+		if i > 0 {
+			curr := runes[i]
+			prev := runes[i-1]
+			var next rune
+			if i+1 < len(runes) {
+				next = runes[i+1]
+			} else {
+				next = 0
+			}
+			// Insert underscore if:
+			// 1. Current is uppercase
+			// 2. Previous is lowercase or digit
+			// 3. Or next is lowercase (handles end of acronym)
+			if 'A' <= curr && curr <= 'Z' {
+				if ('a' <= prev && prev <= 'z') || ('0' <= prev && prev <= '9') {
+					result.WriteByte('_')
+				} else if next != 0 && 'a' <= next && next <= 'z' {
+					result.WriteByte('_')
+				}
+			}
 		}
-		result.WriteRune(r)
+		result.WriteRune(runes[i])
 	}
 	return strings.ToLower(result.String())
 }
