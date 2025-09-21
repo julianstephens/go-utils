@@ -64,7 +64,7 @@ Error Context:
 All functions provide enhanced error context to help with debugging:
 
 	// Instead of: "invalid character 'x' looking for beginning of value"
-	// You get: "jsonutil: unmarshal failed at position 15: invalid character 'x' looking for beginning of value"
+	// You get: "jsonutil: unmarshal failed: invalid character 'x' looking for beginning of value"
 
 The package is designed for reuse across Go projects and integrates well with existing
 JSON workflows while providing additional safety and convenience features.
