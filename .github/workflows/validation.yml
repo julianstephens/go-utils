@@ -45,14 +45,14 @@ jobs:
 
       - name: Format code
         id: fmt
-        if: env.DO_FMT
+        if: ${{ env.DO_FMT == 'true' }}
         run: |
           go fmt ./...
           git diff --exit-code || (echo "Go code is not properly formatted" && exit 1)
         continue-on-error: true
 
       - name: Comment on PR if formatting fails
-        if: steps.fmt.outcome == 'failure' && env.DO_FMT
+        if: steps.fmt.outcome == 'failure' && ${{ env.DO_FMT == 'true' }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -70,13 +70,13 @@ jobs:
 
       - name: Run tests
         id: test
-        if: env.DO_TEST
+        if: ${{ env.DO_TEST == 'true' }}
         run: |
           go test -v ./...
         continue-on-error: true
 
       - name: Comment on PR if tests fail
-        if: steps.test.outcome == 'failure' && env.DO_TEST
+        if: steps.test.outcome == 'failure' && ${{ env.DO_TEST == 'true' }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -94,13 +94,13 @@ jobs:
 
       - name: Build project
         id: build
-        if: env.DO_BUILD
+        if: ${{ env.DO_BUILD == 'true' }}
         run: |
           go build ./...
         continue-on-error: true
 
       - name: Comment on PR if build fails
-        if: steps.build.outcome == 'failure' && env.DO_BUILD
+        if: steps.build.outcome == 'failure' && ${{ env.DO_BUILD  == 'true' }}
         uses: actions/github-script@v7
         with:
           script: |
