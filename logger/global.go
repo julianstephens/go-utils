@@ -102,6 +102,25 @@ func Fatal(args ...interface{}) {
 	defaultLogger.Fatal(args...)
 }
 
+// Trace logs a message at trace level using the default logger.
+func Trace(args ...interface{}) {
+	defaultLogger.Trace(args...)
+}
+
+// Tracef logs a message at trace level with printf-style formatting using the default logger.
+func Tracef(format string, args ...interface{}) {
+	defaultLogger.Tracef(format, args...)
+}
+
+// Panic logs a message at panic level using the default logger and then panics.
+func Panic(args ...interface{}) {
+	defaultLogger.Panic(args...)
+}
+
+// Panicf logs a message at panic level with printf-style formatting using the default logger and then panics.
+func Panicf(format string, args ...interface{}) {
+	defaultLogger.Panicf(format, args...)
+}
 // GetDefaultLogger returns the default logger instance for advanced usage.
 func GetDefaultLogger() *Logger {
 	return defaultLogger
