@@ -45,7 +45,7 @@ jobs:
 
       - name: Format code
         id: fmt
-        if: ${{ inputs.DO_FMT == 'true' }}
+        if: ${{ inputs.DO_FMT }}
         run: |
           go fmt ./...
           git diff --exit-code || (echo "Go code is not properly formatted" && exit 1)
