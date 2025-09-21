@@ -1,3 +1,10 @@
+## v0.1.5
+
+- adds `config` package for reusable configuration management
+- supports loading from environment variables and YAML/JSON files  
+- provides struct-based configuration with validation and default values
+- includes comprehensive test coverage and full GoDoc documentation
+
 ## v0.1.4
 
 - adds `slices`

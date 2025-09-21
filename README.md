@@ -6,6 +6,7 @@ A collection of reusable Go utilities and helper functions designed to simplify 
 
 | Package                    | Description                                                                |
 |----------------------------|----------------------------------------------------------------------------|
+| `config`                   | Reusable and idiomatic configuration management with support for environment variables, YAML/JSON files, validation, and default values |
 | `logger`                   | Unified structured logger wrapping logrus with log level control, custom formatting, and contextual logging support |
 | `slices`                   | Generic slice utility functions for conditional selection, set operations, and element manipulation |
 | `helpers`                  | General utility functions including slice operations, conditional helpers, file system utilities, and struct manipulation |
