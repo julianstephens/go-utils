@@ -419,7 +419,11 @@ func (s *Spinner) Stop() {
 	}
 	
 	s.active = false
-	s.stopChan <- true
+	select {
+	case s.stopChan <- true:
+	default:
+		// spinner goroutine already exited, do nothing
+	}
 	fmt.Print("\r" + strings.Repeat(" ", len(s.message)+2) + "\r")
 }
 
