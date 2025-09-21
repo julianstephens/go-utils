@@ -135,6 +135,15 @@ func (l *Logger) Fatal(args ...interface{}) {
 	l.entry.Fatal(args...)
 }
 
+// Trace logs a message at trace level.
+func (l *Logger) Trace(args ...interface{}) {
+	l.entry.Trace(args...)
+}
+
+// Panic logs a message at panic level and then panics.
+func (l *Logger) Panic(args ...interface{}) {
+	l.entry.Panic(args...)
+}
 // GetLevel returns the current logging level.
 func (l *Logger) GetLevel() string {
 	return l.level.String()
