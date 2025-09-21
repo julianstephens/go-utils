@@ -6,6 +6,7 @@
 - adds `generic`
 - adds `jsonutil`
 - adds `cliutil`
+- adds `dbutil`
 
 ## v0.1.3
 
