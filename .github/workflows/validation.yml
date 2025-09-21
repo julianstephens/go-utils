@@ -1,0 +1,129 @@
+name: Validation
+
+on:
+  workflow_call:
+    inputs:
+      do_fmt:
+        description: "Run formatting step"
+        required: false
+        default: true
+        type: boolean
+      do_test:
+        description: "Run test step"
+        required: false
+        default: true
+        type: boolean
+      do_build:
+        description: "Run build step"
+        required: false
+        default: true
+        type: boolean
+      gomod_path:
+        description: "Path to go.mod (default: repo root)"
+        required: false
+        default: "./"
+        type: string
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Read Go version from go.mod
+        id: go_version
+        run: |
+          modpath="${{ env.GOMOD_PATH }}"
+          goversion=$(grep '^go [0-9]\+\.[0-9]\+' "$modpath/go.mod" | head -1 | awk '{print $2}')
+          if [ -z "$goversion" ]; then
+            echo "Could not determine Go version from $modpath/go.mod"
+            exit 1
+          fi
+          echo "GO_VERSION=$goversion" >> $GITHUB_ENV
+          echo "Detected Go version: $goversion"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set PR number
+        id: prmeta
+        run: |
+          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+
+      - name: Format code
+        id: fmt
+        if: ${{ env.DO_FMT == 'true' }}
+        run: |
+          go fmt ./...
+          git diff --exit-code || (echo "Go code is not properly formatted" && exit 1)
+        continue-on-error: true
+
+      - name: Comment on PR if formatting fails
+        if: steps.fmt.outcome == 'failure' && env.DO_FMT == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: ${{ steps.prmeta.outputs.pr_number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `:x: **Go Format Failed**
+              Please format your code with \`go fmt\` before merging.
+              [See failed workflow run](${{
+                github.server_url }}/${
+                github.repository
+              }/actions/runs/${{ github.run_id }})`
+            })
+
+      - name: Run tests
+        id: test
+        if: ${{ env.DO_TEST == 'true' }}
+        run: |
+          go test -v ./...
+        continue-on-error: true
+
+      - name: Comment on PR if tests fail
+        if: steps.test.outcome == 'failure' && env.DO_TEST == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: ${{ steps.prmeta.outputs.pr_number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `:x: **Go Tests Failed**
+              Please fix test failures before merging.
+              [See failed workflow run](${{
+                github.server_url }}/${
+                github.repository
+              }/actions/runs/${{ github.run_id }})`
+            })
+
+      - name: Build project
+        id: build
+        if: ${{ env.DO_BUILD == 'true' }}
+        run: |
+          go build ./...
+        continue-on-error: true
+
+      - name: Comment on PR if build fails
+        if: steps.build.outcome == 'failure' && env.DO_BUILD == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: ${{ steps.prmeta.outputs.pr_number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `:x: **Go Build Failed**
+              Please fix build errors before merging.
+              [See failed workflow run](${{
+                github.server_url }}/${
+                github.repository
+              }/actions/runs/${{ github.run_id }})`
+            })
