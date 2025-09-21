@@ -240,12 +240,10 @@ func scanRowToMap(rows *sql.Rows) (map[string]interface{}, error) {
 			continue
 		}
 
-		// Convert byte slices to strings for text columns
+		// Convert byte slices to strings for text columns using ScanType
 		if b, ok := value.([]byte); ok {
-			// Check if this should be a string based on column type
 			if columnTypes[i] != nil {
-				dbType := columnTypes[i].DatabaseTypeName()
-				if isTextColumn(dbType) {
+				if columnTypes[i].ScanType() == reflect.TypeOf("") {
 					result[column] = string(b)
 					continue
 				}
