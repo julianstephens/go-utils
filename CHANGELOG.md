@@ -5,6 +5,7 @@
 - adds `config`
 - adds `generic`
 - adds `jsonutil`
+- adds `cliutil`
 
 ## v0.1.3
 
