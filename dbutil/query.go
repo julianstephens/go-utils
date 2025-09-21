@@ -9,38 +9,38 @@ import (
 
 // QuerySlice executes a query and scans all rows into a slice of structs.
 // dest should be a pointer to a slice of structs with appropriate db tags.
-func QuerySlice(ctx context.Context, db *sql.DB, dest interface{}, query string, args ...interface{}) error {
+func QuerySlice(ctx context.Context, db *sql.DB, dest any, query string, args ...any) error {
 	return QuerySliceWithOptions(ctx, db, dest, query, DefaultQueryOptions(), args...)
 }
 
 // QuerySliceTx is like QuerySlice but uses a transaction.
-func QuerySliceTx(ctx context.Context, tx *sql.Tx, dest interface{}, query string, args ...interface{}) error {
+func QuerySliceTx(ctx context.Context, tx *sql.Tx, dest any, query string, args ...any) error {
 	return QuerySliceWithOptionsTx(ctx, tx, dest, query, DefaultQueryOptions(), args...)
 }
 
 // QuerySliceWithOptions executes a query and scans all rows into a slice of structs with options.
-func QuerySliceWithOptions(ctx context.Context, db *sql.DB, dest interface{}, query string, opts *QueryOptions, args ...interface{}) error {
+func QuerySliceWithOptions(ctx context.Context, db *sql.DB, dest any, query string, opts *QueryOptions, args ...any) error {
 	return querySliceImpl(ctx, func() (*sql.Rows, error) {
 		return db.QueryContext(ctx, query, args...)
 	}, dest, opts)
 }
 
 // QuerySliceWithOptionsTx is like QuerySliceWithOptions but uses a transaction.
-func QuerySliceWithOptionsTx(ctx context.Context, tx *sql.Tx, dest interface{}, query string, opts *QueryOptions, args ...interface{}) error {
+func QuerySliceWithOptionsTx(ctx context.Context, tx *sql.Tx, dest any, query string, opts *QueryOptions, args ...any) error {
 	return querySliceImpl(ctx, func() (*sql.Rows, error) {
 		return tx.QueryContext(ctx, query, args...)
 	}, dest, opts)
 }
 
 // querySliceImpl is the common implementation for QuerySlice functions.
-func querySliceImpl(ctx context.Context, queryFn func() (*sql.Rows, error), dest interface{}, opts *QueryOptions) error {
+func querySliceImpl(_ context.Context, queryFn func() (*sql.Rows, error), dest any, opts *QueryOptions) error {
 	if opts == nil {
 		opts = DefaultQueryOptions()
 	}
 
 	// Validate dest parameter
 	destValue := reflect.ValueOf(dest)
-	if destValue.Kind() != reflect.Ptr || destValue.IsNil() {
+	if destValue.Kind() != reflect.Pointer || destValue.IsNil() {
 		return fmt.Errorf("dbutil: dest must be a non-nil pointer")
 	}
 
@@ -51,14 +51,14 @@ func querySliceImpl(ctx context.Context, queryFn func() (*sql.Rows, error), dest
 
 	sliceType := destElem.Type()
 	elementType := sliceType.Elem()
-	
+
 	// Handle pointer to struct
 	isPtr := false
-	if elementType.Kind() == reflect.Ptr {
+	if elementType.Kind() == reflect.Pointer {
 		isPtr = true
 		elementType = elementType.Elem()
 	}
-	
+
 	if elementType.Kind() != reflect.Struct {
 		return fmt.Errorf("dbutil: dest must be a pointer to a slice of structs or pointers to structs")
 	}
@@ -95,7 +95,7 @@ func querySliceImpl(ctx context.Context, queryFn func() (*sql.Rows, error), dest
 		}
 
 		// Create scan destinations
-		scanDests := make([]interface{}, len(fields))
+		scanDests := make([]any, len(fields))
 		for i, field := range fields {
 			var fieldValue reflect.Value
 			if isPtr {
@@ -103,7 +103,7 @@ func querySliceImpl(ctx context.Context, queryFn func() (*sql.Rows, error), dest
 			} else {
 				fieldValue = elemValue.FieldByName(field.Name)
 			}
-			
+
 			if !fieldValue.CanAddr() {
 				return fmt.Errorf("dbutil: field %s cannot be addressed", field.Name)
 			}
@@ -135,35 +135,35 @@ func querySliceImpl(ctx context.Context, queryFn func() (*sql.Rows, error), dest
 }
 
 // QueryMap executes a query and returns the first row as a map[string]interface{}.
-func QueryMap(ctx context.Context, db *sql.DB, query string, args ...interface{}) (map[string]interface{}, error) {
+func QueryMap(ctx context.Context, db *sql.DB, query string, args ...any) (map[string]any, error) {
 	return queryMapImpl(ctx, func() (*sql.Rows, error) {
 		return db.QueryContext(ctx, query, args...)
 	})
 }
 
 // QueryMapTx is like QueryMap but uses a transaction.
-func QueryMapTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (map[string]interface{}, error) {
+func QueryMapTx(ctx context.Context, tx *sql.Tx, query string, args ...any) (map[string]any, error) {
 	return queryMapImpl(ctx, func() (*sql.Rows, error) {
 		return tx.QueryContext(ctx, query, args...)
 	})
 }
 
 // QueryMaps executes a query and returns all rows as []map[string]interface{}.
-func QueryMaps(ctx context.Context, db *sql.DB, query string, args ...interface{}) ([]map[string]interface{}, error) {
+func QueryMaps(ctx context.Context, db *sql.DB, query string, args ...any) ([]map[string]any, error) {
 	return queryMapsImpl(ctx, func() (*sql.Rows, error) {
 		return db.QueryContext(ctx, query, args...)
 	})
 }
 
 // QueryMapsTx is like QueryMaps but uses a transaction.
-func QueryMapsTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) ([]map[string]interface{}, error) {
+func QueryMapsTx(ctx context.Context, tx *sql.Tx, query string, args ...any) ([]map[string]any, error) {
 	return queryMapsImpl(ctx, func() (*sql.Rows, error) {
 		return tx.QueryContext(ctx, query, args...)
 	})
 }
 
 // queryMapImpl is the common implementation for QueryMap functions.
-func queryMapImpl(ctx context.Context, queryFn func() (*sql.Rows, error)) (map[string]interface{}, error) {
+func queryMapImpl(_ context.Context, queryFn func() (*sql.Rows, error)) (map[string]any, error) {
 	rows, err := queryFn()
 	if err != nil {
 		return nil, fmt.Errorf("dbutil: query map failed: %w", err)
@@ -181,14 +181,14 @@ func queryMapImpl(ctx context.Context, queryFn func() (*sql.Rows, error)) (map[s
 }
 
 // queryMapsImpl is the common implementation for QueryMaps functions.
-func queryMapsImpl(ctx context.Context, queryFn func() (*sql.Rows, error)) ([]map[string]interface{}, error) {
+func queryMapsImpl(_ context.Context, queryFn func() (*sql.Rows, error)) ([]map[string]any, error) {
 	rows, err := queryFn()
 	if err != nil {
 		return nil, fmt.Errorf("dbutil: query maps failed: %w", err)
 	}
 	defer rows.Close()
 
-	var result []map[string]interface{}
+	var result []map[string]any
 	for rows.Next() {
 		rowMap, err := scanRowToMap(rows)
 		if err != nil {
@@ -205,7 +205,7 @@ func queryMapsImpl(ctx context.Context, queryFn func() (*sql.Rows, error)) ([]ma
 }
 
 // scanRowToMap scans a single row into a map[string]interface{}.
-func scanRowToMap(rows *sql.Rows) (map[string]interface{}, error) {
+func scanRowToMap(rows *sql.Rows) (map[string]any, error) {
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, fmt.Errorf("dbutil: get columns failed: %w", err)
@@ -217,9 +217,9 @@ func scanRowToMap(rows *sql.Rows) (map[string]interface{}, error) {
 	}
 
 	// Create interface{} slice for scanning
-	values := make([]interface{}, len(columns))
-	scanArgs := make([]interface{}, len(columns))
-	
+	values := make([]any, len(columns))
+	scanArgs := make([]any, len(columns))
+
 	for i := range values {
 		scanArgs[i] = &values[i]
 	}
@@ -230,10 +230,10 @@ func scanRowToMap(rows *sql.Rows) (map[string]interface{}, error) {
 	}
 
 	// Convert to map, handling NULL values
-	result := make(map[string]interface{})
+	result := make(map[string]any)
 	for i, column := range columns {
 		value := values[i]
-		
+
 		// Handle NULL values
 		if value == nil {
 			result[column] = nil
@@ -256,38 +256,22 @@ func scanRowToMap(rows *sql.Rows) (map[string]interface{}, error) {
 	return result, nil
 }
 
-// isTextColumn checks if a database type should be treated as text.
-func isTextColumn(dbType string) bool {
-	textTypes := []string{
-		"VARCHAR", "TEXT", "CHAR", "NVARCHAR", "NTEXT", "NCHAR",
-		"STRING", "CLOB", "LONGTEXT", "MEDIUMTEXT", "TINYTEXT",
-	}
-	
-	for _, textType := range textTypes {
-		if dbType == textType {
-			return true
-		}
-	}
-	
-	return false
-}
-
 // Exists checks if a query returns any rows.
-func Exists(ctx context.Context, db *sql.DB, query string, args ...interface{}) (bool, error) {
+func Exists(ctx context.Context, db *sql.DB, query string, args ...any) (bool, error) {
 	return existsImpl(ctx, func() (*sql.Rows, error) {
 		return db.QueryContext(ctx, query, args...)
 	})
 }
 
 // ExistsTx is like Exists but uses a transaction.
-func ExistsTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (bool, error) {
+func ExistsTx(ctx context.Context, tx *sql.Tx, query string, args ...any) (bool, error) {
 	return existsImpl(ctx, func() (*sql.Rows, error) {
 		return tx.QueryContext(ctx, query, args...)
 	})
 }
 
 // existsImpl is the common implementation for Exists functions.
-func existsImpl(ctx context.Context, queryFn func() (*sql.Rows, error)) (bool, error) {
+func existsImpl(_ context.Context, queryFn func() (*sql.Rows, error)) (bool, error) {
 	rows, err := queryFn()
 	if err != nil {
 		return false, fmt.Errorf("dbutil: exists query failed: %w", err)
@@ -303,21 +287,21 @@ func existsImpl(ctx context.Context, queryFn func() (*sql.Rows, error)) (bool, e
 }
 
 // Count executes a COUNT query and returns the result.
-func Count(ctx context.Context, db *sql.DB, query string, args ...interface{}) (int64, error) {
+func Count(ctx context.Context, db *sql.DB, query string, args ...any) (int64, error) {
 	return countImpl(ctx, func() *sql.Row {
 		return db.QueryRowContext(ctx, query, args...)
 	})
 }
 
 // CountTx is like Count but uses a transaction.
-func CountTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (int64, error) {
+func CountTx(ctx context.Context, tx *sql.Tx, query string, args ...any) (int64, error) {
 	return countImpl(ctx, func() *sql.Row {
 		return tx.QueryRowContext(ctx, query, args...)
 	})
 }
 
 // countImpl is the common implementation for Count functions.
-func countImpl(ctx context.Context, queryFn func() *sql.Row) (int64, error) {
+func countImpl(_ context.Context, queryFn func() *sql.Row) (int64, error) {
 	var count int64
 	err := queryFn().Scan(&count)
 	if err != nil {

@@ -1,6 +1,8 @@
 package dbutil_test
 
 import (
+	"context"
+	"database/sql"
 	"testing"
 
 	"github.com/julianstephens/go-utils/dbutil"
@@ -62,3 +64,35 @@ func BenchmarkQuerySliceOptions(b *testing.B) {
 		_ = opts.FieldMapper("TestField")
 	}
 }
+func TestCount(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		db      *sql.DB
+		query   string
+		args    []interface{}
+		want    int64
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, gotErr := dbutil.Count(context.Background(), tt.db, tt.query, tt.args)
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("Count() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("Count() succeeded unexpectedly")
+			}
+			// TODO: update the condition below to compare got with tt.want.
+			if true {
+				t.Errorf("Count() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+

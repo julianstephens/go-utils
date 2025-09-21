@@ -84,7 +84,7 @@ func DefaultTransactionOptions() *TransactionOptions {
 func DefaultFieldMapper(fieldName string) string {
 	var result strings.Builder
 	runes := []rune(fieldName)
-	for i := 0; i < len(runes); i++ {
+	for i := range runes {
 		if i > 0 {
 			curr := runes[i]
 			prev := runes[i-1]
@@ -147,7 +147,7 @@ func PingWithContext(ctx context.Context, db *sql.DB, timeout time.Duration) err
 // PingWithRetry pings the database with retry logic.
 func PingWithRetry(ctx context.Context, db *sql.DB, attempts int, delay time.Duration) error {
 	var lastErr error
-	for i := 0; i < attempts; i++ {
+	for i := range attempts {
 		if err := db.PingContext(ctx); err != nil {
 			lastErr = err
 			if i < attempts-1 {
@@ -167,18 +167,18 @@ func PingWithRetry(ctx context.Context, db *sql.DB, attempts int, delay time.Dur
 
 // QueryRow executes a query that is expected to return at most one row.
 // It returns a *sql.Row which can be scanned into destination variables.
-func QueryRow(ctx context.Context, db *sql.DB, query string, args ...interface{}) *sql.Row {
+func QueryRow(ctx context.Context, db *sql.DB, query string, args ...any) *sql.Row {
 	return db.QueryRowContext(ctx, query, args...)
 }
 
 // QueryRowTx is like QueryRow but uses a transaction.
-func QueryRowTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) *sql.Row {
+func QueryRowTx(ctx context.Context, tx *sql.Tx, query string, args ...any) *sql.Row {
 	return tx.QueryRowContext(ctx, query, args...)
 }
 
 // QueryRows executes a query and returns multiple rows.
 // It's the caller's responsibility to close the returned *sql.Rows.
-func QueryRows(ctx context.Context, db *sql.DB, query string, args ...interface{}) (*sql.Rows, error) {
+func QueryRows(ctx context.Context, db *sql.DB, query string, args ...any) (*sql.Rows, error) {
 	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("dbutil: query rows failed: %w", err)
@@ -187,7 +187,7 @@ func QueryRows(ctx context.Context, db *sql.DB, query string, args ...interface{
 }
 
 // QueryRowsTx is like QueryRows but uses a transaction.
-func QueryRowsTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (*sql.Rows, error) {
+func QueryRowsTx(ctx context.Context, tx *sql.Tx, query string, args ...any) (*sql.Rows, error) {
 	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("dbutil: query rows (tx) failed: %w", err)
@@ -197,7 +197,7 @@ func QueryRowsTx(ctx context.Context, tx *sql.Tx, query string, args ...interfac
 
 // Exec executes a query without returning any rows.
 // It returns the number of rows affected and any error encountered.
-func Exec(ctx context.Context, db *sql.DB, query string, args ...interface{}) (sql.Result, error) {
+func Exec(ctx context.Context, db *sql.DB, query string, args ...any) (sql.Result, error) {
 	result, err := db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("dbutil: exec failed: %w", err)
@@ -206,7 +206,7 @@ func Exec(ctx context.Context, db *sql.DB, query string, args ...interface{}) (s
 }
 
 // ExecTx is like Exec but uses a transaction.
-func ExecTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (sql.Result, error) {
+func ExecTx(ctx context.Context, tx *sql.Tx, query string, args ...any) (sql.Result, error) {
 	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("dbutil: exec (tx) failed: %w", err)
@@ -272,23 +272,23 @@ func WithTransactionOptions(ctx context.Context, db *sql.DB, opts *TransactionOp
 
 // QueryRowScan executes a query that returns a single row and scans the result into dest.
 // dest should be a pointer to a struct with appropriate db tags.
-func QueryRowScan(ctx context.Context, db *sql.DB, dest interface{}, query string, args ...interface{}) error {
+func QueryRowScan(ctx context.Context, db *sql.DB, dest any, query string, args ...any) error {
 	return queryRowScanImpl(ctx, func() *sql.Row {
 		return db.QueryRowContext(ctx, query, args...)
 	}, dest)
 }
 
 // QueryRowScanTx is like QueryRowScan but uses a transaction.
-func QueryRowScanTx(ctx context.Context, tx *sql.Tx, dest interface{}, query string, args ...interface{}) error {
+func QueryRowScanTx(ctx context.Context, tx *sql.Tx, dest any, query string, args ...any) error {
 	return queryRowScanImpl(ctx, func() *sql.Row {
 		return tx.QueryRowContext(ctx, query, args...)
 	}, dest)
 }
 
 // queryRowScanImpl is the common implementation for QueryRowScan functions.
-func queryRowScanImpl(ctx context.Context, queryFn func() *sql.Row, dest interface{}) error {
+func queryRowScanImpl(_ context.Context, queryFn func() *sql.Row, dest any) error {
 	destValue := reflect.ValueOf(dest)
-	if destValue.Kind() != reflect.Ptr || destValue.IsNil() {
+	if destValue.Kind() != reflect.Pointer || destValue.IsNil() {
 		return fmt.Errorf("dbutil: dest must be a non-nil pointer")
 	}
 
@@ -304,7 +304,7 @@ func queryRowScanImpl(ctx context.Context, queryFn func() *sql.Row, dest interfa
 	}
 
 	// Create slice of pointers to scan into
-	scanDests := make([]interface{}, len(fields))
+	scanDests := make([]any, len(fields))
 	for i, field := range fields {
 		fieldValue := destElem.FieldByName(field.Name)
 		if !fieldValue.CanAddr() {
@@ -332,10 +332,10 @@ type structField struct {
 // getStructFields extracts struct fields with db tags.
 func getStructFields(t reflect.Type) ([]structField, error) {
 	var fields []structField
-	
+
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		
+
 		// Skip unexported fields
 		if !field.IsExported() {
 			continue
@@ -373,12 +373,12 @@ func IsConnectionError(err error) bool {
 	if err == nil {
 		return false
 	}
-	
+
 	// Check for driver.ErrBadConn
 	if err == driver.ErrBadConn {
 		return true
 	}
-	
+
 	// Check for common connection error patterns
 	errStr := strings.ToLower(err.Error())
 	connectionErrors := []string{
@@ -390,13 +390,13 @@ func IsConnectionError(err error) bool {
 		"no such host",
 		"timeout",
 	}
-	
+
 	for _, connErr := range connectionErrors {
 		if strings.Contains(errStr, connErr) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
