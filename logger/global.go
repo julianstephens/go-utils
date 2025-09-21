@@ -112,10 +112,6 @@ func Panic(args ...interface{}) {
 	defaultLogger.Panic(args...)
 }
 
-// Panicf logs a message at panic level with printf-style formatting using the default logger and then panics.
-func Panicf(format string, args ...interface{}) {
-	defaultLogger.Panicf(format, args...)
-}
 // GetDefaultLogger returns the default logger instance for advanced usage.
 func GetDefaultLogger() *Logger {
 	return defaultLogger
