@@ -67,6 +67,15 @@ func Fatalf(format string, args ...interface{}) {
 	defaultLogger.Fatalf(format, args...)
 }
 
+// Tracef logs a message at trace level with printf-style formatting using the default logger.
+func Tracef(format string, args ...interface{}) {
+	defaultLogger.Tracef(format, args...)
+}
+
+// Panicf logs a message at panic level with printf-style formatting using the default logger and then panics.
+func Panicf(format string, args ...interface{}) {
+	defaultLogger.Panicf(format, args...)
+}
 // Debug logs a message at debug level using the default logger.
 func Debug(args ...interface{}) {
 	defaultLogger.Debug(args...)
