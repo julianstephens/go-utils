@@ -74,19 +74,23 @@ Struct Tags:
 The config package uses struct tags to define configuration behavior:
 
   - `env:"ENV_VAR"` - specifies the environment variable name
+
   - `default:"value"` - sets a default value if not provided
+
   - `required:"true"` - marks field as required (fails if missing)
+
   - `json:"field_name"` - JSON field name (standard json tag)
+
   - `yaml:"field_name"` - YAML field name (standard yaml tag)
 
-	type DatabaseConfig struct {
-		Host     string `env:"DB_HOST" yaml:"host" json:"host" default:"localhost"`
-		Port     int    `env:"DB_PORT" yaml:"port" json:"port" default:"5432"`
-		Username string `env:"DB_USER" yaml:"username" json:"username" required:"true"`
-		Password string `env:"DB_PASS" yaml:"password" json:"password" required:"true"`
-		Database string `env:"DB_NAME" yaml:"database" json:"database" required:"true"`
-		SSLMode  string `env:"DB_SSL_MODE" yaml:"ssl_mode" json:"ssl_mode" default:"disable"`
-	}
+    type DatabaseConfig struct {
+    Host     string `env:"DB_HOST" yaml:"host" json:"host" default:"localhost"`
+    Port     int    `env:"DB_PORT" yaml:"port" json:"port" default:"5432"`
+    Username string `env:"DB_USER" yaml:"username" json:"username" required:"true"`
+    Password string `env:"DB_PASS" yaml:"password" json:"password" required:"true"`
+    Database string `env:"DB_NAME" yaml:"database" json:"database" required:"true"`
+    SSLMode  string `env:"DB_SSL_MODE" yaml:"ssl_mode" json:"ssl_mode" default:"disable"`
+    }
 
 Validation:
 

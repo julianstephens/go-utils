@@ -38,8 +38,8 @@ type AppConfig struct {
 	} `yaml:"app" json:"app"`
 
 	// Optional settings (pointers)
-	Timeout    *int    `env:"REQUEST_TIMEOUT" yaml:"timeout" json:"timeout"`
-	SecretKey  *string `env:"SECRET_KEY" yaml:"secret_key" json:"secret_key"`
+	Timeout   *int    `env:"REQUEST_TIMEOUT" yaml:"timeout" json:"timeout"`
+	SecretKey *string `env:"SECRET_KEY" yaml:"secret_key" json:"secret_key"`
 }
 
 func runConfigExample() {
@@ -47,7 +47,7 @@ func runConfigExample() {
 
 	// Example 1: Load from environment variables only
 	fmt.Println("1. Loading from environment variables:")
-	
+
 	// Set some environment variables for demonstration
 	os.Setenv("DATABASE_URL", "postgres://user:pass@localhost/example_db")
 	os.Setenv("SERVER_PORT", "3000")
@@ -71,7 +71,7 @@ func runConfigExample() {
 
 	// Example 2: Create and load from YAML file
 	fmt.Println("\n2. Loading from YAML file:")
-	
+
 	yamlContent := `
 server:
   host: "0.0.0.0"
@@ -106,11 +106,11 @@ secret_key: "super-secret-key-from-file"
 	}
 
 	fmt.Printf("  Server: %s:%d\n", cfg2.Server.Host, cfg2.Server.Port)
-	fmt.Printf("  Database: %s (max_conns: %d, ssl: %s)\n", 
+	fmt.Printf("  Database: %s (max_conns: %d, ssl: %s)\n",
 		cfg2.Database.URL, cfg2.Database.MaxConns, cfg2.Database.SSLMode)
-	fmt.Printf("  App: %s (debug: %t, log_level: %s)\n", 
+	fmt.Printf("  App: %s (debug: %t, log_level: %s)\n",
 		cfg2.App.Name, cfg2.App.Debug, cfg2.App.LogLevel)
-	fmt.Printf("  Features: metrics=%t, tracing=%t\n", 
+	fmt.Printf("  Features: metrics=%t, tracing=%t\n",
 		cfg2.Features.EnableMetrics, cfg2.Features.EnableTracing)
 	fmt.Printf("  Admin IPs: %v\n", cfg2.App.AdminIPs)
 	if cfg2.SecretKey != nil {
@@ -119,7 +119,7 @@ secret_key: "super-secret-key-from-file"
 
 	// Example 3: Load from file with environment overrides
 	fmt.Println("\n3. Loading from file with environment overrides:")
-	
+
 	// Override some values with environment variables
 	os.Setenv("SERVER_HOST", "production.example.com")
 	os.Setenv("SERVER_PORT", "443")
@@ -139,10 +139,10 @@ secret_key: "super-secret-key-from-file"
 
 	// Example 4: Demonstrate error handling
 	fmt.Println("\n4. Error handling demonstration:")
-	
+
 	// Clear required environment variable
 	os.Unsetenv("DATABASE_URL")
-	
+
 	var cfg4 AppConfig
 	if err := config.LoadFromEnv(&cfg4); err != nil {
 		fmt.Printf("  Expected error (missing required field): %v\n", err)
@@ -150,13 +150,13 @@ secret_key: "super-secret-key-from-file"
 
 	// Example 5: Using Must functions (would panic on error)
 	fmt.Println("\n5. Using Must functions:")
-	
+
 	// Restore required env var for Must function
 	os.Setenv("DATABASE_URL", "postgres://localhost/must_example")
-	
+
 	var cfg5 AppConfig
 	config.MustLoadFromEnv(&cfg5)
-	fmt.Printf("  Successfully loaded with MustLoadFromEnv: %s:%d\n", 
+	fmt.Printf("  Successfully loaded with MustLoadFromEnv: %s:%d\n",
 		cfg5.Server.Host, cfg5.Server.Port)
 
 	// Clean up environment variables

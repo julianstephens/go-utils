@@ -18,20 +18,6 @@ import (
 //
 // Supported types: string, int (all variants), uint (all variants), float32, float64, bool,
 // slices of these types, and pointers to these types.
-//
-// Example:
-//
-//	type Config struct {
-//		Port     int    `env:"PORT" default:"8080"`
-//		Host     string `env:"HOST" default:"localhost"`
-//		Database string `env:"DATABASE_URL" required:"true"`
-//		Debug    bool   `env:"DEBUG" default:"false"`
-//	}
-//
-//	var cfg Config
-//	if err := config.LoadFromEnv(&cfg); err != nil {
-//		log.Fatal(err)
-//	}
 func LoadFromEnv(cfg interface{}) error {
 	return loadFromEnv(cfg)
 }
@@ -39,13 +25,6 @@ func LoadFromEnv(cfg interface{}) error {
 // LoadFromFile loads configuration from a YAML or JSON file into the provided struct.
 // The file format is determined by the file extension (.yaml, .yml, or .json).
 // The struct should use standard json/yaml tags for field mapping.
-//
-// Example:
-//
-//	var cfg Config
-//	if err := config.LoadFromFile(&cfg, "config.yaml"); err != nil {
-//		log.Fatal(err)
-//	}
 func LoadFromFile(cfg interface{}, filepath string) error {
 	return loadFromFile(cfg, filepath)
 }
@@ -53,13 +32,6 @@ func LoadFromFile(cfg interface{}, filepath string) error {
 // LoadFromFileWithEnv loads configuration from a file and then overrides with environment variables.
 // This allows for a hierarchical configuration approach where files provide defaults
 // and environment variables provide runtime overrides.
-//
-// Example:
-//
-//	var cfg Config
-//	if err := config.LoadFromFileWithEnv(&cfg, "config.yaml"); err != nil {
-//		log.Fatal(err)
-//	}
 func LoadFromFileWithEnv(cfg interface{}, filepath string) error {
 	// First load from file
 	if err := loadFromFile(cfg, filepath); err != nil {
