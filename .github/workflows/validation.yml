@@ -48,20 +48,36 @@ jobs:
         if: ${{ inputs.DO_FMT }}
         run: |
           go fmt ./...
-          git diff --exit-code || (echo "Go code is not properly formatted" && exit 1)
+          if ! git diff --exit-code; then
+            echo "Go code is not properly formatted"
+            echo "unformatted_files<<EOF" >> $GITHUB_OUTPUT
+            git diff --name-only >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            exit 1
+          fi
         continue-on-error: true
 
       - name: Comment on PR if formatting fails
-        if: steps.fmt.outcome == 'failure' && ${{ inputs.DO_FMT == 'true' }}
+        if: steps.fmt.outcome == 'failure' && ${{ inputs.DO_FMT }}
         uses: actions/github-script@v7
         with:
           script: |
+            const unformattedFiles = `${{ steps.fmt.outputs.unformatted_files }}`;
+            const fileList = unformattedFiles.trim() ? 
+              unformattedFiles.split('\n').map(file => `- \`${file}\``).join('\n') : 
+              'No specific files detected';
+
             github.rest.issues.createComment({
               issue_number: ${{ steps.prmeta.outputs.pr_number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `:x: **Go Format Failed**
-              Please format your code with \`go fmt\` before merging.
+              
+              The following files need formatting:
+              ${fileList}
+              
+              Please run \`go fmt ./...\` to format your code before merging.
+              
               [See failed workflow run](${{
                 github.server_url }}/${{
                 github.repository
@@ -70,22 +86,38 @@ jobs:
 
       - name: Run tests
         id: test
-        if: ${{ inputs.DO_TEST == 'true' }}
+        if: ${{ inputs.DO_TEST }}
         run: |
-          go test -v ./...
+          if ! go test -v ./... 2>&1 | tee test_output.log; then
+            echo "Tests failed"
+            echo "test_failures<<EOF" >> $GITHUB_OUTPUT
+            grep -A 10 -B 2 "FAIL\|panic\|Error" test_output.log | head -50 >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            exit 1
+          fi
         continue-on-error: true
 
       - name: Comment on PR if tests fail
-        if: steps.test.outcome == 'failure' && ${{ inputs.DO_TEST == 'true' }}
+        if: steps.test.outcome == 'failure' && ${{ inputs.DO_TEST }}
         uses: actions/github-script@v7
         with:
           script: |
+            const testFailures = `${{ steps.test.outputs.test_failures }}`;
+            const failureDetails = testFailures.trim() ? 
+              `\`\`\`\n${testFailures}\n\`\`\`` : 
+              'No specific failure details captured';
+
             github.rest.issues.createComment({
               issue_number: ${{ steps.prmeta.outputs.pr_number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `:x: **Go Tests Failed**
+              
+              Test failure details:
+              ${failureDetails}
+              
               Please fix test failures before merging.
+              
               [See failed workflow run](${{
                 github.server_url }}/${{
                 github.repository
@@ -94,13 +126,13 @@ jobs:
 
       - name: Build project
         id: build
-        if: ${{ inputs.DO_BUILD == 'true' }}
+        if: ${{ inputs.DO_BUILD }}
         run: |
           go build ./...
         continue-on-error: true
 
       - name: Comment on PR if build fails
-        if: steps.build.outcome == 'failure' && ${{ inputs.DO_BUILD  == 'true' }}
+        if: steps.build.outcome == 'failure' && ${{ inputs.DO_BUILD }}
         uses: actions/github-script@v7
         with:
           script: |
