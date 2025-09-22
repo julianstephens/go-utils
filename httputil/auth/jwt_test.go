@@ -583,3 +583,46 @@ func TestTokenGenerationWithCustomClaimsOnly(t *testing.T) {
 		t.Errorf("Expected Subject claim 'user123', got %s", claims.RegisteredClaims.Subject)
 	}
 }
+
+func TestTokenExpiration(t *testing.T) {
+	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+
+	token, err := manager.GenerateToken("user123", []string{"user"})
+	if err != nil {
+		t.Fatalf("GenerateToken failed: %v", err)
+	}
+
+	exp, err := manager.TokenExpiration(token)
+	if err != nil {
+		t.Fatalf("TokenExpiration failed: %v", err)
+	}
+
+	// expiration should be in the future
+	if time.Now().After(exp) {
+		t.Errorf("Expected expiration in the future, got %v", exp)
+	}
+}
+
+func TestTokenExpirationExpiredToken(t *testing.T) {
+	// Create a token with very short duration so it expires
+	shortManager := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
+
+	token, err := shortManager.GenerateToken("user123", []string{"user"})
+	if err != nil {
+		t.Fatalf("GenerateToken failed: %v", err)
+	}
+
+	// Wait for token to expire
+	time.Sleep(time.Millisecond * 10)
+
+	// Use a manager with same secret to retrieve expiration
+	mgr := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	exp, err := mgr.TokenExpiration(token)
+	if err != nil {
+		t.Fatalf("TokenExpiration failed for expired token: %v", err)
+	}
+
+	if time.Now().Before(exp) {
+		t.Errorf("Expected expiration in the past for expired token, got %v", exp)
+	}
+}

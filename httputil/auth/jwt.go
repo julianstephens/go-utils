@@ -229,6 +229,56 @@ func (c *Claims) IsExpired() bool {
 	return time.Now().After(c.RegisteredClaims.ExpiresAt.Time)
 }
 
+// Expiration returns the token expiration time and true if present.
+// If the token has no expiration claim the returned bool is false.
+func (c *Claims) Expiration() (time.Time, bool) {
+	if c.RegisteredClaims.ExpiresAt == nil {
+		return time.Time{}, false
+	}
+	return c.RegisteredClaims.ExpiresAt.Time, true
+}
+
+// TokenExpiration returns the expiration time for the provided token string.
+// It will return the expiration even if the token is expired (by parsing
+// without claims validation when needed). If the token is invalid or does
+// not contain an expiration, an error is returned.
+func (j *JWTManager) TokenExpiration(tokenString string) (time.Time, error) {
+	// Try full validation first - this covers valid, non-expired tokens.
+	claims, err := j.ValidateToken(tokenString)
+	if err != nil {
+		// If the token is expired, parse without validation to extract claims.
+		if !errors.Is(err, ErrTokenExpired) {
+			return time.Time{}, err
+		}
+
+		token, parseErr := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, ErrInvalidToken
+			}
+			return j.secretKey, nil
+		}, jwt.WithoutClaimsValidation())
+
+		if parseErr != nil {
+			return time.Time{}, ErrInvalidToken
+		}
+
+		c, ok := token.Claims.(*Claims)
+		if !ok {
+			return time.Time{}, ErrInvalidClaims
+		}
+
+		if c.RegisteredClaims.ExpiresAt == nil {
+			return time.Time{}, ErrInvalidClaims
+		}
+		return c.RegisteredClaims.ExpiresAt.Time, nil
+	}
+
+	if claims.RegisteredClaims.ExpiresAt == nil {
+		return time.Time{}, ErrInvalidClaims
+	}
+	return claims.RegisteredClaims.ExpiresAt.Time, nil
+}
+
 // GetCustomClaim retrieves a custom claim value by key
 func (c *Claims) GetCustomClaim(key string) (interface{}, bool) {
 	if c.CustomClaims == nil {

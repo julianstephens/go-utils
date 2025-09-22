@@ -50,7 +50,6 @@ func (r *Responder) WriteWithStatus(w http.ResponseWriter, req *http.Request, da
 }
 
 // ErrorWithStatus handles error responses by calling the OnError hook.
-
 func (r *Responder) ErrorWithStatus(w http.ResponseWriter, req *http.Request, status int, err error) {
 	if r.OnError != nil {
 		r.OnError(w, req, err, status)

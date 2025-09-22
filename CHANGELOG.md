@@ -1,3 +1,7 @@
+## v0.2.1
+
+- adds `TokenExpiration` helpers to `httputil.auth.JWTManager`
+
 ## v0.2.0
 
 - adds `tests`
