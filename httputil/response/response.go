@@ -1,6 +1,7 @@
 package response
 
 import (
+	"errors"
 	"net/http"
 )
 
@@ -87,25 +88,39 @@ func (r *Responder) NoContent(w http.ResponseWriter, req *http.Request) {
 
 // BadRequest writes a response with HTTP 400 Bad Request status.
 func (r *Responder) BadRequest(w http.ResponseWriter, req *http.Request, data any) {
-	r.WriteWithStatus(w, req, data, http.StatusBadRequest)
+	r.ErrorWithStatus(w, req, http.StatusBadRequest, parseErrData(data))
 }
 
 // Unauthorized writes a response with HTTP 401 Unauthorized status.
 func (r *Responder) Unauthorized(w http.ResponseWriter, req *http.Request, data any) {
-	r.WriteWithStatus(w, req, data, http.StatusUnauthorized)
+	r.ErrorWithStatus(w, req, http.StatusUnauthorized, parseErrData(data))
 }
 
 // Forbidden writes a response with HTTP 403 Forbidden status.
 func (r *Responder) Forbidden(w http.ResponseWriter, req *http.Request, data any) {
-	r.WriteWithStatus(w, req, data, http.StatusForbidden)
+	r.ErrorWithStatus(w, req, http.StatusForbidden, parseErrData(data))
 }
 
 // NotFound writes a response with HTTP 404 Not Found status.
 func (r *Responder) NotFound(w http.ResponseWriter, req *http.Request, data any) {
-	r.WriteWithStatus(w, req, data, http.StatusNotFound)
+	r.ErrorWithStatus(w, req, http.StatusNotFound, parseErrData(data))
 }
 
 // InternalServerError writes a response with HTTP 500 Internal Server Error status.
 func (r *Responder) InternalServerError(w http.ResponseWriter, req *http.Request, data any) {
-	r.WriteWithStatus(w, req, data, http.StatusInternalServerError)
+	r.ErrorWithStatus(w, req, http.StatusInternalServerError, parseErrData(data))
+}
+
+func parseErrData(data any) error {
+	var err error
+	if data != nil {
+		if e, ok := data.(error); ok {
+			err = e
+		}
+		if dataStr, ok := data.(string); ok {
+			err = errors.New(dataStr)
+		}
+	}
+
+	return err
 }

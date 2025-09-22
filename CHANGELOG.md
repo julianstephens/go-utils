@@ -1,3 +1,9 @@
+## v0.1.5
+
+- refactors documentation
+- fixes `httputil.response` error statuses
+- fixes `dbutil` field mapper names
+
 ## v0.1.4
 
 - adds `slices`
@@ -24,7 +30,7 @@
 ## v0.1.1
 
 - moves `helpers` to root
-- adds `httputil/request`
+- adds `httputil.request`
 
 ## v0.1.0
 

@@ -82,33 +82,15 @@ func DefaultTransactionOptions() *TransactionOptions {
 // DefaultFieldMapper converts Go struct field names to database column names.
 // It converts CamelCase to snake_case (e.g., "UserID" -> "user_id").
 func DefaultFieldMapper(fieldName string) string {
-	var result strings.Builder
-	runes := []rune(fieldName)
-	for i := range runes {
-		if i > 0 {
-			curr := runes[i]
-			prev := runes[i-1]
-			var next rune
-			if i+1 < len(runes) {
-				next = runes[i+1]
-			} else {
-				next = 0
-			}
-			// Insert underscore if:
-			// 1. Current is uppercase
-			// 2. Previous is lowercase or digit
-			// 3. Or next is lowercase (handles end of acronym)
-			if 'A' <= curr && curr <= 'Z' {
-				if ('a' <= prev && prev <= 'z') || ('0' <= prev && prev <= '9') {
-					result.WriteByte('_')
-				} else if next != 0 && 'a' <= next && next <= 'z' {
-					result.WriteByte('_')
-				}
-			}
-		}
-		result.WriteRune(runes[i])
-	}
-	return strings.ToLower(result.String())
+       var result strings.Builder
+       runes := []rune(fieldName)
+       for i, r := range runes {
+	       if i > 0 && 'A' <= r && r <= 'Z' {
+		       result.WriteByte('_')
+	       }
+	       result.WriteRune(r)
+       }
+       return strings.ToLower(result.String())
 }
 
 // ConfigureDB configures a database connection with the provided options.
