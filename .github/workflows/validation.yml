@@ -38,114 +38,75 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: "${{ inputs.gomod_path }}go.mod"
-
       - name: Set PR number
         id: prmeta
         run: |
           echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-
       - name: Format code
         id: fmt
         if: ${{ inputs.DO_FMT }}
         run: |
           go fmt ./...
+          exit_code=0
           if ! git diff --exit-code; then
             echo "Go code is not properly formatted"
             echo "unformatted_files<<EOF" >> $GITHUB_OUTPUT
             git diff --name-only >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
-            exit 1
+            exit_code=1
           fi
-          exit 0
-        continue-on-error: true
-
-      - name: Comment on PR if formatting fails
-        if: steps.fmt.outcome == 'failure' && ${{ inputs.DO_FMT }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const unformattedFiles = `${{ steps.fmt.outputs.unformatted_files }}`;
-            const fileList = unformattedFiles.trim() ?
-              unformattedFiles.split('\n').map(file => `- \`${file}\``).join('\n') :
-              'No specific files detected';
-
-            github.rest.issues.createComment({
-              issue_number: ${{ steps.prmeta.outputs.pr_number }},
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `:x: **Go Format Failed**
-
-              The following files need formatting:
-              ${fileList}
-
-              Please run \`go fmt ./...\` to format your code before merging.
-
-              [See failed workflow run](${{
-                github.server_url }}/${{
-                github.repository
-              }}/actions/runs/${{ github.run_id }})`
-            })
-
+          exit $exit_code
       - name: Run tests
         id: test
         if: ${{ inputs.DO_TEST }}
         run: |
+          exit_code=0
           if ! go test -v ./... 2>&1 | tee test_output.log; then
             echo "Tests failed"
             echo "test_failures<<EOF" >> $GITHUB_OUTPUT
             grep -A 10 -B 2 "FAIL\|panic\|Error" test_output.log | head -50 >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
-            exit 1
+            exit_code=1
           fi
-        continue-on-error: true
-
-      - name: Comment on PR if tests fail
-        if: steps.test.outcome == 'failure' && ${{ inputs.DO_TEST }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const testFailures = `${{ steps.test.outputs.test_failures }}`;
-            const failureDetails = testFailures.trim() ?
-              `\`\`\`\n${testFailures}\n\`\`\`` :
-              'No specific failure details captured';
-
-            github.rest.issues.createComment({
-              issue_number: ${{ steps.prmeta.outputs.pr_number }},
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `:x: **Go Tests Failed**
-
-              Test failure details:
-              ${failureDetails}
-
-              Please fix test failures before merging.
-
-              [See failed workflow run](${{
-                github.server_url }}/${{
-                github.repository
-              }}/actions/runs/${{ github.run_id }})`
-            })
-
+          exit $exit_code
       - name: Build project
         id: build
         if: ${{ inputs.DO_BUILD }}
         run: |
           go build ./...
-        continue-on-error: true
-
-      - name: Comment on PR if build fails
-        if: steps.build.outcome == 'failure' && ${{ inputs.DO_BUILD }}
-        uses: actions/github-script@v7
+      - name: Failure PR Comment
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v8
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: ${{ steps.prmeta.outputs.pr_number }},
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `:x: **Go Build Failed**
-              Please fix build errors before merging.
-              [See failed workflow run](${{
-                github.server_url }}/${{
-                github.repository
-              }}/actions/runs/${{ github.run_id }})`
-            })
+            let output = "";
+            if ( "${{ steps.fmt.outcome }}" === "failure" ) {
+              output +=  `
+              [Gofmt](https://pkg.go.dev/cmd/gofmt) validation
+              \`\`\`
+              ${{ steps.gofmt.outputs.unformatted_files }}
+              \`\`\`
+              `;
+            }
+            if ( "${{ steps.test.outcome }}" === "failure" ) {
+              output +=  `
+              Go Test validation
+              \`\`\`
+              ${{ steps.gofmt.outputs.test_failures }}
+              \`\`\`
+              `;
+            }
+            if ( "${{ steps.build.outcome }}" === "failure" ) {
+              output +=  `
+              Go Build failed. Please fix build errors before merging.
+              `;
+            }
+            if (output) {
+              const jobLink = `The [validation job](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) may have additional details.`
+              github.rest.issues.createComment({
+                issue_number: ${{ steps.prmeta.outputs.pr_number }},
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output,
+              })
+            }
