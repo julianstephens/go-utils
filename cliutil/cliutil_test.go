@@ -64,7 +64,7 @@ func TestParseArgs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := cliutil.ParseArgs(tt.args)
-			
+
 			if !reflect.DeepEqual(result.Flags, tt.expected.Flags) {
 				t.Errorf("Expected flags %v, got %v", tt.expected.Flags, result.Flags)
 			}
@@ -80,7 +80,7 @@ func TestParseArgs(t *testing.T) {
 
 func TestArgs_HasFlag(t *testing.T) {
 	args := cliutil.ParseArgs([]string{"--verbose", "--debug"})
-	
+
 	if !args.HasFlag("verbose") {
 		t.Error("Expected verbose flag to be true")
 	}
@@ -94,7 +94,7 @@ func TestArgs_HasFlag(t *testing.T) {
 
 func TestArgs_GetFlag(t *testing.T) {
 	args := cliutil.ParseArgs([]string{"--output", "file.txt", "--config=config.yaml"})
-	
+
 	if args.GetFlag("output") != "file.txt" {
 		t.Errorf("Expected output flag to be 'file.txt', got '%s'", args.GetFlag("output"))
 	}
@@ -108,7 +108,7 @@ func TestArgs_GetFlag(t *testing.T) {
 
 func TestArgs_GetFlagWithDefault(t *testing.T) {
 	args := cliutil.ParseArgs([]string{"--output", "file.txt"})
-	
+
 	if args.GetFlagWithDefault("output", "default.txt") != "file.txt" {
 		t.Error("Expected to get actual flag value, not default")
 	}
@@ -119,7 +119,7 @@ func TestArgs_GetFlagWithDefault(t *testing.T) {
 
 func TestHasFlag(t *testing.T) {
 	args := []string{"--verbose", "--output=file.txt", "input.txt"}
-	
+
 	if !cliutil.HasFlag(args, "--verbose") {
 		t.Error("Expected to find --verbose flag")
 	}
@@ -133,7 +133,7 @@ func TestHasFlag(t *testing.T) {
 
 func TestGetFlagValue(t *testing.T) {
 	args := []string{"--output", "file.txt", "--config=config.yaml", "input.txt"}
-	
+
 	if cliutil.GetFlagValue(args, "--output", "default") != "file.txt" {
 		t.Error("Expected to get flag value for --output")
 	}
@@ -198,7 +198,7 @@ func TestNewProgressBar(t *testing.T) {
 	if pb == nil {
 		t.Error("Expected progress bar to be created")
 	}
-	
+
 	// Test update (we can't easily test the visual output, but we can test it doesn't panic)
 	pb.Update(50)
 	pb.Update(100)
@@ -210,7 +210,7 @@ func TestNewProgressBarWithOptions(t *testing.T) {
 	if pb == nil {
 		t.Error("Expected progress bar to be created")
 	}
-	
+
 	pb.Update(100)
 	pb.Finish()
 }
@@ -220,14 +220,14 @@ func TestNewSpinner(t *testing.T) {
 	if spinner == nil {
 		t.Error("Expected spinner to be created")
 	}
-	
+
 	// Test start and stop (we can't easily test the visual output, but we can test it doesn't panic)
 	spinner.Start()
 	time.Sleep(200 * time.Millisecond)
 	spinner.UpdateMessage("Updated message")
 	time.Sleep(200 * time.Millisecond)
 	spinner.Stop()
-	
+
 	// Test double start/stop
 	spinner.Start()
 	spinner.Start() // Should not panic
@@ -249,7 +249,7 @@ func TestColorConstants(t *testing.T) {
 		cliutil.ColorWhite,
 		cliutil.ColorBold,
 	}
-	
+
 	for i, color := range colors {
 		if string(color) == "" {
 			t.Errorf("Color constant %d should not be empty", i)
@@ -270,7 +270,7 @@ func TestPrintFunctions(t *testing.T) {
 func TestPrintTable(t *testing.T) {
 	// Test empty table
 	cliutil.PrintTable([][]string{})
-	
+
 	// Test normal table
 	data := [][]string{
 		{"Name", "Age", "City"},
@@ -278,7 +278,7 @@ func TestPrintTable(t *testing.T) {
 		{"Jane", "25", "Boston"},
 	}
 	cliutil.PrintTable(data)
-	
+
 	// Test single row
 	cliutil.PrintTable([][]string{{"Single", "Row"}})
 }
@@ -286,7 +286,7 @@ func TestPrintTable(t *testing.T) {
 // Benchmark tests
 func BenchmarkParseArgs(b *testing.B) {
 	args := []string{"--verbose", "--output", "file.txt", "-f", "config.json", "input.txt", "output.txt"}
-	
+
 	for i := 0; i < b.N; i++ {
 		cliutil.ParseArgs(args)
 	}
@@ -294,7 +294,7 @@ func BenchmarkParseArgs(b *testing.B) {
 
 func BenchmarkHasFlag(b *testing.B) {
 	args := []string{"--verbose", "--output=file.txt", "input.txt"}
-	
+
 	for i := 0; i < b.N; i++ {
 		cliutil.HasFlag(args, "--verbose")
 	}
@@ -302,7 +302,7 @@ func BenchmarkHasFlag(b *testing.B) {
 
 func BenchmarkValidateEmail(b *testing.B) {
 	email := "test@example.com"
-	
+
 	for i := 0; i < b.N; i++ {
 		cliutil.ValidateEmail(email)
 	}
@@ -315,13 +315,13 @@ func TestParseArgsEdgeCases(t *testing.T) {
 	if !args.HasFlag("flag") {
 		t.Error("Expected flag to be parsed as boolean flag")
 	}
-	
+
 	// Test empty flag name
 	args = cliutil.ParseArgs([]string{"--"})
 	if len(args.BoolFlags) != 1 || !args.BoolFlags[""] {
 		t.Error("Expected empty flag name to be handled")
 	}
-	
+
 	// Test single dash
 	args = cliutil.ParseArgs([]string{"-"})
 	if len(args.Positional) != 1 || args.Positional[0] != "-" {
@@ -334,10 +334,10 @@ func TestProgressBarEdgeCases(t *testing.T) {
 	pb := cliutil.NewProgressBar(0)
 	pb.Update(0)
 	pb.Finish()
-	
+
 	// Test negative values
 	pb = cliutil.NewProgressBar(100)
-	pb.Update(-1) // Should not panic
+	pb.Update(-1)  // Should not panic
 	pb.Update(150) // Should not panic
 	pb.Finish()
 }
@@ -347,21 +347,21 @@ func TestIntegration(t *testing.T) {
 	// Simulate a typical CLI workflow
 	testArgs := []string{"--config", "test.yaml", "--verbose", "input.txt", "output.txt"}
 	args := cliutil.ParseArgs(testArgs)
-	
+
 	// Check parsed arguments
 	if !args.HasFlag("verbose") {
 		t.Errorf("Expected verbose flag, got flags: %+v, boolFlags: %+v", args.Flags, args.BoolFlags)
 	}
-	
+
 	config := args.GetFlagWithDefault("config", "default.yaml")
 	if config != "test.yaml" {
 		t.Errorf("Expected config to be 'test.yaml', got '%s'", config)
 	}
-	
+
 	if len(args.Positional) != 2 {
 		t.Errorf("Expected 2 positional arguments, got %d: %v", len(args.Positional), args.Positional)
 	}
-	
+
 	// Test progress bar
 	pb := cliutil.NewProgressBar(10)
 	for i := 0; i <= 10; i++ {

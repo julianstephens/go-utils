@@ -28,12 +28,12 @@ func TestDefaultFieldMapper(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"ID", "i_d"},                      // Each letter is uppercase, so gets separated
-		{"UserID", "user_i_d"},             // Same here - ID becomes i_d
-		{"FirstName", "first_name"},        // This works as expected
+		{"ID", "i_d"},                            // Each letter is uppercase, so gets separated
+		{"UserID", "user_i_d"},                   // Same here - ID becomes i_d
+		{"FirstName", "first_name"},              // This works as expected
 		{"XMLHttpRequest", "x_m_l_http_request"}, // Each uppercase letter gets separated
-		{"simple", "simple"},               // No uppercase, no change
-		{"CamelCase", "camel_case"},        // Standard camel case
+		{"simple", "simple"},                     // No uppercase, no change
+		{"CamelCase", "camel_case"},              // Standard camel case
 	}
 
 	for _, test := range tests {
@@ -141,7 +141,7 @@ func TestDefaultOptions(t *testing.T) {
 func BenchmarkDefaultFieldMapper(b *testing.B) {
 	fieldName := "VeryLongFieldNameWithManyCamelCaseWords"
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		dbutil.DefaultFieldMapper(fieldName)
 	}

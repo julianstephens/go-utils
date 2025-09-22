@@ -204,3 +204,98 @@ func TestWriteOK(t *testing.T) {
 		t.Errorf("Expected response body to be '{\"status\":\"success\"}', got %s", body)
 	}
 }
+
+func TestErrorWithStatus(t *testing.T) {
+	tests := []struct {
+		name   string
+		w      http.ResponseWriter
+		req    *http.Request
+		status int
+		err    error
+	}{
+		{
+			name: "Basic 500 Internal Server Error",
+			w:    httptest.NewRecorder(),
+			req:  httptest.NewRequest("GET", "/test", nil),
+			err:  errors.New("internal server error"),
+		},
+		{
+			name:   "Nil ResponseWriter",
+			w:      nil,
+			req:    httptest.NewRequest("GET", "/test", nil),
+			status: http.StatusInternalServerError,
+			err:    errors.New("internal server error"),
+		},
+		{
+			name:   "Nil Request",
+			w:      httptest.NewRecorder(),
+			req:    nil,
+			status: http.StatusInternalServerError,
+			err:    errors.New("internal server error"),
+		},
+		{
+			name:   "Nil Error",
+			w:      httptest.NewRecorder(),
+			req:    httptest.NewRequest("GET", "/test", nil),
+			status: http.StatusInternalServerError,
+			err:    nil,
+		},
+		{
+			name:   "400 Bad Request with String Error",
+			w:      httptest.NewRecorder(),
+			req:    httptest.NewRequest("GET", "/test", nil),
+			status: http.StatusBadRequest,
+			err:    errors.New("bad request error"),
+		},
+		{
+			name:   "403 Forbidden with Custom Error",
+			w:      httptest.NewRecorder(),
+			req:    httptest.NewRequest("GET", "/test", nil),
+			status: http.StatusForbidden,
+			err:    errors.New("forbidden access"),
+		},
+		{
+			name:   "404 Not Found with Nil Error",
+			w:      httptest.NewRecorder(),
+			req:    httptest.NewRequest("GET", "/test", nil),
+			status: http.StatusNotFound,
+			err:    nil,
+		},
+		{
+			name:   "500 Internal Server Error with Wrapped Error",
+			w:      httptest.NewRecorder(),
+			req:    httptest.NewRequest("GET", "/test", nil),
+			status: http.StatusInternalServerError,
+			err:    errors.New("wrapped internal error"),
+		},
+		{
+			name:   "Nil ResponseWriter and Request",
+			w:      nil,
+			req:    nil,
+			status: http.StatusInternalServerError,
+			err:    errors.New("internal server error"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := response.New()
+			r.ErrorWithStatus(tt.w, tt.req, tt.status, tt.err)
+		})
+	}
+
+	// Additional scenario: ErrorWithStatus with string data
+	t.Run("String data as error", func(t *testing.T) {
+		r := response.New()
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/test", nil)
+		// Use BadRequest to trigger parseErrData with string
+		r.BadRequest(w, req, "string error message")
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
+		}
+		body := w.Body.String()
+		if !strings.Contains(body, "string error message") {
+			t.Errorf("Expected response body to contain 'string error message', got %s", body)
+		}
+	})
+}

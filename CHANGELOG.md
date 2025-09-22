@@ -1,3 +1,7 @@
+## v0.1.6
+
+- fixes `httputil.response.ErrorWithStatus`
+
 ## v0.1.5
 
 - refactors documentation

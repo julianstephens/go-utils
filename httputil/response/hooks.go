@@ -18,7 +18,21 @@ func DefaultAfter(w http.ResponseWriter, r *http.Request, data any) {
 // DefaultOnError is a default error handler that logs the error and returns a 500 status.
 func DefaultOnError(w http.ResponseWriter, r *http.Request, err error) {
 	log.Printf("Response encoding error: %v", err)
-	http.Error(w, err.Error(), http.StatusInternalServerError)
+	if w == nil {
+		return
+	}
+	msg := "internal server error"
+	if err != nil {
+		msg = err.Error()
+	}
+	// Use status from context if available (set by ErrorWithStatus)
+	status := http.StatusInternalServerError
+	if r != nil {
+		if s, ok := r.Context().Value("response_status").(int); ok && s != 0 {
+			status = s
+		}
+	}
+	http.Error(w, msg, status)
 }
 
 // LoggingBefore is a Before hook that logs the incoming request.

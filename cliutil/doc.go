@@ -45,7 +45,7 @@ The package provides simple argument parsing utilities:
 
 	// Parse arguments into a structured format
 	args := cliutil.ParseArgs([]string{"--verbose", "--output", "file.txt", "input.txt"})
-	
+
 	// Access flags and positional arguments
 	verbose := args.HasFlag("verbose")
 	output := args.GetFlag("output")
@@ -59,7 +59,7 @@ Support for common flag patterns:
 	if cliutil.HasFlag(os.Args, "--debug") {
 		// Enable debug mode
 	}
-	
+
 	// Get flag values
 	logLevel := cliutil.GetFlagValue(os.Args, "--log-level", "info")
 
@@ -69,10 +69,10 @@ Functions for user input with validation:
 
 	// String input with optional validation
 	email := cliutil.PromptStringWithValidation("Email: ", cliutil.ValidateEmail)
-	
+
 	// Boolean prompts
 	proceed := cliutil.PromptBool("Do you want to continue? (y/n): ")
-	
+
 	// Choice selection
 	option := cliutil.PromptChoice("Select an option:", []string{"Option 1", "Option 2", "Option 3"})
 
@@ -85,10 +85,10 @@ Colored output and formatting utilities:
 	cliutil.PrintError("✗ Task failed")
 	cliutil.PrintWarning("! Warning message")
 	cliutil.PrintInfo("ℹ Information")
-	
+
 	// Custom colored output
 	cliutil.PrintColored("Custom message", cliutil.ColorBlue)
-	
+
 	// Formatted output
 	cliutil.PrintTable([][]string{
 		{"Name", "Age", "City"},
@@ -107,12 +107,12 @@ Progress bars and spinners for long-running operations:
 		bar.Update(i + 1)
 	}
 	bar.Finish()
-	
+
 	// Spinner for indeterminate progress
 	spinner := cliutil.NewSpinner("Processing...")
 	spinner.Start()
 	defer spinner.Stop()
-	
+
 	// Do work
 	time.Sleep(5 * time.Second)
 
@@ -125,7 +125,7 @@ CLI development. It integrates well with other go-utils packages like logger and
 	if cliutil.HasFlag(os.Args, "--verbose") {
 		logger.SetLogLevel("debug")
 	}
-	
+
 	// Use with config for CLI configuration
 	var cfg AppConfig
 	configFile := cliutil.GetFlagValue(os.Args, "--config", "config.yaml")

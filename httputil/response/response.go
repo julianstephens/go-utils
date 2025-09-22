@@ -1,6 +1,7 @@
 package response
 
 import (
+	"context"
 	"errors"
 	"net/http"
 )
@@ -54,14 +55,39 @@ func (r *Responder) WriteWithStatus(w http.ResponseWriter, req *http.Request, da
 
 // ErrorWithStatus handles error responses by calling the OnError hook.
 // If no OnError hook is configured, it writes a basic 500 Internal Server Error response.
+type contextKey string
+
+const responseStatusKey contextKey = "response_status"
+
 func (r *Responder) ErrorWithStatus(w http.ResponseWriter, req *http.Request, status int, err error) {
 	if r.OnError != nil {
+		// Pass status via request context for the default handler
+		if req != nil && status != 0 {
+			ctx := req.Context()
+			ctx = context.WithValue(ctx, responseStatusKey, status)
+			req = req.WithContext(ctx)
+		}
 		r.OnError(w, req, err)
 		return
 	}
 
-	// Default error handling if no OnError hook is provided
-	http.Error(w, err.Error(), status)
+	// Defensive: handle nil ResponseWriter
+	if w == nil {
+		return
+	}
+
+	// Defensive: handle nil error
+	msg := "internal server error"
+	if err != nil {
+		msg = err.Error()
+	}
+
+	// Defensive: handle zero or invalid status
+	if status == 0 {
+		status = http.StatusInternalServerError
+	}
+
+	http.Error(w, msg, status)
 }
 
 // OK writes a response with HTTP 200 OK status.
