@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/julianstephens/go-utils/httputil/auth"
+	tst "github.com/julianstephens/go-utils/tests"
 )
 
 func TestNewJWTManager(t *testing.T) {
@@ -14,9 +15,7 @@ func TestNewJWTManager(t *testing.T) {
 	issuer := "test-issuer"
 
 	manager := auth.NewJWTManager(secretKey, duration, issuer)
-	if manager == nil {
-		t.Error("NewJWTManager should not return nil")
-	}
+	tst.AssertNotNil(t, manager, "NewJWTManager should not return nil")
 }
 
 func TestGenerateToken(t *testing.T) {
@@ -26,19 +25,12 @@ func TestGenerateToken(t *testing.T) {
 	roles := []string{"user", "admin"}
 
 	token, err := manager.GenerateToken(userID, roles)
-	if err != nil {
-		t.Fatalf("GenerateToken failed: %v", err)
-	}
-
-	if token == "" {
-		t.Error("Generated token should not be empty")
-	}
+	tst.AssertNoError(t, err)
+	tst.AssertTrue(t, token != "", "Generated token should not be empty")
 
 	// Token should have 3 parts separated by dots
 	parts := strings.Split(token, ".")
-	if len(parts) != 3 {
-		t.Errorf("Invalid JWT format: expected 3 parts, got %d", len(parts))
-	}
+	tst.AssertTrue(t, len(parts) == 3, "Invalid JWT format: expected 3 parts")
 }
 
 func TestValidateToken(t *testing.T) {
@@ -51,34 +43,17 @@ func TestValidateToken(t *testing.T) {
 
 	// Generate a token
 	token, err := manager.GenerateTokenWithUserInfo(userID, username, email, roles)
-	if err != nil {
-		t.Fatalf("GenerateToken failed: %v", err)
-	}
+	tst.AssertNoError(t, err)
 
 	// Validate the token
 	claims, err := manager.ValidateToken(token)
-	if err != nil {
-		t.Fatalf("ValidateToken failed: %v", err)
-	}
+	tst.AssertNoError(t, err)
 
 	// Verify claims
-	if claims.UserID != userID {
-		t.Errorf("Expected UserID %s, got %s", userID, claims.UserID)
-	}
-	if claims.Username != username {
-		t.Errorf("Expected Username %s, got %s", username, claims.Username)
-	}
-	if claims.Email != email {
-		t.Errorf("Expected Email %s, got %s", email, claims.Email)
-	}
-	if len(claims.Roles) != len(roles) {
-		t.Errorf("Expected %d roles, got %d", len(roles), len(claims.Roles))
-	}
-	for i, role := range roles {
-		if claims.Roles[i] != role {
-			t.Errorf("Expected role %s at index %d, got %s", role, i, claims.Roles[i])
-		}
-	}
+	tst.AssertTrue(t, claims.UserID == userID, "UserID should match")
+	tst.AssertTrue(t, claims.Username == username, "Username should match")
+	tst.AssertTrue(t, claims.Email == email, "Email should match")
+	tst.AssertDeepEqual(t, claims.Roles, roles)
 }
 
 func TestValidateInvalidToken(t *testing.T) {
@@ -96,9 +71,7 @@ func TestValidateInvalidToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := manager.ValidateToken(tt.token)
-			if err == nil {
-				t.Error("ValidateToken should fail for invalid token")
-			}
+			tst.AssertNotNil(t, err, "ValidateToken should fail for invalid token")
 		})
 	}
 }
@@ -108,20 +81,14 @@ func TestValidateExpiredToken(t *testing.T) {
 	manager := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
 
 	token, err := manager.GenerateToken("user123", []string{"user"})
-	if err != nil {
-		t.Fatalf("GenerateToken failed: %v", err)
-	}
+	tst.AssertNoError(t, err)
 
 	// Wait for token to expire
 	time.Sleep(time.Millisecond * 10)
 
 	_, err = manager.ValidateToken(token)
-	if err == nil {
-		t.Error("ValidateToken should fail for expired token")
-	}
-	if err != auth.ErrTokenExpired {
-		t.Errorf("Expected ErrTokenExpired, got %v", err)
-	}
+	tst.AssertNotNil(t, err, "ValidateToken should fail for expired token")
+	tst.AssertTrue(t, err == auth.ErrTokenExpired, "Expected ErrTokenExpired")
 }
 
 func TestRefreshToken(t *testing.T) {
@@ -129,34 +96,21 @@ func TestRefreshToken(t *testing.T) {
 
 	// Generate original token
 	originalToken, err := manager.GenerateToken("user123", []string{"user"})
-	if err != nil {
-		t.Fatalf("GenerateToken failed: %v", err)
-	}
+	tst.AssertNoError(t, err)
 
 	// Refresh the token
 	newToken, err := manager.RefreshToken(originalToken)
-	if err != nil {
-		t.Fatalf("RefreshToken failed: %v", err)
-	}
+	tst.AssertNoError(t, err)
 
-	if newToken == "" {
-		t.Error("Refreshed token should not be empty")
-	}
-
-	if newToken == originalToken {
-		t.Error("Refreshed token should be different from original")
-	}
+	tst.AssertTrue(t, newToken != "", "Refreshed token should not be empty")
+	tst.AssertTrue(t, newToken != originalToken, "Refreshed token should be different from original")
 
 	// Validate the new token
 	claims, err := manager.ValidateToken(newToken)
-	if err != nil {
-		t.Fatalf("ValidateToken failed for refreshed token: %v", err)
-	}
+	tst.AssertNoError(t, err)
 
 	// Claims should be the same
-	if claims.UserID != "user123" {
-		t.Error("UserID should be preserved in refreshed token")
-	}
+	tst.AssertTrue(t, claims.UserID == "user123", "UserID should be preserved in refreshed token")
 }
 
 func TestRefreshExpiredToken(t *testing.T) {
@@ -164,9 +118,7 @@ func TestRefreshExpiredToken(t *testing.T) {
 	shortManager := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
 
 	token, err := shortManager.GenerateToken("user123", []string{"user"})
-	if err != nil {
-		t.Fatalf("GenerateToken failed: %v", err)
-	}
+	tst.AssertNoError(t, err)
 
 	// Wait for token to expire
 	time.Sleep(time.Millisecond * 10)
@@ -176,15 +128,11 @@ func TestRefreshExpiredToken(t *testing.T) {
 
 	// Should still be able to refresh expired token
 	newToken, err := longManager.RefreshToken(token)
-	if err != nil {
-		t.Fatalf("RefreshToken should work with expired token: %v", err)
-	}
+	tst.AssertNoError(t, err)
 
 	// New token should be valid
 	_, err = longManager.ValidateToken(newToken)
-	if err != nil {
-		t.Fatalf("Refreshed token should be valid: %v", err)
-	}
+	tst.AssertNoError(t, err)
 }
 
 func TestExtractTokenFromHeader(t *testing.T) {
@@ -229,18 +177,11 @@ func TestExtractTokenFromHeader(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			token, err := auth.ExtractTokenFromHeader(tt.header)
-
 			if tt.expectError {
-				if err == nil {
-					t.Error("Expected error but got none")
-				}
+				tst.AssertNotNil(t, err, "Expected error but got none")
 			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if token != tt.expectToken {
-					t.Errorf("Expected token %s, got %s", tt.expectToken, token)
-				}
+				tst.AssertNoError(t, err)
+				tst.AssertTrue(t, token == tt.expectToken, "Extracted token should match expected")
 			}
 		})
 	}
@@ -264,9 +205,7 @@ func TestClaimsHasRole(t *testing.T) {
 
 	for _, tt := range tests {
 		result := claims.HasRole(tt.role)
-		if result != tt.expected {
-			t.Errorf("HasRole(%s) = %v; expected %v", tt.role, result, tt.expected)
-		}
+		tst.AssertTrue(t, result == tt.expected, "HasRole result should match expected")
 	}
 }
 
@@ -305,9 +244,7 @@ func TestClaimsHasAnyRole(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := claims.HasAnyRole(tt.roles...)
-			if result != tt.expected {
-				t.Errorf("HasAnyRole(%v) = %v; expected %v", tt.roles, result, tt.expected)
-			}
+			tst.AssertTrue(t, result == tt.expected, "HasAnyRole result should match expected")
 		})
 	}
 }
@@ -317,26 +254,18 @@ func TestClaimsIsExpired(t *testing.T) {
 
 	// Generate a valid token
 	token, err := manager.GenerateToken("user123", []string{"user"})
-	if err != nil {
-		t.Fatalf("GenerateToken failed: %v", err)
-	}
+	tst.AssertNoError(t, err)
 
 	claims, err := manager.ValidateToken(token)
-	if err != nil {
-		t.Fatalf("ValidateToken failed: %v", err)
-	}
+	tst.AssertNoError(t, err)
 
 	// Token should not be expired
-	if claims.IsExpired() {
-		t.Error("Token should not be expired")
-	}
+	tst.AssertFalse(t, claims.IsExpired(), "Token should not be expired")
 
 	// Test with expired token
 	expiredManager := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
 	expiredToken, err := expiredManager.GenerateToken("user123", []string{"user"})
-	if err != nil {
-		t.Fatalf("GenerateToken failed: %v", err)
-	}
+	tst.AssertNoError(t, err)
 
 	// Wait for expiration
 	time.Sleep(time.Millisecond * 10)
@@ -350,8 +279,8 @@ func TestClaimsIsExpired(t *testing.T) {
 	}
 
 	// If we somehow got claims from an expired token, they should show as expired
-	if expiredClaims != nil && !expiredClaims.IsExpired() {
-		t.Error("Expired token claims should show as expired")
+	if expiredClaims != nil {
+		tst.AssertTrue(t, expiredClaims.IsExpired(), "Expired token claims should show as expired")
 	}
 }
 
@@ -388,36 +317,27 @@ func TestGenerateTokenWithClaims(t *testing.T) {
 	}
 
 	token, err := manager.GenerateTokenWithUserInfoAndClaims(userID, username, email, roles, customClaims)
-	if err != nil {
-		t.Fatalf("GenerateTokenWithClaims failed: %v", err)
-	}
-
-	if token == "" {
-		t.Error("Generated token should not be empty")
-	}
+	tst.AssertNoError(t, err)
+	tst.AssertTrue(t, token != "", "Generated token should not be empty")
 
 	// Validate token and check custom claims
 	claims, err := manager.ValidateToken(token)
-	if err != nil {
-		t.Fatalf("ValidateToken failed: %v", err)
-	}
+	tst.AssertNoError(t, err)
 
 	// Verify standard claims
-	if claims.UserID != userID {
-		t.Errorf("Expected UserID %s, got %s", userID, claims.UserID)
-	}
+	tst.AssertTrue(t, claims.UserID == userID, "UserID should match")
 
 	// Verify custom claims
 	if dept, ok := claims.GetCustomClaimString("department"); !ok || dept != "engineering" {
-		t.Errorf("Expected department 'engineering', got %s (exists: %t)", dept, ok)
+		t.Fatalf("Expected department 'engineering', got %s (exists: %t)", dept, ok)
 	}
 
 	if level, ok := claims.GetCustomClaimInt("level"); !ok || level != 5 {
-		t.Errorf("Expected level 5, got %d (exists: %t)", level, ok)
+		t.Fatalf("Expected level 5, got %d (exists: %t)", level, ok)
 	}
 
 	if isManager, ok := claims.GetCustomClaimBool("is_manager"); !ok || !isManager {
-		t.Errorf("Expected is_manager true, got %t (exists: %t)", isManager, ok)
+		t.Fatalf("Expected is_manager true, got %t (exists: %t)", isManager, ok)
 	}
 }
 

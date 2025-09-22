@@ -12,7 +12,7 @@ import (
 func TestQuerySliceValidation(t *testing.T) {
 	t.Run("nil dest parameter", func(t *testing.T) {
 		opts := dbutil.DefaultQueryOptions()
-		err := dbutil.QuerySliceWithOptions(nil, nil, nil, "SELECT * FROM users", opts)
+		err := dbutil.QuerySliceWithOptions(context.Background(), nil, nil, "SELECT * FROM users", opts)
 		if err == nil {
 			t.Error("QuerySliceWithOptions should fail with nil dest")
 		}
@@ -21,7 +21,7 @@ func TestQuerySliceValidation(t *testing.T) {
 	t.Run("non-pointer dest parameter", func(t *testing.T) {
 		opts := dbutil.DefaultQueryOptions()
 		var users []User
-		err := dbutil.QuerySliceWithOptions(nil, nil, users, "SELECT * FROM users", opts)
+		err := dbutil.QuerySliceWithOptions(context.Background(), nil, users, "SELECT * FROM users", opts)
 		if err == nil {
 			t.Error("QuerySliceWithOptions should fail with non-pointer dest")
 		}
@@ -31,7 +31,7 @@ func TestQuerySliceValidation(t *testing.T) {
 // Test QueryRowScan parameter validation
 func TestQueryRowScanValidation(t *testing.T) {
 	t.Run("nil dest parameter", func(t *testing.T) {
-		err := dbutil.QueryRowScan(nil, nil, nil, "SELECT * FROM users WHERE id = $1", 1)
+		err := dbutil.QueryRowScan(context.Background(), nil, nil, "SELECT * FROM users WHERE id = $1", 1)
 		if err == nil {
 			t.Error("QueryRowScan should fail with nil dest")
 		}
@@ -39,7 +39,7 @@ func TestQueryRowScanValidation(t *testing.T) {
 
 	t.Run("non-pointer dest parameter", func(t *testing.T) {
 		var user User
-		err := dbutil.QueryRowScan(nil, nil, user, "SELECT * FROM users WHERE id = $1", 1)
+		err := dbutil.QueryRowScan(context.Background(), nil, user, "SELECT * FROM users WHERE id = $1", 1)
 		if err == nil {
 			t.Error("QueryRowScan should fail with non-pointer dest")
 		}
@@ -47,7 +47,7 @@ func TestQueryRowScanValidation(t *testing.T) {
 
 	t.Run("non-struct dest parameter", func(t *testing.T) {
 		var str string
-		err := dbutil.QueryRowScan(nil, nil, &str, "SELECT * FROM users WHERE id = $1", 1)
+		err := dbutil.QueryRowScan(context.Background(), nil, &str, "SELECT * FROM users WHERE id = $1", 1)
 		if err == nil {
 			t.Error("QueryRowScan should fail with non-struct dest")
 		}

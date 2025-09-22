@@ -21,19 +21,9 @@ func NewWithLogging() *Responder {
 }
 
 // NewCustom creates a new Responder with custom configuration.
-// All parameters are optional and will use defaults if nil.
 func NewCustom(encoder Encoder, before BeforeFunc, after AfterFunc, onError OnErrorFunc) *Responder {
 	if encoder == nil {
 		encoder = NewJSONEncoder()
-	}
-	if before == nil {
-		before = DefaultBefore
-	}
-	if after == nil {
-		after = DefaultAfter
-	}
-	if onError == nil {
-		onError = DefaultOnError
 	}
 
 	return &Responder{

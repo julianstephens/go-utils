@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/julianstephens/go-utils/logger"
+	tst "github.com/julianstephens/go-utils/tests"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,17 +19,13 @@ func TestGlobalSetLogLevel(t *testing.T) {
 	for _, level := range validLevels {
 		t.Run(level, func(t *testing.T) {
 			err := logger.SetLogLevel(level)
-			if err != nil {
-				t.Errorf("Unexpected error setting global log level to '%s': %v", level, err)
-			}
+			tst.AssertNoError(t, err)
 		})
 	}
 
 	// Test setting invalid level
 	err := logger.SetLogLevel("invalid")
-	if err == nil {
-		t.Error("Expected error when setting invalid log level")
-	}
+	tst.AssertNotNil(t, err, "Expected error when setting invalid log level")
 }
 
 func TestGlobalLoggingMethods(t *testing.T) {
@@ -76,25 +73,17 @@ func TestGlobalLoggingMethods(t *testing.T) {
 			tt.logFunc()
 
 			output := buf.String()
-			if output == "" {
-				t.Fatal("Expected log output, got empty string")
-			}
+			tst.AssertTrue(t, output != "", "Expected log output, got empty string")
 
 			// Parse JSON log entry
 			var logEntry map[string]interface{}
-			if err := json.Unmarshal([]byte(output), &logEntry); err != nil {
-				t.Fatalf("Failed to parse JSON log output: %v", err)
-			}
+			tst.AssertNoError(t, json.Unmarshal([]byte(output), &logEntry))
 
 			// Check level
-			if logEntry["level"] != tt.level {
-				t.Errorf("Expected level '%s', got '%s'", tt.level, logEntry["level"])
-			}
+			tst.AssertDeepEqual(t, logEntry["level"], tt.level)
 
 			// Check message
-			if logEntry["msg"] != tt.message {
-				t.Errorf("Expected message '%s', got '%s'", tt.message, logEntry["msg"])
-			}
+			tst.AssertDeepEqual(t, logEntry["msg"], tt.message)
 		})
 	}
 
@@ -147,20 +136,14 @@ func TestGlobalFormattedLoggingMethods(t *testing.T) {
 			tt.logFunc()
 
 			output := buf.String()
-			if output == "" {
-				t.Fatal("Expected log output, got empty string")
-			}
+			tst.AssertTrue(t, output != "", "Expected log output, got empty string")
 
 			// Parse JSON log entry
 			var logEntry map[string]interface{}
-			if err := json.Unmarshal([]byte(output), &logEntry); err != nil {
-				t.Fatalf("Failed to parse JSON log output: %v", err)
-			}
+			tst.AssertNoError(t, json.Unmarshal([]byte(output), &logEntry))
 
 			// Check level
-			if logEntry["level"] != tt.level {
-				t.Errorf("Expected level '%s', got '%s'", tt.level, logEntry["level"])
-			}
+			tst.AssertDeepEqual(t, logEntry["level"], tt.level)
 
 			// Check message contains expected text
 			msg, ok := logEntry["msg"].(string)

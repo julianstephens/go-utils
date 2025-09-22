@@ -21,7 +21,7 @@ func NewJSONEncoderWithIndent(indent string) *JSONEncoder {
 }
 
 // Encode encodes the given value as JSON and writes it to the response writer.
-func (j *JSONEncoder) Encode(w http.ResponseWriter, v any) error {
+func (j *JSONEncoder) Encode(w http.ResponseWriter, v any, status int) error {
 	w.Header().Set("Content-Type", "application/json")
 
 	encoder := json.NewEncoder(w)
@@ -29,5 +29,6 @@ func (j *JSONEncoder) Encode(w http.ResponseWriter, v any) error {
 		encoder.SetIndent("", j.Indent)
 	}
 
+	w.WriteHeader(status)
 	return encoder.Encode(v)
 }

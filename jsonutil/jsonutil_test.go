@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/julianstephens/go-utils/jsonutil"
+	tst "github.com/julianstephens/go-utils/tests"
 )
 
 type testStruct struct {
@@ -59,11 +60,11 @@ func TestMarshal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			data, err := jsonutil.Marshal(tt.input)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Marshal() error = %v, wantErr %v", err, tt.wantErr)
+				tst.AssertTrue(t, (err != nil) == tt.wantErr, "Marshal() error mismatch")
 				return
 			}
-			if !tt.wantErr && !jsonutil.Valid(data) {
-				t.Errorf("Marshal() produced invalid JSON: %s", string(data))
+			if !tt.wantErr {
+				tst.AssertTrue(t, jsonutil.Valid(data), "Marshal() produced invalid JSON")
 			}
 		})
 	}
@@ -73,17 +74,9 @@ func TestMarshalIndent(t *testing.T) {
 	input := testStruct{Name: "Alice", Age: 30, Active: true}
 
 	data, err := jsonutil.MarshalIndent(input, "", "  ")
-	if err != nil {
-		t.Fatalf("MarshalIndent() error = %v", err)
-	}
-
-	if !strings.Contains(string(data), "\n") {
-		t.Error("MarshalIndent() should produce indented output")
-	}
-
-	if !jsonutil.Valid(data) {
-		t.Error("MarshalIndent() produced invalid JSON")
-	}
+	tst.AssertNoError(t, err)
+	tst.AssertTrue(t, strings.Contains(string(data), "\n"), "MarshalIndent() should produce indented output")
+	tst.AssertTrue(t, jsonutil.Valid(data), "MarshalIndent() produced invalid JSON")
 }
 
 func TestMarshalWithOptions(t *testing.T) {
@@ -123,18 +116,10 @@ func TestMarshalWithOptions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			data, err := jsonutil.MarshalWithOptions(input, tt.opts)
-			if err != nil {
-				t.Fatalf("MarshalWithOptions() error = %v", err)
-			}
-
+			tst.AssertNoError(t, err)
 			result := string(data)
-			if !strings.Contains(result, tt.wantStr) {
-				t.Errorf("MarshalWithOptions() result = %s, want to contain %s", result, tt.wantStr)
-			}
-
-			if !jsonutil.Valid(data) {
-				t.Error("MarshalWithOptions() produced invalid JSON")
-			}
+			tst.AssertTrue(t, strings.Contains(result, tt.wantStr), "MarshalWithOptions() result missing expected substring")
+			tst.AssertTrue(t, jsonutil.Valid(data), "MarshalWithOptions() produced invalid JSON")
 		})
 	}
 }
@@ -178,9 +163,7 @@ func TestUnmarshal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := jsonutil.Unmarshal([]byte(tt.data), tt.target)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			tst.AssertTrue(t, (err != nil) == tt.wantErr, "Unmarshal() error mismatch")
 		})
 	}
 }
@@ -215,9 +198,7 @@ func TestUnmarshalStrict(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := jsonutil.UnmarshalStrict([]byte(tt.data), tt.target)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("UnmarshalStrict() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			tst.AssertTrue(t, (err != nil) == tt.wantErr, "UnmarshalStrict() error mismatch")
 		})
 	}
 }
@@ -266,9 +247,7 @@ func TestUnmarshalWithOptions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := jsonutil.UnmarshalWithOptions([]byte(tt.data), tt.target, tt.opts)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("UnmarshalWithOptions() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			tst.AssertTrue(t, (err != nil) == tt.wantErr, "UnmarshalWithOptions() error mismatch")
 			if !tt.wantErr && tt.check != nil {
 				tt.check(t, tt.target)
 			}
@@ -301,16 +280,10 @@ func TestEncodeWriter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			err := jsonutil.EncodeWriter(&buf, input, tt.opts)
-			if err != nil {
-				t.Fatalf("EncodeWriter() error = %v", err)
-			}
-
-			if !jsonutil.Valid(buf.Bytes()) {
-				t.Error("EncodeWriter() produced invalid JSON")
-			}
-
-			if tt.opts != nil && tt.opts.Indent != "" && !strings.Contains(buf.String(), "\n") {
-				t.Error("EncodeWriter() should produce indented output when indent is specified")
+			tst.AssertNoError(t, err)
+			tst.AssertTrue(t, jsonutil.Valid(buf.Bytes()), "EncodeWriter() produced invalid JSON")
+			if tt.opts != nil && tt.opts.Indent != "" {
+				tst.AssertTrue(t, strings.Contains(buf.String(), "\n"), "EncodeWriter() should produce indented output when indent is specified")
 			}
 		})
 	}
@@ -361,9 +334,7 @@ func TestDecodeReader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := strings.NewReader(tt.data)
 			err := jsonutil.DecodeReader(reader, tt.target, tt.opts)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DecodeReader() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			tst.AssertTrue(t, (err != nil) == tt.wantErr, "DecodeReader() error mismatch")
 		})
 	}
 }
@@ -393,9 +364,7 @@ func TestDecodeReaderStrict(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := strings.NewReader(tt.data)
 			err := jsonutil.DecodeReaderStrict(reader, tt.target)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DecodeReaderStrict() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			tst.AssertTrue(t, (err != nil) == tt.wantErr, "DecodeReaderStrict() error mismatch")
 		})
 	}
 }
@@ -436,9 +405,7 @@ func TestValid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := jsonutil.Valid([]byte(tt.data))
-			if result != tt.want {
-				t.Errorf("Valid() = %v, want %v", result, tt.want)
-			}
+			tst.AssertDeepEqual(t, result, tt.want)
 		})
 	}
 }
@@ -451,18 +418,10 @@ func TestCompact(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := jsonutil.Compact(&buf, []byte(indentedJSON))
-	if err != nil {
-		t.Fatalf("Compact() error = %v", err)
-	}
-
+	tst.AssertNoError(t, err)
 	result := buf.String()
-	if strings.Contains(result, "\n") || strings.Contains(result, "  ") {
-		t.Error("Compact() should remove whitespace")
-	}
-
-	if !jsonutil.Valid(buf.Bytes()) {
-		t.Error("Compact() produced invalid JSON")
-	}
+	tst.AssertFalse(t, strings.Contains(result, "\n") || strings.Contains(result, "  "), "Compact() should remove whitespace")
+	tst.AssertTrue(t, jsonutil.Valid(buf.Bytes()), "Compact() produced invalid JSON")
 }
 
 func TestIndent(t *testing.T) {
@@ -470,18 +429,10 @@ func TestIndent(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := jsonutil.Indent(&buf, []byte(compactJSON), "", "  ")
-	if err != nil {
-		t.Fatalf("Indent() error = %v", err)
-	}
-
+	tst.AssertNoError(t, err)
 	result := buf.String()
-	if !strings.Contains(result, "\n") {
-		t.Error("Indent() should add newlines")
-	}
-
-	if !jsonutil.Valid(buf.Bytes()) {
-		t.Error("Indent() produced invalid JSON")
-	}
+	tst.AssertTrue(t, strings.Contains(result, "\n"), "Indent() should add newlines")
+	tst.AssertTrue(t, jsonutil.Valid(buf.Bytes()), "Indent() produced invalid JSON")
 }
 
 func TestHTMLEscape(t *testing.T) {
@@ -491,13 +442,8 @@ func TestHTMLEscape(t *testing.T) {
 	jsonutil.HTMLEscape(&buf, []byte(jsonWithHTML))
 
 	result := buf.String()
-	if !strings.Contains(result, "\\u003c") {
-		t.Error("HTMLEscape() should escape HTML characters")
-	}
-
-	if !jsonutil.Valid(buf.Bytes()) {
-		t.Error("HTMLEscape() produced invalid JSON")
-	}
+	tst.AssertTrue(t, strings.Contains(result, "\\u003c"), "HTMLEscape() should escape HTML characters")
+	tst.AssertTrue(t, jsonutil.Valid(buf.Bytes()), "HTMLEscape() produced invalid JSON")
 }
 
 // Test error messages contain proper context
@@ -505,14 +451,9 @@ func TestErrorContext(t *testing.T) {
 	invalidJSON := `{"name":"Alice","age":30,}`
 
 	err := jsonutil.Unmarshal([]byte(invalidJSON), &testStruct{})
-	if err == nil {
-		t.Fatal("Expected error for invalid JSON")
-	}
-
+	tst.AssertNotNil(t, err, "Expected error for invalid JSON")
 	errStr := err.Error()
-	if !strings.Contains(errStr, "jsonutil:") {
-		t.Errorf("Error should contain 'jsonutil:' prefix, got: %s", errStr)
-	}
+	tst.AssertTrue(t, strings.Contains(errStr, "jsonutil:"), "Error should contain 'jsonutil:' prefix")
 }
 
 // Benchmark tests

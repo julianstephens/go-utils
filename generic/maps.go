@@ -2,7 +2,6 @@ package generic
 
 import (
 	"maps"
-	maps0 "maps"
 )
 
 // Keys returns a slice containing all keys from the map.
@@ -111,10 +110,10 @@ func MapMap[K1 comparable, V1 any, K2 comparable, V2 any](m map[K1]V1, f func(K1
 
 // MergeMap merges multiple maps into a new map.
 // If the same key exists in multiple maps, the value from the last map takes precedence.
-func MergeMap[K comparable, V any](maps ...map[K]V) map[K]V {
+func MergeMap[K comparable, V any](mergeMaps ...map[K]V) map[K]V {
 	result := make(map[K]V)
-	for _, m := range maps {
-		maps0.Copy(result, m)
+	for _, m := range mergeMaps {
+		maps.Copy(result, m)
 	}
 	return result
 }

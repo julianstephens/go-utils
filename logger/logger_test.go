@@ -7,32 +7,24 @@ import (
 	"testing"
 
 	"github.com/julianstephens/go-utils/logger"
+	tst "github.com/julianstephens/go-utils/tests"
 	"github.com/sirupsen/logrus"
 )
 
 func TestNew(t *testing.T) {
 	log := logger.New()
-	if log == nil {
-		t.Fatal("New() should return a non-nil logger")
-	}
+	tst.AssertNotNil(t, log, "New() should return a non-nil logger")
 
 	// Test default level is info
-	if log.GetLevel() != "info" {
-		t.Errorf("Expected default level to be 'info', got '%s'", log.GetLevel())
-	}
+	tst.AssertDeepEqual(t, log.GetLevel(), "info")
 }
 
 func TestNewWithOptions(t *testing.T) {
 	var buf bytes.Buffer
 	log := logger.NewWithOptions(&buf, logrus.DebugLevel, &logrus.TextFormatter{})
 
-	if log == nil {
-		t.Fatal("NewWithOptions() should return a non-nil logger")
-	}
-
-	if log.GetLevel() != "debug" {
-		t.Errorf("Expected level to be 'debug', got '%s'", log.GetLevel())
-	}
+	tst.AssertNotNil(t, log, "NewWithOptions() should return a non-nil logger")
+	tst.AssertDeepEqual(t, log.GetLevel(), "debug")
 }
 
 func TestSetLogLevel(t *testing.T) {
@@ -57,20 +49,12 @@ func TestSetLogLevel(t *testing.T) {
 			err := log.SetLogLevel(tt.level)
 
 			if tt.hasError {
-				if err == nil {
-					t.Errorf("Expected error for invalid level '%s'", tt.level)
-				}
+				tst.AssertNotNil(t, err, "Expected error for invalid level")
 				return
 			}
 
-			if err != nil {
-				t.Errorf("Unexpected error setting level '%s': %v", tt.level, err)
-				return
-			}
-
-			if log.GetLevel() != tt.expected {
-				t.Errorf("Expected level '%s', got '%s'", tt.expected, log.GetLevel())
-			}
+			tst.AssertNoError(t, err)
+			tst.AssertDeepEqual(t, log.GetLevel(), tt.expected)
 		})
 	}
 }
@@ -117,25 +101,17 @@ func TestLoggingMethods(t *testing.T) {
 			tt.logFunc()
 
 			output := buf.String()
-			if output == "" {
-				t.Fatal("Expected log output, got empty string")
-			}
+			tst.AssertTrue(t, output != "", "Expected log output, got empty string")
 
 			// Parse JSON log entry
 			var logEntry map[string]interface{}
-			if err := json.Unmarshal([]byte(output), &logEntry); err != nil {
-				t.Fatalf("Failed to parse JSON log output: %v", err)
-			}
+			tst.AssertNoError(t, json.Unmarshal([]byte(output), &logEntry))
 
 			// Check level
-			if logEntry["level"] != tt.level {
-				t.Errorf("Expected level '%s', got '%s'", tt.level, logEntry["level"])
-			}
+			tst.AssertDeepEqual(t, logEntry["level"], tt.level)
 
 			// Check message
-			if logEntry["msg"] != tt.message {
-				t.Errorf("Expected message '%s', got '%s'", tt.message, logEntry["msg"])
-			}
+			tst.AssertDeepEqual(t, logEntry["msg"], tt.message)
 
 			// Check timestamp exists
 			if _, exists := logEntry["time"]; !exists {
@@ -187,20 +163,14 @@ func TestFormattedLoggingMethods(t *testing.T) {
 			tt.logFunc()
 
 			output := buf.String()
-			if output == "" {
-				t.Fatal("Expected log output, got empty string")
-			}
+			tst.AssertTrue(t, output != "", "Expected log output, got empty string")
 
 			// Parse JSON log entry
 			var logEntry map[string]interface{}
-			if err := json.Unmarshal([]byte(output), &logEntry); err != nil {
-				t.Fatalf("Failed to parse JSON log output: %v", err)
-			}
+			tst.AssertNoError(t, json.Unmarshal([]byte(output), &logEntry))
 
 			// Check level
-			if logEntry["level"] != tt.level {
-				t.Errorf("Expected level '%s', got '%s'", tt.level, logEntry["level"])
-			}
+			tst.AssertDeepEqual(t, logEntry["level"], tt.level)
 
 			// Check message contains expected text
 			msg, ok := logEntry["msg"].(string)
@@ -222,25 +192,17 @@ func TestWithField(t *testing.T) {
 	contextLogger.Info("test message")
 
 	output := buf.String()
-	if output == "" {
-		t.Fatal("Expected log output, got empty string")
-	}
+	tst.AssertTrue(t, output != "", "Expected log output, got empty string")
 
 	// Parse JSON log entry
 	var logEntry map[string]interface{}
-	if err := json.Unmarshal([]byte(output), &logEntry); err != nil {
-		t.Fatalf("Failed to parse JSON log output: %v", err)
-	}
+	tst.AssertNoError(t, json.Unmarshal([]byte(output), &logEntry))
 
 	// Check field is present
-	if logEntry["user_id"] != "12345" {
-		t.Errorf("Expected user_id field to be '12345', got '%v'", logEntry["user_id"])
-	}
+	tst.AssertDeepEqual(t, logEntry["user_id"], "12345")
 
 	// Check message
-	if logEntry["msg"] != "test message" {
-		t.Errorf("Expected message 'test message', got '%s'", logEntry["msg"])
-	}
+	tst.AssertDeepEqual(t, logEntry["msg"], "test message")
 }
 
 func TestWithFields(t *testing.T) {
@@ -257,15 +219,11 @@ func TestWithFields(t *testing.T) {
 	contextLogger.Info("user action")
 
 	output := buf.String()
-	if output == "" {
-		t.Fatal("Expected log output, got empty string")
-	}
+	tst.AssertTrue(t, output != "", "Expected log output, got empty string")
 
 	// Parse JSON log entry
 	var logEntry map[string]interface{}
-	if err := json.Unmarshal([]byte(output), &logEntry); err != nil {
-		t.Fatalf("Failed to parse JSON log output: %v", err)
-	}
+	tst.AssertNoError(t, json.Unmarshal([]byte(output), &logEntry))
 
 	// Check all fields are present
 	for key, expectedValue := range fields {
@@ -275,9 +233,7 @@ func TestWithFields(t *testing.T) {
 	}
 
 	// Check message
-	if logEntry["msg"] != "user action" {
-		t.Errorf("Expected message 'user action', got '%s'", logEntry["msg"])
-	}
+	tst.AssertDeepEqual(t, logEntry["msg"], "user action")
 }
 
 func TestLogLevelFiltering(t *testing.T) {

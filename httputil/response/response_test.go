@@ -8,102 +8,117 @@ import (
 	"testing"
 
 	"github.com/julianstephens/go-utils/httputil/response"
+	testhelpers "github.com/julianstephens/go-utils/tests"
 )
 
-func TestResponder_WriteWithStatus(t *testing.T) {
+func TestResponder_NoContent(t *testing.T) {
 	responder := response.New()
+	req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
+	responder.NoContent(w, req)
+	testhelpers.AssertStatus(t, w, 204)
+	testhelpers.AssertBodyEquals(t, w, "")
+}
 
-	// Test data
-	data := map[string]string{"message": "test"}
+func TestResponder_Created(t *testing.T) {
+	responder := response.New()
+	req, w := testhelpers.NewRequestAndRecorder("POST", "/test")
+	data := map[string]string{"created": "yes"}
+	responder.Created(w, req, data)
+	testhelpers.AssertStatus(t, w, 201)
+	testhelpers.AssertBodyContains(t, w, "created")
+}
 
-	// Create test request and response recorder
-	req := httptest.NewRequest("GET", "/test", nil)
-	w := httptest.NewRecorder()
+func TestResponder_Unauthorized(t *testing.T) {
+	responder := response.New()
+	req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
+	responder.Unauthorized(w, req, "unauthorized access")
+	testhelpers.AssertStatus(t, w, 401)
+	testhelpers.AssertBodyContains(t, w, "unauthorized access")
+}
 
-	// Call WriteWithStatus
-	responder.WriteWithStatus(w, req, data, http.StatusOK)
+func TestResponder_Forbidden(t *testing.T) {
+	responder := response.New()
+	req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
+	responder.Forbidden(w, req, "forbidden access")
+	testhelpers.AssertStatus(t, w, 403)
+	testhelpers.AssertBodyContains(t, w, "forbidden access")
+}
 
-	// Verify response
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
-	}
+func TestResponder_NotFound(t *testing.T) {
+	responder := response.New()
+	req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
+	responder.NotFound(w, req, "not found")
+	testhelpers.AssertStatus(t, w, 404)
+	testhelpers.AssertBodyContains(t, w, "not found")
+}
 
-	contentType := w.Header().Get("Content-Type")
-	if contentType != "application/json" {
-		t.Errorf("Expected Content-Type application/json, got %s", contentType)
-	}
+func TestResponder_InternalServerError(t *testing.T) {
+	responder := response.New()
+	req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
+	responder.InternalServerError(w, req, "internal error")
+	testhelpers.AssertStatus(t, w, 500)
+	testhelpers.AssertBodyContains(t, w, "internal error")
+}
 
-	body := w.Body.String()
-	if !strings.Contains(body, "test") {
-		t.Errorf("Expected response body to contain 'test', got %s", body)
-	}
+func TestParseErrData(t *testing.T) {
+	err := response.ParseErrData(errors.New("err1"))
+	testhelpers.AssertDeepEqual(t, err.Error(), "err1")
+	err = response.ParseErrData("err2")
+	testhelpers.AssertDeepEqual(t, err.Error(), "err2")
+	err = response.ParseErrData(nil)
+	testhelpers.AssertDeepEqual(t, err, nil)
+}
+
+func TestDefaultHooks(t *testing.T) {
+	req, w := testhelpers.NewRequestAndRecorder("GET", "/")
+	response.DefaultBefore(w, req, nil)
+	response.DefaultAfter(w, req, nil)
+	response.DefaultOnError(w, req, errors.New("fail"), 0)
+	testhelpers.AssertStatus(t, w, 500)
+	testhelpers.AssertBodyContains(t, w, "fail")
+}
+
+func TestLoggingHooks(t *testing.T) {
+	req, w := testhelpers.NewRequestAndRecorder("GET", "/")
+	response.LoggingBefore(w, req, nil)
+	response.LoggingAfter(w, req, nil)
+	response.LoggingOnError(w, req, errors.New("fail2"), 400)
+	testhelpers.AssertStatus(t, w, 400)
+	testhelpers.AssertBodyContains(t, w, "fail2")
 }
 
 func TestResponder_ErrorWithStatus(t *testing.T) {
 	responder := response.New()
-
-	// Create test request and response recorder
-	req := httptest.NewRequest("GET", "/test", nil)
-	w := httptest.NewRecorder()
-
-	// Call ErrorWithStatus
+	req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
 	err := errors.New("test error")
-	responder.ErrorWithStatus(w, req, http.StatusInternalServerError, err)
-
-	// Verify error response
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status %d, got %d", http.StatusInternalServerError, w.Code)
-	}
+	responder.ErrorWithStatus(w, req, 500, err)
+	testhelpers.AssertStatus(t, w, 500)
 }
 
 func TestJSONEncoder(t *testing.T) {
 	encoder := response.NewJSONEncoder()
-
-	// Test data
 	data := map[string]string{"key": "value"}
-
-	// Create response recorder
-	w := httptest.NewRecorder()
-
-	// Encode
-	err := encoder.Encode(w, data)
+	_, w := testhelpers.NewRequestAndRecorder("GET", "/test")
+	err := encoder.Encode(w, data, 200)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-
-	// Verify content type
-	contentType := w.Header().Get("Content-Type")
-	if contentType != "application/json" {
-		t.Errorf("Expected Content-Type application/json, got %s", contentType)
+	if w.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("Expected Content-Type application/json, got %s", w.Header().Get("Content-Type"))
 	}
-
-	// Verify JSON content
-	body := w.Body.String()
-	if !strings.Contains(body, "key") || !strings.Contains(body, "value") {
-		t.Errorf("Expected JSON content, got %s", body)
-	}
+	testhelpers.AssertBodyContains(t, w, "key")
+	testhelpers.AssertBodyContains(t, w, "value")
 }
 
 func TestJSONEncoderWithIndent(t *testing.T) {
 	encoder := response.NewJSONEncoderWithIndent("  ")
-
-	// Test data
 	data := map[string]string{"key": "value"}
-
-	// Create response recorder
-	w := httptest.NewRecorder()
-
-	// Encode
-	err := encoder.Encode(w, data)
+	_, w := testhelpers.NewRequestAndRecorder("GET", "/test")
+	err := encoder.Encode(w, data, 200)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-
-	// Verify indented JSON
-	body := w.Body.String()
-	if !strings.Contains(body, "  ") {
-		t.Errorf("Expected indented JSON, got %s", body)
-	}
+	testhelpers.AssertBodyContains(t, w, "  ")
 }
 
 func TestHooks(t *testing.T) {
@@ -119,7 +134,7 @@ func TestHooks(t *testing.T) {
 		After: func(w http.ResponseWriter, r *http.Request, data any) {
 			afterCalled = true
 		},
-		OnError: func(w http.ResponseWriter, r *http.Request, err error) {
+		OnError: func(w http.ResponseWriter, r *http.Request, err error, status int) {
 			errorCalled = true
 		},
 	}
@@ -181,107 +196,48 @@ func TestNewConstructors(t *testing.T) {
 
 func TestWriteOK(t *testing.T) {
 	responder := response.New()
-
-	// Create test request and response recorder
-	req := httptest.NewRequest("GET", "/test", nil)
-	w := httptest.NewRecorder()
-
-	// Call WriteOK
+	req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
 	responder.OK(w, req, map[string]string{"status": "success"})
-
-	// Verify response
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	testhelpers.AssertStatus(t, w, 200)
+	if w.Header().Get("Content-Type") != "application/json" {
+		t.Errorf("Expected Content-Type application/json, got %s", w.Header().Get("Content-Type"))
 	}
-
-	contentType := w.Header().Get("Content-Type")
-	if contentType != "application/json" {
-		t.Errorf("Expected Content-Type application/json, got %s", contentType)
-	}
-
-	body := w.Body.String()
-	if body != "{\"status\":\"success\"}\n" {
-		t.Errorf("Expected response body to be '{\"status\":\"success\"}', got %s", body)
-	}
+	testhelpers.AssertBodyEquals(t, w, "{\"status\":\"success\"}\n")
 }
 
 func TestErrorWithStatus(t *testing.T) {
 	tests := []struct {
 		name   string
-		w      http.ResponseWriter
-		req    *http.Request
 		status int
 		err    error
 	}{
-		{
-			name: "Basic 500 Internal Server Error",
-			w:    httptest.NewRecorder(),
-			req:  httptest.NewRequest("GET", "/test", nil),
-			err:  errors.New("internal server error"),
-		},
-		{
-			name:   "Nil ResponseWriter",
-			w:      nil,
-			req:    httptest.NewRequest("GET", "/test", nil),
-			status: http.StatusInternalServerError,
-			err:    errors.New("internal server error"),
-		},
-		{
-			name:   "Nil Request",
-			w:      httptest.NewRecorder(),
-			req:    nil,
-			status: http.StatusInternalServerError,
-			err:    errors.New("internal server error"),
-		},
-		{
-			name:   "Nil Error",
-			w:      httptest.NewRecorder(),
-			req:    httptest.NewRequest("GET", "/test", nil),
-			status: http.StatusInternalServerError,
-			err:    nil,
-		},
-		{
-			name:   "400 Bad Request with String Error",
-			w:      httptest.NewRecorder(),
-			req:    httptest.NewRequest("GET", "/test", nil),
-			status: http.StatusBadRequest,
-			err:    errors.New("bad request error"),
-		},
-		{
-			name:   "403 Forbidden with Custom Error",
-			w:      httptest.NewRecorder(),
-			req:    httptest.NewRequest("GET", "/test", nil),
-			status: http.StatusForbidden,
-			err:    errors.New("forbidden access"),
-		},
-		{
-			name:   "404 Not Found with Nil Error",
-			w:      httptest.NewRecorder(),
-			req:    httptest.NewRequest("GET", "/test", nil),
-			status: http.StatusNotFound,
-			err:    nil,
-		},
-		{
-			name:   "500 Internal Server Error with Wrapped Error",
-			w:      httptest.NewRecorder(),
-			req:    httptest.NewRequest("GET", "/test", nil),
-			status: http.StatusInternalServerError,
-			err:    errors.New("wrapped internal error"),
-		},
-		{
-			name:   "Nil ResponseWriter and Request",
-			w:      nil,
-			req:    nil,
-			status: http.StatusInternalServerError,
-			err:    errors.New("internal server error"),
-		},
+		{name: "Basic 500 Internal Server Error", status: 500, err: errors.New("internal server error")},
+		{name: "Nil Error", status: 500, err: nil},
+		{name: "400 Bad Request with String Error", status: 400, err: errors.New("bad request error")},
+		{name: "403 Forbidden with Custom Error", status: 403, err: errors.New("forbidden access")},
+		{name: "404 Not Found with Nil Error", status: 404, err: nil},
+		{name: "500 Internal Server Error with Wrapped Error", status: 500, err: errors.New("wrapped internal error")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := response.New()
-			r.ErrorWithStatus(tt.w, tt.req, tt.status, tt.err)
+			req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
+			r.ErrorWithStatus(w, req, tt.status, tt.err)
+			testhelpers.AssertStatus(t, w, tt.status)
 		})
 	}
+	// Special cases for nil ResponseWriter and/or Request
+	t.Run("Nil ResponseWriter", func(t *testing.T) {
+		r := response.New()
+		req, _ := testhelpers.NewRequestAndRecorder("GET", "/test")
+		defer func() { _ = recover() }()
+		r.ErrorWithStatus(nil, req, 500, errors.New("internal server error"))
+	})
+	t.Run("Nil ResponseWriter and Request", func(t *testing.T) {
+		r := response.New()
+		defer func() { _ = recover() }()
+		r.ErrorWithStatus(nil, nil, 500, errors.New("internal server error"))
+	})
 
 	// Additional scenario: ErrorWithStatus with string data
 	t.Run("String data as error", func(t *testing.T) {

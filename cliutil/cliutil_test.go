@@ -1,11 +1,11 @@
 package cliutil_test
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/julianstephens/go-utils/cliutil"
+	tst "github.com/julianstephens/go-utils/tests"
 )
 
 func TestParseArgs(t *testing.T) {
@@ -65,15 +65,9 @@ func TestParseArgs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := cliutil.ParseArgs(tt.args)
 
-			if !reflect.DeepEqual(result.Flags, tt.expected.Flags) {
-				t.Errorf("Expected flags %v, got %v", tt.expected.Flags, result.Flags)
-			}
-			if !reflect.DeepEqual(result.BoolFlags, tt.expected.BoolFlags) {
-				t.Errorf("Expected bool flags %v, got %v", tt.expected.BoolFlags, result.BoolFlags)
-			}
-			if !reflect.DeepEqual(result.Positional, tt.expected.Positional) {
-				t.Errorf("Expected positional %v, got %v", tt.expected.Positional, result.Positional)
-			}
+			tst.AssertDeepEqual(t, result.Flags, tt.expected.Flags)
+			tst.AssertDeepEqual(t, result.BoolFlags, tt.expected.BoolFlags)
+			tst.AssertDeepEqual(t, result.Positional, tt.expected.Positional)
 		})
 	}
 }
@@ -81,68 +75,40 @@ func TestParseArgs(t *testing.T) {
 func TestArgs_HasFlag(t *testing.T) {
 	args := cliutil.ParseArgs([]string{"--verbose", "--debug"})
 
-	if !args.HasFlag("verbose") {
-		t.Error("Expected verbose flag to be true")
-	}
-	if !args.HasFlag("debug") {
-		t.Error("Expected debug flag to be true")
-	}
-	if args.HasFlag("quiet") {
-		t.Error("Expected quiet flag to be false")
-	}
+	tst.AssertTrue(t, args.HasFlag("verbose"), "verbose flag should be true")
+	tst.AssertTrue(t, args.HasFlag("debug"), "debug flag should be true")
+	tst.AssertFalse(t, args.HasFlag("quiet"), "quiet flag should be false")
 }
 
 func TestArgs_GetFlag(t *testing.T) {
 	args := cliutil.ParseArgs([]string{"--output", "file.txt", "--config=config.yaml"})
 
-	if args.GetFlag("output") != "file.txt" {
-		t.Errorf("Expected output flag to be 'file.txt', got '%s'", args.GetFlag("output"))
-	}
-	if args.GetFlag("config") != "config.yaml" {
-		t.Errorf("Expected config flag to be 'config.yaml', got '%s'", args.GetFlag("config"))
-	}
-	if args.GetFlag("nonexistent") != "" {
-		t.Errorf("Expected nonexistent flag to be empty, got '%s'", args.GetFlag("nonexistent"))
-	}
+	tst.AssertTrue(t, args.GetFlag("output") == "file.txt", "output flag should be file.txt")
+	tst.AssertTrue(t, args.GetFlag("config") == "config.yaml", "config flag should be config.yaml")
+	tst.AssertTrue(t, args.GetFlag("nonexistent") == "", "nonexistent flag should be empty")
 }
 
 func TestArgs_GetFlagWithDefault(t *testing.T) {
 	args := cliutil.ParseArgs([]string{"--output", "file.txt"})
 
-	if args.GetFlagWithDefault("output", "default.txt") != "file.txt" {
-		t.Error("Expected to get actual flag value, not default")
-	}
-	if args.GetFlagWithDefault("nonexistent", "default.txt") != "default.txt" {
-		t.Error("Expected to get default value for nonexistent flag")
-	}
+	tst.AssertTrue(t, args.GetFlagWithDefault("output", "default.txt") == "file.txt", "should get actual flag value")
+	tst.AssertTrue(t, args.GetFlagWithDefault("nonexistent", "default.txt") == "default.txt", "should get default for nonexistent flag")
 }
 
 func TestHasFlag(t *testing.T) {
 	args := []string{"--verbose", "--output=file.txt", "input.txt"}
 
-	if !cliutil.HasFlag(args, "--verbose") {
-		t.Error("Expected to find --verbose flag")
-	}
-	if !cliutil.HasFlag(args, "--output") {
-		t.Error("Expected to find --output flag")
-	}
-	if cliutil.HasFlag(args, "--debug") {
-		t.Error("Expected not to find --debug flag")
-	}
+	tst.AssertTrue(t, cliutil.HasFlag(args, "--verbose"), "should find --verbose")
+	tst.AssertTrue(t, cliutil.HasFlag(args, "--output"), "should find --output")
+	tst.AssertFalse(t, cliutil.HasFlag(args, "--debug"), "should not find --debug")
 }
 
 func TestGetFlagValue(t *testing.T) {
 	args := []string{"--output", "file.txt", "--config=config.yaml", "input.txt"}
 
-	if cliutil.GetFlagValue(args, "--output", "default") != "file.txt" {
-		t.Error("Expected to get flag value for --output")
-	}
-	if cliutil.GetFlagValue(args, "--config", "default") != "config.yaml" {
-		t.Error("Expected to get flag value for --config")
-	}
-	if cliutil.GetFlagValue(args, "--nonexistent", "default") != "default" {
-		t.Error("Expected to get default value for nonexistent flag")
-	}
+	tst.AssertTrue(t, cliutil.GetFlagValue(args, "--output", "default") == "file.txt", "GetFlagValue --output should return file.txt")
+	tst.AssertTrue(t, cliutil.GetFlagValue(args, "--config", "default") == "config.yaml", "GetFlagValue --config should return config.yaml")
+	tst.AssertTrue(t, cliutil.GetFlagValue(args, "--nonexistent", "default") == "default", "GetFlagValue nonexistent should return default")
 }
 
 func TestValidateNonEmpty(t *testing.T) {
@@ -159,11 +125,10 @@ func TestValidateNonEmpty(t *testing.T) {
 
 	for _, tt := range tests {
 		err := cliutil.ValidateNonEmpty(tt.input)
-		if tt.shouldErr && err == nil {
-			t.Errorf("Expected error for input '%s'", tt.input)
-		}
-		if !tt.shouldErr && err != nil {
-			t.Errorf("Expected no error for input '%s', got %v", tt.input, err)
+		if tt.shouldErr {
+			tst.AssertNotNil(t, err, "expected error for input")
+		} else {
+			tst.AssertNoError(t, err)
 		}
 	}
 }
@@ -184,20 +149,17 @@ func TestValidateEmail(t *testing.T) {
 
 	for _, tt := range tests {
 		err := cliutil.ValidateEmail(tt.input)
-		if tt.shouldErr && err == nil {
-			t.Errorf("Expected error for email '%s'", tt.input)
-		}
-		if !tt.shouldErr && err != nil {
-			t.Errorf("Expected no error for email '%s', got %v", tt.input, err)
+		if tt.shouldErr {
+			tst.AssertNotNil(t, err, "expected error for email")
+		} else {
+			tst.AssertNoError(t, err)
 		}
 	}
 }
 
 func TestNewProgressBar(t *testing.T) {
 	pb := cliutil.NewProgressBar(100)
-	if pb == nil {
-		t.Error("Expected progress bar to be created")
-	}
+	tst.AssertNotNil(t, pb, "progress bar should be created")
 
 	// Test update (we can't easily test the visual output, but we can test it doesn't panic)
 	pb.Update(50)
@@ -207,9 +169,7 @@ func TestNewProgressBar(t *testing.T) {
 
 func TestNewProgressBarWithOptions(t *testing.T) {
 	pb := cliutil.NewProgressBarWithOptions(200, 30, "Custom Progress")
-	if pb == nil {
-		t.Error("Expected progress bar to be created")
-	}
+	tst.AssertNotNil(t, pb, "progress bar with options should be created")
 
 	pb.Update(100)
 	pb.Finish()
@@ -217,9 +177,7 @@ func TestNewProgressBarWithOptions(t *testing.T) {
 
 func TestNewSpinner(t *testing.T) {
 	spinner := cliutil.NewSpinner("Loading...")
-	if spinner == nil {
-		t.Error("Expected spinner to be created")
-	}
+	tst.AssertNotNil(t, spinner, "spinner should be created")
 
 	// Test start and stop (we can't easily test the visual output, but we can test it doesn't panic)
 	spinner.Start()
@@ -251,9 +209,8 @@ func TestColorConstants(t *testing.T) {
 	}
 
 	for i, color := range colors {
-		if string(color) == "" {
-			t.Errorf("Color constant %d should not be empty", i)
-		}
+		tst.AssertTrue(t, string(color) != "", "color constant should not be empty")
+		_ = i
 	}
 }
 
@@ -312,21 +269,15 @@ func BenchmarkValidateEmail(b *testing.B) {
 func TestParseArgsEdgeCases(t *testing.T) {
 	// Test flag at end without value
 	args := cliutil.ParseArgs([]string{"input.txt", "--flag"})
-	if !args.HasFlag("flag") {
-		t.Error("Expected flag to be parsed as boolean flag")
-	}
+	tst.AssertTrue(t, args.HasFlag("flag"), "flag should be parsed as boolean flag")
 
 	// Test empty flag name
 	args = cliutil.ParseArgs([]string{"--"})
-	if len(args.BoolFlags) != 1 || !args.BoolFlags[""] {
-		t.Error("Expected empty flag name to be handled")
-	}
+	tst.AssertTrue(t, len(args.BoolFlags) == 1 && args.BoolFlags[""], "empty flag name should be handled")
 
 	// Test single dash
 	args = cliutil.ParseArgs([]string{"-"})
-	if len(args.Positional) != 1 || args.Positional[0] != "-" {
-		t.Error("Expected single dash to be treated as positional argument")
-	}
+	tst.AssertTrue(t, len(args.Positional) == 1 && args.Positional[0] == "-", "single dash should be positional")
 }
 
 func TestProgressBarEdgeCases(t *testing.T) {

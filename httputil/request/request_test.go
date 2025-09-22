@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/julianstephens/go-utils/httputil/request"
+	tst "github.com/julianstephens/go-utils/tests"
 )
 
 type testStruct struct {
@@ -21,12 +22,8 @@ func TestDecodeJSON(t *testing.T) {
 
 	var ts testStruct
 	err := request.DecodeJSON(req, &ts)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if ts.Name != "Alice" || ts.Age != 30 {
-		t.Errorf("unexpected struct: %+v", ts)
-	}
+	tst.AssertNoError(t, err)
+	tst.AssertTrue(t, ts.Name == "Alice" && ts.Age == 30, "decoded struct should match")
 }
 
 func TestDecodeJSON_InvalidContentType(t *testing.T) {
@@ -36,51 +33,35 @@ func TestDecodeJSON_InvalidContentType(t *testing.T) {
 
 	var ts testStruct
 	err := request.DecodeJSON(req, &ts)
-	if err != request.ErrInvalidContentType {
-		t.Errorf("expected ErrInvalidContentType, got %v", err)
-	}
+	tst.AssertTrue(t, err == request.ErrInvalidContentType, "should return ErrInvalidContentType")
 }
 
 func TestQueryValue(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/?foo=bar", nil)
 	val, ok := request.QueryValue(req, "foo")
-	if !ok || val != "bar" {
-		t.Errorf("expected bar, got %s (%v)", val, ok)
-	}
+	tst.AssertTrue(t, ok && val == "bar", "QueryValue should return bar")
 	_, ok = request.QueryValue(req, "baz")
-	if ok {
-		t.Errorf("expected missing value")
-	}
+	tst.AssertFalse(t, ok, "QueryValue should be missing for baz")
 }
 
 func TestQueryInt(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/?num=42", nil)
 	i, ok := request.QueryInt(req, "num")
-	if !ok || i != 42 {
-		t.Errorf("expected 42, got %d (%v)", i, ok)
-	}
+	tst.AssertTrue(t, ok && i == 42, "QueryInt should return 42")
 	_, ok = request.QueryInt(req, "bad")
-	if ok {
-		t.Errorf("expected missing value for 'bad'")
-	}
+	tst.AssertFalse(t, ok, "QueryInt should be missing for bad")
 	req, _ = http.NewRequest("GET", "/?num=foo", nil)
 	_, ok = request.QueryInt(req, "num")
-	if ok {
-		t.Errorf("expected parsing failure")
-	}
+	tst.AssertFalse(t, ok, "QueryInt should fail parsing for non-int")
 }
 
 func TestQueryBool(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/?flag=true", nil)
 	b, ok := request.QueryBool(req, "flag")
-	if !ok || !b {
-		t.Errorf("expected true, got %v (%v)", b, ok)
-	}
+	tst.AssertTrue(t, ok && b, "QueryBool should return true")
 	req, _ = http.NewRequest("GET", "/?flag=notabool", nil)
 	_, ok = request.QueryBool(req, "flag")
-	if ok {
-		t.Errorf("expected parsing failure")
-	}
+	tst.AssertFalse(t, ok, "QueryBool should fail parsing for invalid value")
 }
 
 func TestParseFormAndFormValue(t *testing.T) {
@@ -90,21 +71,13 @@ func TestParseFormAndFormValue(t *testing.T) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	err := request.ParseForm(req)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	tst.AssertNoError(t, err)
 	val, ok := request.FormValue(req, "alpha")
-	if !ok || val != "beta" {
-		t.Errorf("expected beta, got %s (%v)", val, ok)
-	}
+	tst.AssertTrue(t, ok && val == "beta", "FormValue should return beta")
 }
 
 func TestParseQuery(t *testing.T) {
 	vals, err := request.ParseQuery("x=1&y=2")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if vals.Get("x") != "1" || vals.Get("y") != "2" {
-		t.Errorf("unexpected values: %v", vals)
-	}
+	tst.AssertNoError(t, err)
+	tst.AssertTrue(t, vals.Get("x") == "1" && vals.Get("y") == "2", "ParseQuery values should match")
 }

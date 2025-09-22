@@ -3,10 +3,10 @@ package config_test
 import (
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/julianstephens/go-utils/config"
+	tst "github.com/julianstephens/go-utils/tests"
 )
 
 // Test configuration structs
@@ -67,22 +67,11 @@ func TestLoadFromEnv(t *testing.T) {
 
 		var cfg BasicConfig
 		err := config.LoadFromEnv(&cfg)
-		if err != nil {
-			t.Fatalf("LoadFromEnv failed: %v", err)
-		}
-
-		if cfg.Port != 8080 {
-			t.Errorf("Expected Port to be 8080, got %d", cfg.Port)
-		}
-		if cfg.Host != "localhost" {
-			t.Errorf("Expected Host to be 'localhost', got '%s'", cfg.Host)
-		}
-		if cfg.Database != "postgres://localhost/test" {
-			t.Errorf("Expected Database to be 'postgres://localhost/test', got '%s'", cfg.Database)
-		}
-		if cfg.Debug != false {
-			t.Errorf("Expected Debug to be false, got %t", cfg.Debug)
-		}
+		tst.AssertNoError(t, err)
+		tst.AssertTrue(t, cfg.Port == 8080, "Port should be 8080")
+		tst.AssertTrue(t, cfg.Host == "localhost", "Host should be localhost")
+		tst.AssertTrue(t, cfg.Database == "postgres://localhost/test", "Database should match")
+		tst.AssertFalse(t, cfg.Debug, "Debug should be false")
 	})
 
 	t.Run("environment overrides", func(t *testing.T) {
@@ -95,22 +84,11 @@ func TestLoadFromEnv(t *testing.T) {
 
 		var cfg BasicConfig
 		err := config.LoadFromEnv(&cfg)
-		if err != nil {
-			t.Fatalf("LoadFromEnv failed: %v", err)
-		}
-
-		if cfg.Port != 3000 {
-			t.Errorf("Expected Port to be 3000, got %d", cfg.Port)
-		}
-		if cfg.Host != "0.0.0.0" {
-			t.Errorf("Expected Host to be '0.0.0.0', got '%s'", cfg.Host)
-		}
-		if cfg.Database != "postgres://prod/db" {
-			t.Errorf("Expected Database to be 'postgres://prod/db', got '%s'", cfg.Database)
-		}
-		if cfg.Debug != true {
-			t.Errorf("Expected Debug to be true, got %t", cfg.Debug)
-		}
+		tst.AssertNoError(t, err)
+		tst.AssertTrue(t, cfg.Port == 3000, "Port should be 3000")
+		tst.AssertTrue(t, cfg.Host == "0.0.0.0", "Host should be 0.0.0.0")
+		tst.AssertTrue(t, cfg.Database == "postgres://prod/db", "Database should match")
+		tst.AssertTrue(t, cfg.Debug, "Debug should be true")
 	})
 
 	t.Run("required field missing", func(t *testing.T) {
@@ -119,27 +97,15 @@ func TestLoadFromEnv(t *testing.T) {
 
 		var cfg BasicConfig
 		err := config.LoadFromEnv(&cfg)
-		if err == nil {
-			t.Fatal("Expected error for missing required field")
-		}
-
-		expectedError := "required field 'Database' (env: DATABASE_URL) is missing or empty"
-		if err.Error() != expectedError {
-			t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
-		}
+		tst.AssertNotNil(t, err, "expected error for missing required field")
+		tst.AssertTrue(t, err.Error() == "required field 'Database' (env: DATABASE_URL) is missing or empty", "error message should match")
 	})
 
 	t.Run("invalid pointer", func(t *testing.T) {
 		var cfg BasicConfig
 		err := config.LoadFromEnv(cfg) // Not a pointer
-		if err == nil {
-			t.Fatal("Expected error for non-pointer argument")
-		}
-
-		expectedError := "config must be a pointer to a struct"
-		if err.Error() != expectedError {
-			t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
-		}
+		tst.AssertNotNil(t, err, "expected error for non-pointer argument")
+		tst.AssertTrue(t, err.Error() == "config must be a pointer to a struct", "error message should match")
 	})
 }
 
@@ -161,46 +127,23 @@ func TestComplexTypes(t *testing.T) {
 
 		var cfg ComplexConfig
 		err := config.LoadFromEnv(&cfg)
-		if err != nil {
-			t.Fatalf("LoadFromEnv failed: %v", err)
-		}
-
+		tst.AssertNoError(t, err)
 		// Check basic types
-		if cfg.StringField != "default_string" {
-			t.Errorf("Expected StringField to be 'default_string', got '%s'", cfg.StringField)
-		}
-		if cfg.IntField != 42 {
-			t.Errorf("Expected IntField to be 42, got %d", cfg.IntField)
-		}
-		if cfg.BoolField != true {
-			t.Errorf("Expected BoolField to be true, got %t", cfg.BoolField)
-		}
-		if cfg.FloatField != 3.14 {
-			t.Errorf("Expected FloatField to be 3.14, got %f", cfg.FloatField)
-		}
+		tst.AssertTrue(t, cfg.StringField == "default_string", "StringField should have default")
+		tst.AssertTrue(t, cfg.IntField == 42, "IntField should have default")
+		tst.AssertTrue(t, cfg.BoolField, "BoolField should be true")
+		tst.AssertTrue(t, cfg.FloatField == 3.14, "FloatField should be 3.14")
 
 		// Check pointer types
-		if cfg.StringPtr != nil {
-			t.Errorf("Expected StringPtr to be nil, got %v", cfg.StringPtr)
-		}
-		if cfg.IntPtr == nil || *cfg.IntPtr != 100 {
-			t.Errorf("Expected IntPtr to be 100, got %v", cfg.IntPtr)
-		}
+		tst.AssertNil(t, cfg.StringPtr, "StringPtr should be nil")
+		tst.AssertNotNil(t, cfg.IntPtr, "IntPtr should not be nil")
+		tst.AssertTrue(t, *cfg.IntPtr == 100, "IntPtr value should be 100")
 
 		// Check slice types
-		expectedStringSlice := []string{"a", "b", "c"}
-		if !reflect.DeepEqual(cfg.StringSlice, expectedStringSlice) {
-			t.Errorf("Expected StringSlice to be %v, got %v", expectedStringSlice, cfg.StringSlice)
-		}
+		tst.AssertDeepEqual(t, cfg.StringSlice, []string{"a", "b", "c"})
+		tst.AssertDeepEqual(t, cfg.IntSlice, []int{1, 2, 3})
 
-		expectedIntSlice := []int{1, 2, 3}
-		if !reflect.DeepEqual(cfg.IntSlice, expectedIntSlice) {
-			t.Errorf("Expected IntSlice to be %v, got %v", expectedIntSlice, cfg.IntSlice)
-		}
-
-		if cfg.RequiredField != "required_value" {
-			t.Errorf("Expected RequiredField to be 'required_value', got '%s'", cfg.RequiredField)
-		}
+		tst.AssertTrue(t, cfg.RequiredField == "required_value", "RequiredField should match")
 	})
 
 	t.Run("complex types with overrides", func(t *testing.T) {
@@ -218,39 +161,19 @@ func TestComplexTypes(t *testing.T) {
 
 		var cfg ComplexConfig
 		err := config.LoadFromEnv(&cfg)
-		if err != nil {
-			t.Fatalf("LoadFromEnv failed: %v", err)
-		}
+		tst.AssertNoError(t, err)
+		tst.AssertTrue(t, cfg.StringField == "override_string", "StringField should be overridden")
+		tst.AssertTrue(t, cfg.IntField == 999, "IntField should be overridden")
+		tst.AssertFalse(t, cfg.BoolField, "BoolField should be false")
+		tst.AssertTrue(t, cfg.FloatField == 2.71, "FloatField should be overridden")
 
-		if cfg.StringField != "override_string" {
-			t.Errorf("Expected StringField to be 'override_string', got '%s'", cfg.StringField)
-		}
-		if cfg.IntField != 999 {
-			t.Errorf("Expected IntField to be 999, got %d", cfg.IntField)
-		}
-		if cfg.BoolField != false {
-			t.Errorf("Expected BoolField to be false, got %t", cfg.BoolField)
-		}
-		if cfg.FloatField != 2.71 {
-			t.Errorf("Expected FloatField to be 2.71, got %f", cfg.FloatField)
-		}
+		tst.AssertNotNil(t, cfg.StringPtr, "StringPtr should not be nil")
+		tst.AssertTrue(t, *cfg.StringPtr == "pointer_value", "StringPtr value should match")
+		tst.AssertNotNil(t, cfg.IntPtr, "IntPtr should not be nil")
+		tst.AssertTrue(t, *cfg.IntPtr == 200, "IntPtr value should match")
 
-		if cfg.StringPtr == nil || *cfg.StringPtr != "pointer_value" {
-			t.Errorf("Expected StringPtr to be 'pointer_value', got %v", cfg.StringPtr)
-		}
-		if cfg.IntPtr == nil || *cfg.IntPtr != 200 {
-			t.Errorf("Expected IntPtr to be 200, got %v", cfg.IntPtr)
-		}
-
-		expectedStringSlice := []string{"x", "y", "z"}
-		if !reflect.DeepEqual(cfg.StringSlice, expectedStringSlice) {
-			t.Errorf("Expected StringSlice to be %v, got %v", expectedStringSlice, cfg.StringSlice)
-		}
-
-		expectedIntSlice := []int{10, 20, 30}
-		if !reflect.DeepEqual(cfg.IntSlice, expectedIntSlice) {
-			t.Errorf("Expected IntSlice to be %v, got %v", expectedIntSlice, cfg.IntSlice)
-		}
+		tst.AssertDeepEqual(t, cfg.StringSlice, []string{"x", "y", "z"})
+		tst.AssertDeepEqual(t, cfg.IntSlice, []int{10, 20, 30})
 	})
 }
 
@@ -277,28 +200,13 @@ features:
 
 		var cfg FileConfig
 		err := config.LoadFromFile(&cfg, yamlFile)
-		if err != nil {
-			t.Fatalf("LoadFromFile failed: %v", err)
-		}
-
-		if cfg.Server.Host != "127.0.0.1" {
-			t.Errorf("Expected Server.Host to be '127.0.0.1', got '%s'", cfg.Server.Host)
-		}
-		if cfg.Server.Port != 9000 {
-			t.Errorf("Expected Server.Port to be 9000, got %d", cfg.Server.Port)
-		}
-		if cfg.Database.URL != "postgres://localhost/yaml_test" {
-			t.Errorf("Expected Database.URL to be 'postgres://localhost/yaml_test', got '%s'", cfg.Database.URL)
-		}
-		if cfg.Database.MaxConns != 50 {
-			t.Errorf("Expected Database.MaxConns to be 50, got %d", cfg.Database.MaxConns)
-		}
-		if cfg.Features.EnableMetrics != true {
-			t.Errorf("Expected Features.EnableMetrics to be true, got %t", cfg.Features.EnableMetrics)
-		}
-		if cfg.Features.EnableTracing != false {
-			t.Errorf("Expected Features.EnableTracing to be false, got %t", cfg.Features.EnableTracing)
-		}
+		tst.AssertNoError(t, err)
+		tst.AssertTrue(t, cfg.Server.Host == "127.0.0.1", "Server.Host should match")
+		tst.AssertTrue(t, cfg.Server.Port == 9000, "Server.Port should match")
+		tst.AssertTrue(t, cfg.Database.URL == "postgres://localhost/yaml_test", "Database.URL should match")
+		tst.AssertTrue(t, cfg.Database.MaxConns == 50, "Database.MaxConns should match")
+		tst.AssertTrue(t, cfg.Features.EnableMetrics, "EnableMetrics should be true")
+		tst.AssertFalse(t, cfg.Features.EnableTracing, "EnableTracing should be false")
 	})
 
 	t.Run("JSON file", func(t *testing.T) {
@@ -323,28 +231,13 @@ features:
 
 		var cfg FileConfig
 		err := config.LoadFromFile(&cfg, jsonFile)
-		if err != nil {
-			t.Fatalf("LoadFromFile failed: %v", err)
-		}
-
-		if cfg.Server.Host != "0.0.0.0" {
-			t.Errorf("Expected Server.Host to be '0.0.0.0', got '%s'", cfg.Server.Host)
-		}
-		if cfg.Server.Port != 8080 {
-			t.Errorf("Expected Server.Port to be 8080, got %d", cfg.Server.Port)
-		}
-		if cfg.Database.URL != "postgres://localhost/json_test" {
-			t.Errorf("Expected Database.URL to be 'postgres://localhost/json_test', got '%s'", cfg.Database.URL)
-		}
-		if cfg.Database.MaxConns != 25 {
-			t.Errorf("Expected Database.MaxConns to be 25, got %d", cfg.Database.MaxConns)
-		}
-		if cfg.Features.EnableMetrics != false {
-			t.Errorf("Expected Features.EnableMetrics to be false, got %t", cfg.Features.EnableMetrics)
-		}
-		if cfg.Features.EnableTracing != true {
-			t.Errorf("Expected Features.EnableTracing to be true, got %t", cfg.Features.EnableTracing)
-		}
+		tst.AssertNoError(t, err)
+		tst.AssertTrue(t, cfg.Server.Host == "0.0.0.0", "Server.Host should match")
+		tst.AssertTrue(t, cfg.Server.Port == 8080, "Server.Port should match")
+		tst.AssertTrue(t, cfg.Database.URL == "postgres://localhost/json_test", "Database.URL should match")
+		tst.AssertTrue(t, cfg.Database.MaxConns == 25, "Database.MaxConns should match")
+		tst.AssertFalse(t, cfg.Features.EnableMetrics, "EnableMetrics should be false")
+		tst.AssertTrue(t, cfg.Features.EnableTracing, "EnableTracing should be true")
 	})
 
 	t.Run("unsupported file format", func(t *testing.T) {
@@ -355,22 +248,14 @@ features:
 
 		var cfg FileConfig
 		err := config.LoadFromFile(&cfg, unsupportedFile)
-		if err == nil {
-			t.Fatal("Expected error for unsupported file format")
-		}
-
-		expectedError := "unsupported config file format '.xml', supported formats: .yaml, .yml, .json"
-		if err.Error() != expectedError {
-			t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
-		}
+		tst.AssertNotNil(t, err, "expected error for unsupported file format")
+		tst.AssertTrue(t, err.Error() == "unsupported config file format '.xml', supported formats: .yaml, .yml, .json", "error message should match")
 	})
 
 	t.Run("non-existent file", func(t *testing.T) {
 		var cfg FileConfig
 		err := config.LoadFromFile(&cfg, "non-existent.yaml")
-		if err == nil {
-			t.Fatal("Expected error for non-existent file")
-		}
+		tst.AssertNotNil(t, err, "expected error for non-existent file")
 	})
 }
 
@@ -391,7 +276,7 @@ features:
 `
 	yamlFile := filepath.Join(tempDir, "config.yaml")
 	if err := os.WriteFile(yamlFile, []byte(yamlContent), 0644); err != nil {
-		t.Fatalf("Failed to create YAML test file: %v", err)
+		tst.AssertNoError(t, err)
 	}
 
 	t.Run("file with env overrides", func(t *testing.T) {
@@ -417,25 +302,14 @@ features:
 
 		var cfg MixedConfig
 		err := config.LoadFromFileWithEnv(&cfg, yamlFile)
-		if err != nil {
-			t.Fatalf("LoadFromFileWithEnv failed: %v", err)
-		}
-
+		tst.AssertNoError(t, err)
 		// Values overridden by env vars
-		if cfg.Server.Host != "env-host" {
-			t.Errorf("Expected Server.Host to be 'env-host' (from env), got '%s'", cfg.Server.Host)
-		}
-		if cfg.Server.Port != 4000 {
-			t.Errorf("Expected Server.Port to be 4000 (from env), got %d", cfg.Server.Port)
-		}
+		tst.AssertTrue(t, cfg.Server.Host == "env-host", "Server.Host should be overridden by env")
+		tst.AssertTrue(t, cfg.Server.Port == 4000, "Server.Port should be overridden by env")
 
 		// Values from file (no env override)
-		if cfg.Database.URL != "postgres://file-db/test" {
-			t.Errorf("Expected Database.URL to be 'postgres://file-db/test' (from file), got '%s'", cfg.Database.URL)
-		}
-		if cfg.Database.MaxConns != 10 {
-			t.Errorf("Expected Database.MaxConns to be 10 (from file), got %d", cfg.Database.MaxConns)
-		}
+		tst.AssertTrue(t, cfg.Database.URL == "postgres://file-db/test", "Database.URL should match file")
+		tst.AssertTrue(t, cfg.Database.MaxConns == 10, "Database.MaxConns should match file")
 	})
 }
 
@@ -469,9 +343,7 @@ func TestMustFunctions(t *testing.T) {
 		var cfg BasicConfig
 		config.MustLoadFromEnv(&cfg) // Should not panic
 
-		if cfg.Database != "postgres://localhost/test" {
-			t.Errorf("Expected Database to be 'postgres://localhost/test', got '%s'", cfg.Database)
-		}
+		tst.AssertTrue(t, cfg.Database == "postgres://localhost/test", "Database should match")
 	})
 }
 
@@ -486,9 +358,7 @@ func TestErrorHandling(t *testing.T) {
 
 		var cfg BasicConfig
 		err := config.LoadFromEnv(&cfg)
-		if err == nil {
-			t.Fatal("Expected error for invalid integer")
-		}
+		tst.AssertNotNil(t, err, "expected error for invalid integer")
 	})
 
 	t.Run("invalid boolean", func(t *testing.T) {
@@ -501,8 +371,6 @@ func TestErrorHandling(t *testing.T) {
 
 		var cfg BasicConfig
 		err := config.LoadFromEnv(&cfg)
-		if err == nil {
-			t.Fatal("Expected error for invalid boolean")
-		}
+		tst.AssertNotNil(t, err, "expected error for invalid boolean")
 	})
 }

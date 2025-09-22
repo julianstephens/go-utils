@@ -1,34 +1,26 @@
 package slices_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/julianstephens/go-utils/slices"
+	tst "github.com/julianstephens/go-utils/tests"
 )
 
 func TestIf(t *testing.T) {
 	// Test with integers
 	result := slices.If(true, 10, 20)
-	if result != 10 {
-		t.Errorf("If(true, 10, 20) = %v; expected 10", result)
-	}
+	tst.AssertTrue(t, result == 10, "If(true, 10, 20) should return 10")
 
 	result = slices.If(false, 10, 20)
-	if result != 20 {
-		t.Errorf("If(false, 10, 20) = %v; expected 20", result)
-	}
+	tst.AssertTrue(t, result == 20, "If(false, 10, 20) should return 20")
 
 	// Test with strings
 	strResult := slices.If(true, "yes", "no")
-	if strResult != "yes" {
-		t.Errorf("If(true, 'yes', 'no') = %v; expected 'yes'", strResult)
-	}
+	tst.AssertTrue(t, strResult == "yes", "If with strings should return yes when true")
 
 	strResult = slices.If(false, "yes", "no")
-	if strResult != "no" {
-		t.Errorf("If(false, 'yes', 'no') = %v; expected 'no'", strResult)
-	}
+	tst.AssertTrue(t, strResult == "no", "If with strings should return no when false")
 
 	// Test with custom types
 	type Person struct {
@@ -38,25 +30,19 @@ func TestIf(t *testing.T) {
 	person2 := Person{Name: "Bob"}
 
 	personResult := slices.If(true, person1, person2)
-	if personResult != person1 {
-		t.Errorf("If with custom type failed: expected %v, got %v", person1, personResult)
-	}
+	tst.AssertDeepEqual(t, personResult, person1)
 
 	// Test with nil values
 	var nilPtr *string
 	nonNilPtr := &[]string{"test"}[0]
 	ptrResult := slices.If(false, nonNilPtr, nilPtr)
-	if ptrResult != nilPtr {
-		t.Errorf("If with nil pointer failed: expected nil, got %v", ptrResult)
-	}
+	tst.AssertNil(t, ptrResult, "If with nil pointer should return nil")
 
 	// Test with slices
 	slice1 := []int{1, 2, 3}
 	slice2 := []int{4, 5, 6}
 	sliceResult := slices.If(true, slice1, slice2)
-	if !reflect.DeepEqual(sliceResult, slice1) {
-		t.Errorf("If with slices failed: expected %v, got %v", slice1, sliceResult)
-	}
+	tst.AssertDeepEqual(t, sliceResult, slice1)
 }
 
 func TestDifference(t *testing.T) {
@@ -120,11 +106,9 @@ func TestDifference(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := slices.Difference(tt.a, tt.b)
 			if len(result) == 0 && len(tt.expected) == 0 {
-				return // Both are empty, test passes
+				return // Both are empty (could be nil vs empty), treat as equal
 			}
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("Difference(%v, %v) = %v; expected %v", tt.a, tt.b, result, tt.expected)
-			}
+			tst.AssertDeepEqual(t, result, tt.expected)
 		})
 	}
 }
@@ -165,9 +149,7 @@ func TestDeleteElement(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := slices.DeleteElement(tt.slice, tt.index)
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("DeleteElement(%v, %d) = %v; expected %v", tt.slice, tt.index, result, tt.expected)
-			}
+			tst.AssertDeepEqual(t, result, tt.expected)
 		})
 	}
 }
@@ -177,9 +159,7 @@ func TestDeleteElementString(t *testing.T) {
 	result := slices.DeleteElement(slice, 1)
 	expected := []string{"apple", "cherry"}
 
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("DeleteElement with strings failed: expected %v, got %v", expected, result)
-	}
+	tst.AssertDeepEqual(t, result, expected)
 }
 
 func TestDeleteElementCustomType(t *testing.T) {
@@ -200,9 +180,7 @@ func TestDeleteElementCustomType(t *testing.T) {
 		{ID: 3, Name: "Keyboard"},
 	}
 
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("DeleteElement with custom type failed: expected %v, got %v", expected, result)
-	}
+	tst.AssertDeepEqual(t, result, expected)
 }
 
 func TestContainsAll(t *testing.T) {
@@ -271,9 +249,7 @@ func TestContainsAll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := slices.ContainsAll(tt.mainSlice, tt.subset)
-			if result != tt.expected {
-				t.Errorf("ContainsAll(%v, %v) = %v; expected %v", tt.mainSlice, tt.subset, result, tt.expected)
-			}
+			tst.AssertTrue(t, result == tt.expected, "ContainsAll result should match expected")
 		})
 	}
 }
@@ -283,15 +259,11 @@ func TestContainsAllString(t *testing.T) {
 	subset := []string{"apple", "cherry"}
 
 	result := slices.ContainsAll(mainSlice, subset)
-	if !result {
-		t.Errorf("ContainsAll with strings failed: expected true, got %v", result)
-	}
+	tst.AssertTrue(t, result, "ContainsAll with strings should return true")
 
 	subset = []string{"apple", "grape"}
 	result = slices.ContainsAll(mainSlice, subset)
-	if result {
-		t.Errorf("ContainsAll with strings failed: expected false, got %v", result)
-	}
+	tst.AssertFalse(t, result, "ContainsAll with strings should return false for missing element")
 }
 
 func TestContainsAllCustomType(t *testing.T) {
@@ -312,9 +284,7 @@ func TestContainsAllCustomType(t *testing.T) {
 	}
 
 	result := slices.ContainsAll(colors, subset)
-	if !result {
-		t.Errorf("ContainsAll with custom type failed: expected true, got %v", result)
-	}
+	tst.AssertTrue(t, result, "ContainsAll with custom type should return true")
 
 	invalidSubset := []Color{
 		{Name: "Red", Hex: "#FF0000"},
@@ -322,9 +292,7 @@ func TestContainsAllCustomType(t *testing.T) {
 	}
 
 	result = slices.ContainsAll(colors, invalidSubset)
-	if result {
-		t.Errorf("ContainsAll with custom type failed: expected false, got %v", result)
-	}
+	tst.AssertFalse(t, result, "ContainsAll with custom type should return false for missing element")
 }
 
 // Benchmark tests to ensure performance is reasonable

@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/julianstephens/go-utils/helpers"
+	tst "github.com/julianstephens/go-utils/tests"
 )
 
 func TestContainsAll(t *testing.T) {
@@ -58,9 +58,7 @@ func TestContainsAll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := helpers.ContainsAll(tt.mainSlice, tt.subset)
-			if result != tt.expected {
-				t.Errorf("ContainsAll(%v, %v) = %v; expected %v", tt.mainSlice, tt.subset, result, tt.expected)
-			}
+			tst.AssertDeepEqual(t, result, tt.expected)
 		})
 	}
 }
@@ -70,39 +68,27 @@ func TestContainsAllString(t *testing.T) {
 	subset := []string{"apple", "cherry"}
 
 	result := helpers.ContainsAll(mainSlice, subset)
-	if !result {
-		t.Errorf("ContainsAll with strings failed: expected true, got %v", result)
-	}
+	tst.AssertTrue(t, result, "ContainsAll with strings should be true for existing subset")
 
 	subset = []string{"apple", "grape"}
 	result = helpers.ContainsAll(mainSlice, subset)
-	if result {
-		t.Errorf("ContainsAll with strings failed: expected false, got %v", result)
-	}
+	tst.AssertFalse(t, result, "ContainsAll with strings should be false for missing element")
 }
 
 func TestIf(t *testing.T) {
 	// Test with integers
 	result := helpers.If(true, 10, 20)
-	if result != 10 {
-		t.Errorf("If(true, 10, 20) = %v; expected 10", result)
-	}
+	tst.AssertDeepEqual(t, result, 10)
 
 	result = helpers.If(false, 10, 20)
-	if result != 20 {
-		t.Errorf("If(false, 10, 20) = %v; expected 20", result)
-	}
+	tst.AssertDeepEqual(t, result, 20)
 
 	// Test with strings
 	strResult := helpers.If(true, "yes", "no")
-	if strResult != "yes" {
-		t.Errorf("If(true, 'yes', 'no') = %v; expected 'yes'", strResult)
-	}
+	tst.AssertDeepEqual(t, strResult, "yes")
 
 	strResult = helpers.If(false, "yes", "no")
-	if strResult != "no" {
-		t.Errorf("If(false, 'yes', 'no') = %v; expected 'no'", strResult)
-	}
+	tst.AssertDeepEqual(t, strResult, "no")
 
 	// Test with custom types
 	type Person struct {
@@ -112,51 +98,35 @@ func TestIf(t *testing.T) {
 	person2 := Person{Name: "Bob"}
 
 	personResult := helpers.If(true, person1, person2)
-	if personResult != person1 {
-		t.Errorf("If with custom type failed: expected %v, got %v", person1, personResult)
-	}
+	tst.AssertDeepEqual(t, personResult, person1)
 }
 
 func TestDefault(t *testing.T) {
 	// Test with strings
 	result := helpers.Default("", "default")
-	if result != "default" {
-		t.Errorf("Default('', 'default') = %v; expected 'default'", result)
-	}
+	tst.AssertDeepEqual(t, result, "default")
 
 	result = helpers.Default("value", "default")
-	if result != "value" {
-		t.Errorf("Default('value', 'default') = %v; expected 'value'", result)
-	}
+	tst.AssertDeepEqual(t, result, "value")
 
 	// Test with integers
 	intResult := helpers.Default(0, 42)
-	if intResult != 42 {
-		t.Errorf("Default(0, 42) = %v; expected 42", intResult)
-	}
+	tst.AssertDeepEqual(t, intResult, 42)
 
 	intResult = helpers.Default(10, 42)
-	if intResult != 10 {
-		t.Errorf("Default(10, 42) = %v; expected 10", intResult)
-	}
+	tst.AssertDeepEqual(t, intResult, 10)
 
 	// Test with slices
 	var nilSlice []int
 	sliceResult := helpers.Default(nilSlice, []int{1, 2, 3})
-	if !reflect.DeepEqual(sliceResult, []int{1, 2, 3}) {
-		t.Errorf("Default with slice failed: expected [1 2 3], got %v", sliceResult)
-	}
+	tst.AssertDeepEqual(t, sliceResult, []int{1, 2, 3})
 
 	nonNilSlice := []int{4, 5, 6}
 	sliceResult = helpers.Default(nonNilSlice, []int{1, 2, 3})
-	if !reflect.DeepEqual(sliceResult, []int{4, 5, 6}) {
-		t.Errorf("Default with slice failed: expected [4 5 6], got %v", sliceResult)
-	}
+	tst.AssertDeepEqual(t, sliceResult, []int{4, 5, 6})
 
 	nilResult := helpers.Default(nil, []int{1, 2, 3})
-	if !reflect.DeepEqual(nilResult, []int{1, 2, 3}) {
-		t.Errorf("Default with nil slice failed: expected [1 2 3], got %v", nilResult)
-	}
+	tst.AssertDeepEqual(t, nilResult, []int{1, 2, 3})
 }
 
 func TestDifference(t *testing.T) {
@@ -207,12 +177,11 @@ func TestDifference(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := helpers.Difference(tt.a, tt.b)
+			// Treat nil and empty slices as equal for this test suite
 			if len(result) == 0 && len(tt.expected) == 0 {
-				return // Both are empty, test passes
+				return
 			}
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("Difference(%v, %v) = %v; expected %v", tt.a, tt.b, result, tt.expected)
-			}
+			tst.AssertDeepEqual(t, result, tt.expected)
 		})
 	}
 }
@@ -253,9 +222,7 @@ func TestDeleteElement(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := helpers.DeleteElement(tt.slice, tt.index)
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("DeleteElement(%v, %d) = %v; expected %v", tt.slice, tt.index, result, tt.expected)
-			}
+			tst.AssertDeepEqual(t, result, tt.expected)
 		})
 	}
 }
@@ -265,9 +232,7 @@ func TestDeleteElementString(t *testing.T) {
 	result := helpers.DeleteElement(slice, 1)
 	expected := []string{"apple", "cherry"}
 
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("DeleteElement with strings failed: expected %v, got %v", expected, result)
-	}
+	tst.AssertDeepEqual(t, result, expected)
 }
 
 func TestEnsure(t *testing.T) {
@@ -406,9 +371,7 @@ func TestStructToMap(t *testing.T) {
 		}
 
 		result := helpers.StructToMap(person)
-		if result == nil {
-			t.Error("StructToMap returned nil")
-		}
+		tst.AssertNotNil(t, result, "StructToMap returned nil")
 
 		expected := map[string]any{
 			"Name": "Alice",
@@ -416,9 +379,7 @@ func TestStructToMap(t *testing.T) {
 			"City": "New York",
 		}
 
-		if !reflect.DeepEqual(result, expected) {
-			t.Errorf("StructToMap failed: expected %v, got %v", expected, result)
-		}
+		tst.AssertDeepEqual(t, result, expected)
 	})
 
 	// Test with pointer to struct
@@ -430,9 +391,7 @@ func TestStructToMap(t *testing.T) {
 		}
 
 		result := helpers.StructToMap(person)
-		if result == nil {
-			t.Error("StructToMap returned nil for pointer")
-		}
+		tst.AssertNotNil(t, result, "StructToMap returned nil for pointer")
 
 		expected := map[string]any{
 			"Name": "Bob",
@@ -440,27 +399,19 @@ func TestStructToMap(t *testing.T) {
 			"City": "Boston",
 		}
 
-		if !reflect.DeepEqual(result, expected) {
-			t.Errorf("StructToMap with pointer failed: expected %v, got %v", expected, result)
-		}
+		tst.AssertDeepEqual(t, result, expected)
 	})
 
 	// Test with non-struct
 	t.Run("non-struct returns nil", func(t *testing.T) {
 		result := helpers.StructToMap("not a struct")
-		if result != nil {
-			t.Errorf("StructToMap should return nil for non-struct, got %v", result)
-		}
+		tst.AssertNil(t, result, "StructToMap should return nil for non-struct")
 
 		result = helpers.StructToMap(42)
-		if result != nil {
-			t.Errorf("StructToMap should return nil for non-struct, got %v", result)
-		}
+		tst.AssertNil(t, result, "StructToMap should return nil for non-struct")
 
 		result = helpers.StructToMap([]int{1, 2, 3})
-		if result != nil {
-			t.Errorf("StructToMap should return nil for non-struct, got %v", result)
-		}
+		tst.AssertNil(t, result, "StructToMap should return nil for non-struct")
 	})
 
 	// Test with empty struct
@@ -469,12 +420,8 @@ func TestStructToMap(t *testing.T) {
 		empty := Empty{}
 
 		result := helpers.StructToMap(empty)
-		if result == nil {
-			t.Error("StructToMap returned nil for empty struct")
-		}
+		tst.AssertNotNil(t, result, "StructToMap returned nil for empty struct")
 
-		if len(result) != 0 {
-			t.Errorf("StructToMap should return empty map for empty struct, got %v", result)
-		}
+		tst.AssertDeepEqual(t, len(result), 0)
 	})
 }

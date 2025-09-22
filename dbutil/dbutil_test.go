@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/julianstephens/go-utils/dbutil"
+	tst "github.com/julianstephens/go-utils/tests"
 )
 
 // Test structs
@@ -38,24 +39,14 @@ func TestDefaultFieldMapper(t *testing.T) {
 
 	for _, test := range tests {
 		result := dbutil.DefaultFieldMapper(test.input)
-		if result != test.expected {
-			t.Errorf("DefaultFieldMapper(%q) = %q, expected %q", test.input, result, test.expected)
-		}
+		tst.AssertTrue(t, result == test.expected, "DefaultFieldMapper result should match expected")
 	}
 }
 
 func TestIsNoRowsError(t *testing.T) {
-	if !dbutil.IsNoRowsError(sql.ErrNoRows) {
-		t.Error("IsNoRowsError should return true for sql.ErrNoRows")
-	}
-
-	if dbutil.IsNoRowsError(errors.New("other error")) {
-		t.Error("IsNoRowsError should return false for other errors")
-	}
-
-	if dbutil.IsNoRowsError(nil) {
-		t.Error("IsNoRowsError should return false for nil")
-	}
+	tst.AssertTrue(t, dbutil.IsNoRowsError(sql.ErrNoRows), "IsNoRowsError should return true for sql.ErrNoRows")
+	tst.AssertFalse(t, dbutil.IsNoRowsError(errors.New("other error")), "IsNoRowsError should return false for other errors")
+	tst.AssertFalse(t, dbutil.IsNoRowsError(nil), "IsNoRowsError should return false for nil")
 }
 
 func TestIsConnectionError(t *testing.T) {
@@ -74,9 +65,7 @@ func TestIsConnectionError(t *testing.T) {
 
 	for _, test := range tests {
 		result := dbutil.IsConnectionError(test.err)
-		if result != test.expected {
-			t.Errorf("IsConnectionError(%v) = %v, expected %v", test.err, result, test.expected)
-		}
+		tst.AssertTrue(t, result == test.expected, "IsConnectionError result should match expected")
 	}
 }
 
@@ -93,47 +82,29 @@ func TestIsContextError(t *testing.T) {
 
 	for _, test := range tests {
 		result := dbutil.IsContextError(test.err)
-		if result != test.expected {
-			t.Errorf("IsContextError(%v) = %v, expected %v", test.err, result, test.expected)
-		}
+		tst.AssertTrue(t, result == test.expected, "IsContextError result should match expected")
 	}
 }
 
 func TestDefaultOptions(t *testing.T) {
 	t.Run("DefaultConnectionOptions", func(t *testing.T) {
 		opts := dbutil.DefaultConnectionOptions()
-		if opts == nil {
-			t.Error("DefaultConnectionOptions returned nil")
-		}
-		if opts.MaxOpenConns <= 0 {
-			t.Error("DefaultConnectionOptions should have positive MaxOpenConns")
-		}
-		if opts.MaxIdleConns <= 0 {
-			t.Error("DefaultConnectionOptions should have positive MaxIdleConns")
-		}
+		tst.AssertNotNil(t, opts, "DefaultConnectionOptions should not be nil")
+		tst.AssertTrue(t, opts.MaxOpenConns > 0, "MaxOpenConns should be positive")
+		tst.AssertTrue(t, opts.MaxIdleConns > 0, "MaxIdleConns should be positive")
 	})
 
 	t.Run("DefaultQueryOptions", func(t *testing.T) {
 		opts := dbutil.DefaultQueryOptions()
-		if opts == nil {
-			t.Error("DefaultQueryOptions returned nil")
-		}
-		if opts.Timeout <= 0 {
-			t.Error("DefaultQueryOptions should have positive Timeout")
-		}
-		if opts.FieldMapper == nil {
-			t.Error("DefaultQueryOptions should have FieldMapper")
-		}
+		tst.AssertNotNil(t, opts, "DefaultQueryOptions should not be nil")
+		tst.AssertTrue(t, opts.Timeout > 0, "Query Timeout should be positive")
+		tst.AssertNotNil(t, opts.FieldMapper, "FieldMapper should not be nil")
 	})
 
 	t.Run("DefaultTransactionOptions", func(t *testing.T) {
 		opts := dbutil.DefaultTransactionOptions()
-		if opts == nil {
-			t.Error("DefaultTransactionOptions returned nil")
-		}
-		if opts.Timeout <= 0 {
-			t.Error("DefaultTransactionOptions should have positive Timeout")
-		}
+		tst.AssertNotNil(t, opts, "DefaultTransactionOptions should not be nil")
+		tst.AssertTrue(t, opts.Timeout > 0, "Transaction Timeout should be positive")
 	})
 }
 

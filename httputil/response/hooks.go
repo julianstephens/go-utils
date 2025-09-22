@@ -16,7 +16,7 @@ func DefaultAfter(w http.ResponseWriter, r *http.Request, data any) {
 }
 
 // DefaultOnError is a default error handler that logs the error and returns a 500 status.
-func DefaultOnError(w http.ResponseWriter, r *http.Request, err error) {
+func DefaultOnError(w http.ResponseWriter, r *http.Request, err error, status int) {
 	log.Printf("Response encoding error: %v", err)
 	if w == nil {
 		return
@@ -25,12 +25,8 @@ func DefaultOnError(w http.ResponseWriter, r *http.Request, err error) {
 	if err != nil {
 		msg = err.Error()
 	}
-	// Use status from context if available (set by ErrorWithStatus)
-	status := http.StatusInternalServerError
-	if r != nil {
-		if s, ok := r.Context().Value("response_status").(int); ok && s != 0 {
-			status = s
-		}
+	if status == 0 {
+		status = http.StatusInternalServerError
 	}
 	http.Error(w, msg, status)
 }
@@ -46,7 +42,17 @@ func LoggingAfter(w http.ResponseWriter, r *http.Request, data any) {
 }
 
 // LoggingOnError is an error handler that logs errors with request context.
-func LoggingOnError(w http.ResponseWriter, r *http.Request, err error) {
+func LoggingOnError(w http.ResponseWriter, r *http.Request, err error, status int) {
 	log.Printf("Error handling request %s %s: %v", r.Method, r.URL.Path, err)
-	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	if w == nil {
+		return
+	}
+	msg := "Internal Server Error"
+	if err != nil {
+		msg = err.Error()
+	}
+	if status == 0 {
+		status = http.StatusInternalServerError
+	}
+	http.Error(w, msg, status)
 }

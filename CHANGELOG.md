@@ -1,6 +1,8 @@
 ## v0.1.6
 
 - fixes `httputil.response.ErrorWithStatus`
+- adds `tests`
+- improves documentation
 
 ## v0.1.5
 

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/julianstephens/go-utils/httputil/middleware"
+	tst "github.com/julianstephens/go-utils/tests"
 )
 
 func TestLogging(t *testing.T) {
@@ -26,20 +27,12 @@ func TestLogging(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
-	}
+	tst.AssertStatus(t, w, http.StatusOK)
 
 	logOutput := buf.String()
-	if !strings.Contains(logOutput, "GET") {
-		t.Error("Log should contain HTTP method")
-	}
-	if !strings.Contains(logOutput, "/test") {
-		t.Error("Log should contain request path")
-	}
-	if !strings.Contains(logOutput, "200") {
-		t.Error("Log should contain status code")
-	}
+	tst.AssertTrue(t, strings.Contains(logOutput, "GET"), "Log should contain HTTP method")
+	tst.AssertTrue(t, strings.Contains(logOutput, "/test"), "Log should contain request path")
+	tst.AssertTrue(t, strings.Contains(logOutput, "200"), "Log should contain status code")
 }
 
 func TestLoggingWithNilLogger(t *testing.T) {
@@ -53,9 +46,7 @@ func TestLoggingWithNilLogger(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
-	}
+	tst.AssertStatus(t, w, http.StatusOK)
 }
 
 func TestRecovery(t *testing.T) {
@@ -71,22 +62,12 @@ func TestRecovery(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status %d, got %d", http.StatusInternalServerError, w.Code)
-	}
+	tst.AssertStatus(t, w, http.StatusInternalServerError)
 
-	body := w.Body.String()
-	if !strings.Contains(body, "Internal Server Error") {
-		t.Error("Response should contain 'Internal Server Error'")
-	}
-
+	tst.AssertBodyContains(t, w, "Internal Server Error")
 	logOutput := buf.String()
-	if !strings.Contains(logOutput, "Panic") {
-		t.Error("Log should contain panic message")
-	}
-	if !strings.Contains(logOutput, "test panic") {
-		t.Error("Log should contain panic details")
-	}
+	tst.AssertTrue(t, strings.Contains(logOutput, "Panic"), "Log should contain panic message")
+	tst.AssertTrue(t, strings.Contains(logOutput, "test panic"), "Log should contain panic details")
 }
 
 func TestRecoveryWithNilLogger(t *testing.T) {
@@ -99,9 +80,7 @@ func TestRecoveryWithNilLogger(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status %d, got %d", http.StatusInternalServerError, w.Code)
-	}
+	tst.AssertStatus(t, w, http.StatusInternalServerError)
 }
 
 func TestRecoveryNoPanic(t *testing.T) {
@@ -118,19 +97,11 @@ func TestRecoveryNoPanic(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
-	}
+	tst.AssertStatus(t, w, http.StatusOK)
 
-	body := w.Body.String()
-	if body != "no panic" {
-		t.Errorf("Expected body 'no panic', got %s", body)
-	}
-
+	tst.AssertBodyEquals(t, w, "no panic")
 	logOutput := buf.String()
-	if strings.Contains(logOutput, "Panic") {
-		t.Error("Log should not contain panic message when no panic occurs")
-	}
+	tst.AssertFalse(t, strings.Contains(logOutput, "Panic"), "Log should not contain panic message when no panic occurs")
 }
 
 func TestCORS(t *testing.T) {
@@ -155,24 +126,12 @@ func TestCORS(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	if w.Header().Get("Access-Control-Allow-Origin") != "https://example.com" {
-		t.Error("Should set Access-Control-Allow-Origin for allowed origin")
-	}
-	if w.Header().Get("Access-Control-Allow-Methods") != "GET, POST" {
-		t.Error("Should set Access-Control-Allow-Methods")
-	}
-	if w.Header().Get("Access-Control-Allow-Headers") != "Content-Type, Authorization" {
-		t.Error("Should set Access-Control-Allow-Headers")
-	}
-	if w.Header().Get("Access-Control-Expose-Headers") != "X-Total-Count" {
-		t.Error("Should set Access-Control-Expose-Headers")
-	}
-	if w.Header().Get("Access-Control-Allow-Credentials") != "true" {
-		t.Error("Should set Access-Control-Allow-Credentials")
-	}
-	if w.Header().Get("Access-Control-Max-Age") != "3600" {
-		t.Error("Should set Access-Control-Max-Age")
-	}
+	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Origin") == "https://example.com", "Should set Access-Control-Allow-Origin for allowed origin")
+	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Methods") == "GET, POST", "Should set Access-Control-Allow-Methods")
+	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Headers") == "Content-Type, Authorization", "Should set Access-Control-Allow-Headers")
+	tst.AssertTrue(t, w.Header().Get("Access-Control-Expose-Headers") == "X-Total-Count", "Should set Access-Control-Expose-Headers")
+	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Credentials") == "true", "Should set Access-Control-Allow-Credentials")
+	tst.AssertTrue(t, w.Header().Get("Access-Control-Max-Age") == "3600", "Should set Access-Control-Max-Age")
 }
 
 func TestCORSPreflightRequest(t *testing.T) {
@@ -188,14 +147,8 @@ func TestCORSPreflightRequest(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusNoContent {
-		t.Errorf("Expected status %d for OPTIONS request, got %d", http.StatusNoContent, w.Code)
-	}
-
-	body := w.Body.String()
-	if body != "" {
-		t.Error("OPTIONS request should have empty body")
-	}
+	tst.AssertStatus(t, w, http.StatusNoContent)
+	tst.AssertBodyEquals(t, w, "")
 }
 
 func TestCORSWildcardOrigin(t *testing.T) {
@@ -210,9 +163,7 @@ func TestCORSWildcardOrigin(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	if w.Header().Get("Access-Control-Allow-Origin") != "*" {
-		t.Error("Should set Access-Control-Allow-Origin to * for wildcard config")
-	}
+	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Origin") == "*", "Should set Access-Control-Allow-Origin to * for wildcard config")
 }
 
 func TestCORSDisallowedOrigin(t *testing.T) {
@@ -230,9 +181,7 @@ func TestCORSDisallowedOrigin(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	if w.Header().Get("Access-Control-Allow-Origin") != "" {
-		t.Error("Should not set Access-Control-Allow-Origin for disallowed origin")
-	}
+	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Origin") == "", "Should not set Access-Control-Allow-Origin for disallowed origin")
 }
 
 func TestRequestID(t *testing.T) {
@@ -248,20 +197,12 @@ func TestRequestID(t *testing.T) {
 	handler.ServeHTTP(w, req)
 
 	// Check that request ID was generated and set in context
-	if capturedRequestID == "" {
-		t.Error("Request ID should be set in context")
-	}
-
+	tst.AssertTrue(t, capturedRequestID != "", "Request ID should be set in context")
 	// Check that request ID was set in response header
 	responseRequestID := w.Header().Get(middleware.RequestIDHeader)
-	if responseRequestID == "" {
-		t.Error("Request ID should be set in response header")
-	}
-
+	tst.AssertTrue(t, responseRequestID != "", "Request ID should be set in response header")
 	// Should be the same ID
-	if capturedRequestID != responseRequestID {
-		t.Error("Request ID in context and header should match")
-	}
+	tst.AssertTrue(t, capturedRequestID == responseRequestID, "Request ID in context and header should match")
 }
 
 func TestRequestIDFromHeader(t *testing.T) {
@@ -280,43 +221,25 @@ func TestRequestIDFromHeader(t *testing.T) {
 	handler.ServeHTTP(w, req)
 
 	// Should use the existing request ID
-	if capturedRequestID != existingRequestID {
-		t.Errorf("Should use existing request ID from header, got %s", capturedRequestID)
-	}
-
+	tst.AssertTrue(t, capturedRequestID == existingRequestID, "Should use existing request ID from header")
 	responseRequestID := w.Header().Get(middleware.RequestIDHeader)
-	if responseRequestID != existingRequestID {
-		t.Errorf("Should return existing request ID in header, got %s", responseRequestID)
-	}
+	tst.AssertTrue(t, responseRequestID == existingRequestID, "Should return existing request ID in header")
 }
 
 func TestGetRequestIDFromEmptyContext(t *testing.T) {
 	ctx := context.Background()
 	requestID := middleware.GetRequestID(ctx)
-	if requestID != "" {
-		t.Error("Should return empty string for context without request ID")
-	}
+	tst.AssertTrue(t, requestID == "", "Should return empty string for context without request ID")
 }
 
 func TestDefaultCORSConfig(t *testing.T) {
 	config := middleware.DefaultCORSConfig()
 
-	if len(config.AllowedOrigins) != 1 || config.AllowedOrigins[0] != "*" {
-		t.Error("Default config should allow all origins")
-	}
-
+	tst.AssertTrue(t, len(config.AllowedOrigins) == 1 && config.AllowedOrigins[0] == "*", "Default config should allow all origins")
 	expectedMethods := []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
-	if len(config.AllowedMethods) != len(expectedMethods) {
-		t.Error("Default config should have standard HTTP methods")
-	}
-
-	if config.MaxAge != 86400 {
-		t.Error("Default config should have 24 hour max age")
-	}
-
-	if config.AllowCredentials {
-		t.Error("Default config should not allow credentials")
-	}
+	tst.AssertDeepEqual(t, len(config.AllowedMethods), len(expectedMethods))
+	tst.AssertTrue(t, config.MaxAge == 86400, "Default config should have 24 hour max age")
+	tst.AssertFalse(t, config.AllowCredentials, "Default config should not allow credentials")
 }
 
 func TestCORSWildcardSubdomain(t *testing.T) {
@@ -335,9 +258,7 @@ func TestCORSWildcardSubdomain(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	if w.Header().Get("Access-Control-Allow-Origin") != "https://api.example.com" {
-		t.Error("Should allow subdomain matching wildcard pattern")
-	}
+	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Origin") == "https://api.example.com", "Should allow subdomain matching wildcard pattern")
 
 	// Test domain that should not be allowed
 	req2 := httptest.NewRequest("GET", "/test", nil)
@@ -346,7 +267,5 @@ func TestCORSWildcardSubdomain(t *testing.T) {
 
 	handler.ServeHTTP(w2, req2)
 
-	if w2.Header().Get("Access-Control-Allow-Origin") != "" {
-		t.Error("Should not allow domain that doesn't match wildcard pattern")
-	}
+	tst.AssertTrue(t, w2.Header().Get("Access-Control-Allow-Origin") == "", "Should not allow domain that doesn't match wildcard pattern")
 }
