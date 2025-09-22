@@ -26,6 +26,7 @@ on:
 
 jobs:
   validate:
+    environment: validation
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -63,8 +64,8 @@ jobs:
         with:
           script: |
             const unformattedFiles = `${{ steps.fmt.outputs.unformatted_files }}`;
-            const fileList = unformattedFiles.trim() ? 
-              unformattedFiles.split('\n').map(file => `- \`${file}\``).join('\n') : 
+            const fileList = unformattedFiles.trim() ?
+              unformattedFiles.split('\n').map(file => `- \`${file}\``).join('\n') :
               'No specific files detected';
 
             github.rest.issues.createComment({
@@ -72,12 +73,12 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `:x: **Go Format Failed**
-              
+
               The following files need formatting:
               ${fileList}
-              
+
               Please run \`go fmt ./...\` to format your code before merging.
-              
+
               [See failed workflow run](${{
                 github.server_url }}/${{
                 github.repository
@@ -103,8 +104,8 @@ jobs:
         with:
           script: |
             const testFailures = `${{ steps.test.outputs.test_failures }}`;
-            const failureDetails = testFailures.trim() ? 
-              `\`\`\`\n${testFailures}\n\`\`\`` : 
+            const failureDetails = testFailures.trim() ?
+              `\`\`\`\n${testFailures}\n\`\`\`` :
               'No specific failure details captured';
 
             github.rest.issues.createComment({
@@ -112,12 +113,12 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `:x: **Go Tests Failed**
-              
+
               Test failure details:
               ${failureDetails}
-              
+
               Please fix test failures before merging.
-              
+
               [See failed workflow run](${{
                 github.server_url }}/${{
                 github.repository
