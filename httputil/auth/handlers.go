@@ -37,11 +37,11 @@ func RefreshTokenHandler(manager *JWTManager) http.HandlerFunc {
 		// Exchange the refresh token for a new token pair
 		tokenPair, err := manager.ExchangeRefreshToken(request.RefreshToken)
 		if err != nil {
-			if err == ErrRefreshTokenExpired {
+			if errors.Is(err, ErrRefreshTokenExpired) {
 				responder.Unauthorized(w, r, "refresh token expired")
 				return
 			}
-			if err == ErrInvalidRefreshToken {
+			if errors.Is(err, ErrInvalidRefreshToken) {
 				responder.Unauthorized(w, r, "invalid refresh token")
 				return
 			}

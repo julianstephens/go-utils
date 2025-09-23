@@ -1,12 +1,16 @@
 package auth
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
 	"errors"
+	"io"
 	"slices"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/hkdf"
 )
 
 var (
@@ -63,6 +67,16 @@ type JWTManager struct {
 
 // NewJWTManager creates a new JWT manager with the given secret key and token duration
 func NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string) *JWTManager {
+	keys, err := deriveKeys([]byte(secretKey))
+	if err == nil && len(*keys) == 2 {
+		return &JWTManager{
+			secretKey:             (*keys)[0],
+			tokenDuration:         tokenDuration,
+			issuer:                issuer,
+			refreshTokenDuration:  time.Hour * 24 * 7, // Default 7 days for refresh tokens
+			refreshTokenSecretKey: (*keys)[1],
+		}
+	}
 	return &JWTManager{
 		secretKey:             []byte(secretKey),
 		tokenDuration:         tokenDuration,
@@ -498,4 +512,26 @@ func (c *Claims) DeleteCustomClaim(key string) {
 	if c.CustomClaims != nil {
 		delete(c.CustomClaims, key)
 	}
+}
+
+func deriveKeys(secretKey []byte) (*[][]byte, error) {
+	hash := sha256.New
+	
+	salt := make([]byte, hash().Size())
+	if _, err := rand.Read(salt); err != nil {
+		return nil, err
+	}
+
+	hkdf := hkdf.New(hash, secretKey, salt, nil)
+
+	var keys [][]byte
+	for range 2 {
+		key := make([]byte, 16)
+		if _, err := io.ReadFull(hkdf, key); err != nil {
+			return nil, err
+		}
+		keys = append(keys, key)
+	}
+
+	return &keys, nil
 }

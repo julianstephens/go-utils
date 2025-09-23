@@ -1,3 +1,7 @@
+## v0.2.2
+
+- adds support for long-lived refresh tokens
+
 ## v0.2.1
 
 - adds `TokenExpiration` helpers to `httputil.auth.JWTManager`

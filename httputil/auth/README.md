@@ -33,7 +33,8 @@ import (
 )
 
 func main() {
-    // Create JWT manager with secret key, expiration, and issuer
+    // Create JWT manager with secret key, access token duration, and issuer.
+    // By default the refresh token duration is 7 days and a refresh secret is derived.
     manager := auth.NewJWTManager("my-secret-key", time.Hour*24, "my-app")
     
     // Generate basic token
@@ -60,9 +61,11 @@ func main() {
 }
 ```
 
-### Refresh Token Workflow
+### Refresh token workflow
 
-The package supports a secure refresh token workflow with separate long-lived refresh tokens:
+The package supports a secure refresh token workflow with separate long-lived refresh tokens. Use
+`GenerateTokenPair*` helpers to create an access + refresh token pair and `ExchangeRefreshToken` to
+exchange a valid refresh token for a new pair.
 
 ```go
 package main
@@ -290,10 +293,9 @@ tokenPair, err := manager.GenerateTokenPair("user123", []string{"user"})
 // 2. Store refresh token securely (cookie, database, etc.)
 // 3. Exchange refresh token when access token expires
 newTokenPair, err := manager.ExchangeRefreshToken(tokenPair.RefreshToken)
-```
-    fmt.Printf("Issued at: %v\n", time.Unix(claims.IssuedAt, 0))
-    fmt.Printf("Expires at: %v\n", time.Unix(claims.ExpiresAt, 0))
-}
+
+fmt.Printf("Issued at: %v\n", time.Unix(claims.IssuedAt, 0))
+fmt.Printf("Expires at: %v\n", time.Unix(claims.ExpiresAt, 0))
 ```
 
 ### Token with User Information
@@ -407,6 +409,30 @@ func main() {
     }
 }
 ```
+
+Utilities
+
+The package also provides a few utility helpers:
+
+- Password helpers in `utils.go`:
+    - `HashPassword(password string) (string, error)` — bcrypt-hash a password
+    - `CheckPasswordHash(password, hash string) bool` — compare plaintext password to bcrypt hash
+
+- Cookie helpers in `handlers.go`:
+    - `SetRefreshTokenCookie(w http.ResponseWriter, refreshToken string, maxAge time.Duration, secure bool)`
+    - `GetRefreshTokenFromCookie(r *http.Request) (string, error)`
+    - `ClearRefreshTokenCookie(w http.ResponseWriter)`
+
+Errors
+
+The package exports sentinel error values which callers can check with `errors.Is`:
+
+- `ErrInvalidToken`
+- `ErrTokenExpired`
+- `ErrInvalidClaims`
+- `ErrInvalidRefreshToken`
+- `ErrRefreshTokenExpired`
+
 
 ### HTTP Middleware Integration
 
@@ -583,14 +609,6 @@ func main() {
     timeUntilExpiry := time.Until(expirationTime)
     fmt.Printf("Time until expiry: %v\n", timeUntilExpiry)
     
-    // Parse token without validation (useful for debugging)
-    unverifiedClaims, err := manager.ParseToken(token)
-    if err != nil {
-        log.Fatalf("Failed to parse token: %v", err)
-    }
-    
-    fmt.Printf("Unverified claims - Issuer: %s\n", unverifiedClaims.Issuer)
-    
     // Test with expired token (simulate by creating manager with past time)
     expiredManager := auth.NewJWTManager("secret", -time.Hour, "test-app")
     expiredToken, _ := expiredManager.GenerateToken(userID, roles)
@@ -607,7 +625,7 @@ func main() {
 ### JWTManager
 
 #### Constructor
-- `NewJWTManager(secretKey string, expiration time.Duration, issuer string) *JWTManager`
+- `NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string) *JWTManager`
 - `NewJWTManagerWithRefreshConfig(secretKey string, tokenDuration time.Duration, issuer string, refreshTokenDuration time.Duration, refreshSecretKey string) *JWTManager`
 
 #### Token Generation
@@ -641,38 +659,26 @@ type TokenPair struct {
 
 ### Claims Structure
 
-```go
-type Claims struct {
-    UserID       string                 `json:"user_id"`
-    Username     string                 `json:"username,omitempty"`
-    Email        string                 `json:"email,omitempty"`
-    Roles        []string               `json:"roles"`
-    CustomClaims map[string]interface{} `json:"custom_claims,omitempty"`
-    
-    // Standard JWT claims
-    Issuer    string `json:"iss"`
-    Subject   string `json:"sub"`
-    Audience  string `json:"aud,omitempty"`
-    ExpiresAt int64  `json:"exp"`
-    IssuedAt  int64  `json:"iat"`
-    NotBefore int64  `json:"nbf"`
-}
-```
+The package defines `Claims` and `RefreshClaims` types. They embed `jwt.RegisteredClaims` and include convenience fields:
+
+- `UserID`, `Username`, `Email`, `Roles`, and `CustomClaims` (map[string]any)
+- `RefreshClaims` also includes a `TokenID` string
+
+`Claims` exposes helpers like `HasRole`, `HasAnyRole`, `IsExpired`, and `Expiration()`.
 
 ### Utility Functions
 
 - `ExtractTokenFromHeader(authHeader string) (string, error)` - Extract Bearer token from Authorization header
-- `GenerateSecretKey() (string, error)` - Generate cryptographically secure secret key
 
 ## Error Types
 
-The package provides specific error types for different validation failures:
+The package exports sentinel errors which callers can check with `errors.Is`:
 
-- **Invalid token format**: Malformed JWT structure
-- **Token expired**: Token past expiration time
-- **Invalid signature**: Token signature verification failed
-- **Invalid issuer**: Token issuer doesn't match expected value
-- **Missing required claims**: Required fields missing from token
+- `ErrInvalidToken`
+- `ErrTokenExpired`
+- `ErrInvalidClaims`
+- `ErrInvalidRefreshToken`
+- `ErrRefreshTokenExpired`
 
 ## Security Considerations
 
