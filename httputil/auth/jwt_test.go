@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -625,4 +626,176 @@ func TestTokenExpirationExpiredToken(t *testing.T) {
 	if time.Now().Before(exp) {
 		t.Errorf("Expected expiration in the past for expired token, got %v", exp)
 	}
+}
+
+// Refresh Token Workflow Tests
+
+func TestGenerateTokenPair(t *testing.T) {
+	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+
+	userID := "user123"
+	roles := []string{"user", "admin"}
+
+	tokenPair, err := manager.GenerateTokenPair(userID, roles)
+	tst.AssertNoError(t, err)
+	tst.AssertNotNil(t, tokenPair, "Token pair should not be nil")
+	tst.AssertTrue(t, tokenPair.AccessToken != "", "Access token should not be empty")
+	tst.AssertTrue(t, tokenPair.RefreshToken != "", "Refresh token should not be empty")
+	tst.AssertTrue(t, tokenPair.TokenType == "Bearer", "Token type should be Bearer")
+	tst.AssertTrue(t, tokenPair.ExpiresIn == 3600, "Expires in should match token duration in seconds")
+
+	// Validate access token
+	claims, err := manager.ValidateToken(tokenPair.AccessToken)
+	tst.AssertNoError(t, err)
+	tst.AssertTrue(t, claims.UserID == userID, "UserID should match")
+	tst.AssertTrue(t, len(claims.Roles) == 2, "Should have 2 roles")
+
+	// Validate refresh token
+	refreshClaims, err := manager.ValidateRefreshToken(tokenPair.RefreshToken)
+	tst.AssertNoError(t, err)
+	tst.AssertTrue(t, refreshClaims.UserID == userID, "UserID should match in refresh token")
+	tst.AssertTrue(t, len(refreshClaims.Roles) == 2, "Should have 2 roles in refresh token")
+	tst.AssertTrue(t, refreshClaims.TokenID != "", "Refresh token should have unique ID")
+}
+
+func TestGenerateTokenPairWithUserInfo(t *testing.T) {
+	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+
+	userID := "user123"
+	username := "testuser"
+	email := "test@example.com"
+	roles := []string{"user"}
+
+	tokenPair, err := manager.GenerateTokenPairWithUserInfo(userID, username, email, roles)
+	tst.AssertNoError(t, err)
+	tst.AssertNotNil(t, tokenPair, "Token pair should not be nil")
+
+	// Validate access token has user info
+	claims, err := manager.ValidateToken(tokenPair.AccessToken)
+	tst.AssertNoError(t, err)
+	tst.AssertTrue(t, claims.Username == username, "Username should be preserved")
+	tst.AssertTrue(t, claims.Email == email, "Email should be preserved")
+
+	// Validate refresh token has user info
+	refreshClaims, err := manager.ValidateRefreshToken(tokenPair.RefreshToken)
+	tst.AssertNoError(t, err)
+	tst.AssertTrue(t, refreshClaims.Username == username, "Username should be preserved in refresh token")
+	tst.AssertTrue(t, refreshClaims.Email == email, "Email should be preserved in refresh token")
+}
+
+func TestExchangeRefreshToken(t *testing.T) {
+	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+
+	userID := "user123"
+	roles := []string{"user", "admin"}
+
+	// Generate initial token pair
+	initialPair, err := manager.GenerateTokenPair(userID, roles)
+	tst.AssertNoError(t, err)
+
+	// Exchange refresh token for new pair
+	newPair, err := manager.ExchangeRefreshToken(initialPair.RefreshToken)
+	tst.AssertNoError(t, err)
+	tst.AssertNotNil(t, newPair, "New token pair should not be nil")
+
+	// Tokens should be different
+	tst.AssertTrue(t, newPair.AccessToken != initialPair.AccessToken, "New access token should be different")
+	tst.AssertTrue(t, newPair.RefreshToken != initialPair.RefreshToken, "New refresh token should be different")
+
+	// Validate new access token
+	claims, err := manager.ValidateToken(newPair.AccessToken)
+	tst.AssertNoError(t, err)
+	tst.AssertTrue(t, claims.UserID == userID, "UserID should be preserved")
+	tst.AssertTrue(t, len(claims.Roles) == 2, "Roles should be preserved")
+
+	// Validate new refresh token
+	refreshClaims, err := manager.ValidateRefreshToken(newPair.RefreshToken)
+	tst.AssertNoError(t, err)
+	tst.AssertTrue(t, refreshClaims.UserID == userID, "UserID should be preserved in new refresh token")
+}
+
+func TestExchangeRefreshTokenWithCustomClaims(t *testing.T) {
+	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+
+	customClaims := map[string]interface{}{
+		"department": "engineering",
+		"level":      5,
+		"is_manager": true,
+	}
+
+	// Generate initial token pair with custom claims
+	initialPair, err := manager.GenerateTokenPairWithClaims("user123", []string{"user"}, customClaims)
+	tst.AssertNoError(t, err)
+
+	// Exchange refresh token
+	newPair, err := manager.ExchangeRefreshToken(initialPair.RefreshToken)
+	tst.AssertNoError(t, err)
+
+	// Validate custom claims are preserved in new access token
+	claims, err := manager.ValidateToken(newPair.AccessToken)
+	tst.AssertNoError(t, err)
+
+	dept, ok := claims.GetCustomClaimString("department")
+	tst.AssertTrue(t, ok && dept == "engineering", "Department should be preserved")
+
+	level, ok := claims.GetCustomClaimInt("level")
+	tst.AssertTrue(t, ok && level == 5, "Level should be preserved")
+
+	isManager, ok := claims.GetCustomClaimBool("is_manager")
+	tst.AssertTrue(t, ok && isManager == true, "Manager status should be preserved")
+}
+
+func TestInvalidRefreshToken(t *testing.T) {
+	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+
+	// Test with completely invalid token
+	_, err := manager.ValidateRefreshToken("invalid-token")
+	tst.AssertTrue(t, errors.Is(err, auth.ErrInvalidRefreshToken), "Should return invalid refresh token error")
+
+	// Test exchange with invalid token
+	_, err = manager.ExchangeRefreshToken("invalid-token")
+	tst.AssertTrue(t, errors.Is(err, auth.ErrInvalidRefreshToken), "Exchange should fail with invalid token")
+
+	// Test with access token (wrong type)
+	accessToken, err := manager.GenerateToken("user123", []string{"user"})
+	tst.AssertNoError(t, err)
+
+	_, err = manager.ValidateRefreshToken(accessToken)
+	tst.AssertTrue(t, errors.Is(err, auth.ErrInvalidRefreshToken), "Should reject access token as refresh token")
+}
+
+func TestExpiredRefreshToken(t *testing.T) {
+	// Create manager with very short refresh token duration
+	shortManager := auth.NewJWTManagerWithRefreshConfig("test-secret", time.Hour, "test-issuer", time.Millisecond, "test-secret-refresh")
+
+	tokenPair, err := shortManager.GenerateTokenPair("user123", []string{"user"})
+	tst.AssertNoError(t, err)
+
+	// Wait for refresh token to expire
+	time.Sleep(time.Millisecond * 10)
+
+	// Validation should fail
+	_, err = shortManager.ValidateRefreshToken(tokenPair.RefreshToken)
+	tst.AssertTrue(t, errors.Is(err, auth.ErrRefreshTokenExpired), "Should return expired refresh token error")
+
+	// Exchange should fail
+	_, err = shortManager.ExchangeRefreshToken(tokenPair.RefreshToken)
+	tst.AssertTrue(t, errors.Is(err, auth.ErrRefreshTokenExpired), "Exchange should fail with expired token")
+}
+
+func TestRefreshTokenSecretSeparation(t *testing.T) {
+	manager1 := auth.NewJWTManager("secret1", time.Hour, "test-issuer")
+	manager2 := auth.NewJWTManager("secret2", time.Hour, "test-issuer")
+
+	// Generate token pair with manager1
+	tokenPair, err := manager1.GenerateTokenPair("user123", []string{"user"})
+	tst.AssertNoError(t, err)
+
+	// Manager2 should not be able to validate manager1's refresh token
+	_, err = manager2.ValidateRefreshToken(tokenPair.RefreshToken)
+	tst.AssertTrue(t, errors.Is(err, auth.ErrInvalidRefreshToken), "Different secret should invalidate refresh token")
+
+	// But manager1 should still be able to validate its own tokens
+	_, err = manager1.ValidateRefreshToken(tokenPair.RefreshToken)
+	tst.AssertNoError(t, err)
 }
