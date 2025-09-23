@@ -9,6 +9,16 @@ func New() *Responder {
 	}
 }
 
+// NewEmpty creates a new Responder with JSON encoder and no hooks.
+func NewEmpty() *Responder {
+	return &Responder{
+		Encoder: NewJSONEncoder(),
+		Before: nil,
+		After:  nil,
+		OnError: nil,
+	}
+}
+
 // NewWithLogging creates a new Responder with JSON encoder and logging hooks.
 // This configuration logs requests, responses, and errors.
 func NewWithLogging() *Responder {

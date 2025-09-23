@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -18,12 +19,12 @@ var (
 
 // Claims represents the JWT claims structure
 type Claims struct {
-	UserID       string                 `json:"user_id"`
-	Username     string                 `json:"username,omitempty"`
-	Email        string                 `json:"email,omitempty"`
-	Roles        []string               `json:"roles,omitempty"`
-	IssuedAt     time.Time              `json:"iat"`
-	CustomClaims map[string]interface{} `json:"custom_claims,omitempty"`
+	UserID       string         `json:"user_id"`
+	Username     string         `json:"username,omitempty"`
+	Email        string         `json:"email,omitempty"`
+	Roles        []string       `json:"roles,omitempty"`
+	IssuedAt     time.Time      `json:"iat"`
+	CustomClaims map[string]any `json:"custom_claims,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -49,7 +50,7 @@ func (j *JWTManager) GenerateToken(userID string, roles []string) (string, error
 }
 
 // GenerateTokenWithClaims creates a new JWT token with the provided claims and custom claims
-func (j *JWTManager) GenerateTokenWithClaims(userID string, roles []string, customClaims map[string]interface{}) (string, error) {
+func (j *JWTManager) GenerateTokenWithClaims(userID string, roles []string, customClaims map[string]any) (string, error) {
 	now := time.Now()
 
 	// Extract username and email from custom claims if provided
@@ -86,7 +87,7 @@ func (j *JWTManager) GenerateTokenWithClaims(userID string, roles []string, cust
 // GenerateTokenWithUserInfo creates a new JWT token with user ID, username, email, and roles
 // This is a convenience method for backward compatibility
 func (j *JWTManager) GenerateTokenWithUserInfo(userID, username, email string, roles []string) (string, error) {
-	customClaims := make(map[string]interface{})
+	customClaims := make(map[string]any)
 	if username != "" {
 		customClaims["username"] = username
 	}
@@ -103,9 +104,9 @@ func (j *JWTManager) GenerateTokenWithUserInfo(userID, username, email string, r
 
 // GenerateTokenWithUserInfoAndClaims creates a new JWT token with user info and additional custom claims
 // This is a convenience method for backward compatibility
-func (j *JWTManager) GenerateTokenWithUserInfoAndClaims(userID, username, email string, roles []string, customClaims map[string]interface{}) (string, error) {
+func (j *JWTManager) GenerateTokenWithUserInfoAndClaims(userID, username, email string, roles []string, customClaims map[string]any) (string, error) {
 	if customClaims == nil {
-		customClaims = make(map[string]interface{})
+		customClaims = make(map[string]any)
 	}
 
 	if username != "" {
@@ -120,7 +121,7 @@ func (j *JWTManager) GenerateTokenWithUserInfoAndClaims(userID, username, email 
 
 // ValidateToken validates a JWT token and returns the claims if valid
 func (j *JWTManager) ValidateToken(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (any, error) {
 		// Verify the signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrInvalidToken
@@ -152,7 +153,7 @@ func (j *JWTManager) RefreshToken(tokenString string) (string, error) {
 			return "", err
 		}
 		// Parse expired token to get claims
-		token, parseErr := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		token, parseErr := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, ErrInvalidToken
 			}
@@ -174,7 +175,7 @@ func (j *JWTManager) RefreshToken(tokenString string) (string, error) {
 	// Preserve username and email in custom claims if they exist
 	refreshCustomClaims := claims.CustomClaims
 	if refreshCustomClaims == nil {
-		refreshCustomClaims = make(map[string]interface{})
+		refreshCustomClaims = make(map[string]any)
 	}
 	if claims.Username != "" {
 		refreshCustomClaims["username"] = claims.Username
@@ -203,22 +204,12 @@ func ExtractTokenFromHeader(authHeader string) (string, error) {
 
 // HasRole checks if the user has a specific role
 func (c *Claims) HasRole(role string) bool {
-	for _, r := range c.Roles {
-		if r == role {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.Roles, role)
 }
 
 // HasAnyRole checks if the user has any of the specified roles
 func (c *Claims) HasAnyRole(roles ...string) bool {
-	for _, role := range roles {
-		if c.HasRole(role) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(roles, c.HasRole)
 }
 
 // IsExpired checks if the token is expired

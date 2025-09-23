@@ -8,6 +8,8 @@ import (
 	"runtime/debug"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // contextKey is used for context keys to avoid collisions
@@ -190,7 +192,7 @@ func RequestID() func(http.Handler) http.Handler {
 			requestID := r.Header.Get(RequestIDHeader)
 			if requestID == "" {
 				// Generate a new request ID
-				requestID = generateRequestID()
+				requestID = uuid.New().String()
 			}
 
 			// Add request ID to response header
@@ -211,11 +213,4 @@ func GetRequestID(ctx context.Context) string {
 		return requestID
 	}
 	return ""
-}
-
-// generateRequestID generates a unique request ID
-func generateRequestID() string {
-	// Use current timestamp and a simple counter for uniqueness
-	// In production, you might want to use UUID or a more sophisticated approach
-	return fmt.Sprintf("%d-%d", time.Now().UnixNano(), time.Now().Unix()%1000)
 }

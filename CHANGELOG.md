@@ -1,6 +1,8 @@
 ## v0.2.1
 
 - adds `TokenExpiration` helpers to `httputil.auth.JWTManager`
+- adds `NewEmpty` constructor for responder without hooks
+- adds JWT middleware to `httputil.middleware`
 
 ## v0.2.0
 
