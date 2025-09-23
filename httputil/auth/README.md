@@ -113,9 +113,142 @@ func main() {
 }
 ```
 
-### Custom Refresh Token Configuration
+### HTTP Handler Integration
 
-For advanced use cases, you can customize refresh token settings:
+The package provides ready-to-use HTTP handlers for common authentication workflows:
+
+```go
+package main
+
+import (
+    "errors"  
+    "log"
+    "net/http"
+    "time"
+    
+    "github.com/julianstephens/go-utils/httputil/auth"
+)
+
+func main() {
+    // Setup JWT manager
+    manager := auth.NewJWTManager("my-secret-key", time.Minute*15, "my-app")
+    
+    // Mock user authentication function
+    authenticateUser := func(username, password string) (*auth.UserInfo, error) {
+        // Replace with your user authentication logic
+        if username == "demo" && password == "password" {
+            return &auth.UserInfo{
+                UserID:   "user123",
+                Username: "demo",
+                Email:    "demo@example.com",
+                Roles:    []string{"user"},
+            }, nil
+        }
+        return nil, errors.New("invalid credentials")
+    }
+    
+    // Setup handlers
+    http.HandleFunc("/auth/login", auth.AuthenticationHandler(manager, authenticateUser))
+    http.HandleFunc("/auth/refresh", auth.RefreshTokenHandler(manager))
+    
+    // Example protected route using middleware
+    http.Handle("/protected", jwtMiddleware(manager)(http.HandlerFunc(protectedHandler)))
+    
+    log.Println("Server starting on :8080")
+    log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func protectedHandler(w http.ResponseWriter, r *http.Request) {
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte("Access granted to protected resource"))
+}
+
+func jwtMiddleware(manager *auth.JWTManager) func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            authHeader := r.Header.Get("Authorization")
+            tokenString, err := auth.ExtractTokenFromHeader(authHeader)
+            if err != nil {
+                http.Error(w, "Authorization header required", http.StatusUnauthorized)
+                return
+            }
+
+            _, err = manager.ValidateToken(tokenString)
+            if err != nil {
+                http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+                return
+            }
+
+            next.ServeHTTP(w, r)
+        })
+    }
+}
+```
+
+### Cookie-Based Refresh Tokens
+
+For web applications, you can use httpOnly cookies for secure refresh token storage:
+
+```go
+func loginWithCookies(manager *auth.JWTManager) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        // ... authentication logic ...
+        
+        tokenPair, err := manager.GenerateTokenPairWithUserInfo(userID, username, email, roles)
+        if err != nil {
+            http.Error(w, "Failed to generate tokens", http.StatusInternalServerError)
+            return
+        }
+        
+        // Set refresh token as httpOnly cookie
+        auth.SetRefreshTokenCookie(w, tokenPair.RefreshToken, time.Hour*24*7, true)
+        
+        // Return only access token in response
+        response := map[string]interface{}{
+            "access_token": tokenPair.AccessToken,
+            "token_type":   tokenPair.TokenType,
+            "expires_in":   tokenPair.ExpiresIn,
+        }
+        
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(response)
+    }
+}
+
+func refreshFromCookie(manager *auth.JWTManager) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        // Get refresh token from cookie
+        refreshToken, err := auth.GetRefreshTokenFromCookie(r)
+        if err != nil {
+            http.Error(w, "Refresh token not found", http.StatusUnauthorized)
+            return
+        }
+        
+        // Exchange for new tokens
+        tokenPair, err := manager.ExchangeRefreshToken(refreshToken)
+        if err != nil {
+            auth.ClearRefreshTokenCookie(w) // Clear invalid cookie
+            http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+            return
+        }
+        
+        // Set new refresh token cookie
+        auth.SetRefreshTokenCookie(w, tokenPair.RefreshToken, time.Hour*24*7, true)
+        
+        // Return new access token
+        response := map[string]interface{}{
+            "access_token": tokenPair.AccessToken,
+            "token_type":   tokenPair.TokenType,
+            "expires_in":   tokenPair.ExpiresIn,
+        }
+        
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(response)
+    }
+}
+```
+
+### Advanced Token Management
 
 ```go
 // Custom refresh token duration and separate secret
@@ -131,6 +264,32 @@ tokenPair, err := manager.GenerateTokenPair("user123", []string{"user"})
 if err != nil {
     log.Fatalf("Failed to generate tokens: %v", err)
 }
+
+// Token introspection
+refreshClaims, err := manager.ValidateRefreshToken(tokenPair.RefreshToken)
+if err != nil {
+    log.Fatalf("Invalid refresh token: %v", err)
+}
+fmt.Printf("Refresh token ID: %s\n", refreshClaims.TokenID)
+fmt.Printf("Token expires: %v\n", refreshClaims.ExpiresAt.Time)
+```
+
+### Migration from Legacy RefreshToken Method
+
+If you're currently using the legacy `RefreshToken` method, here's how to migrate:
+
+```go
+// OLD: Legacy refresh (recreates access token from existing token)
+oldAccessToken := "existing-access-token"
+newAccessToken, err := manager.RefreshToken(oldAccessToken)
+
+// NEW: Token pair workflow (exchange refresh token for new pair)
+// 1. Generate token pair initially
+tokenPair, err := manager.GenerateTokenPair("user123", []string{"user"})
+
+// 2. Store refresh token securely (cookie, database, etc.)
+// 3. Exchange refresh token when access token expires
+newTokenPair, err := manager.ExchangeRefreshToken(tokenPair.RefreshToken)
 ```
     fmt.Printf("Issued at: %v\n", time.Unix(claims.IssuedAt, 0))
     fmt.Printf("Expires at: %v\n", time.Unix(claims.ExpiresAt, 0))
