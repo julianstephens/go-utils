@@ -10,6 +10,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/hkdf"
+
+	"github.com/julianstephens/go-utils/logger"
 )
 
 var (
@@ -25,7 +27,11 @@ var (
 	ErrRefreshTokenExpired = errors.New("refresh token has expired")
 )
 
-const KEY_LENGTH = 32 // 256 bits for HMAC-SHA256
+const (
+	KEY_LENGTH = 32 // 256 bits for HMAC-SHA256
+	ACCESS_SALT  = "go-utils/httputil/auth:access:v1"
+	REFRESH_SALT = "go-utils/httputil/auth:refresh:v1"
+)
 
 // Claims represents the JWT claims structure
 type Claims struct {
@@ -84,6 +90,7 @@ func NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string)
 			refreshTokenSecretKey: keys.RefreshKey,
 		}
 	}
+	logger.Warnf("failed to derive keys from secret, falling back to original method: %v", err)
 	return &JWTManager{
 		secretKey:             []byte(secretKey),
 		tokenDuration:         tokenDuration,
@@ -524,8 +531,8 @@ func (c *Claims) DeleteCustomClaim(key string) {
 func deriveKeys(secretKey []byte) (*KeyPair, error) {
 	hash := sha256.New
 
-	accessHKDF := hkdf.New(hash, secretKey, nil, []byte("go-utils/httputil/auth:access:v1"))
-	refreshHKDF := hkdf.New(hash, secretKey, nil, []byte("go-utils/httputil/auth:refresh:v1"))
+	accessHKDF := hkdf.New(hash, secretKey, nil, []byte(ACCESS_SALT))
+	refreshHKDF := hkdf.New(hash, secretKey, nil, []byte(REFRESH_SALT))
 
 	var keys KeyPair
 	k1 := make([]byte, KEY_LENGTH)
