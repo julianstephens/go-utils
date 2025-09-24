@@ -515,21 +515,22 @@ func (c *Claims) DeleteCustomClaim(key string) {
 
 func deriveKeys(secretKey []byte) (*[][]byte, error) {
 	hash := sha256.New
-	
-	// Use a deterministic salt derived from the secret key itself
-	// This ensures the same secret always produces the same derived keys
-	salt := hash().Sum(secretKey)[:hash().Size()]
 
-	hkdf := hkdf.New(hash, secretKey, salt, nil)
+	accessHKDF := hkdf.New(hash, secretKey, nil, []byte("go-utils/httputil/auth:access:v1"))
+	refreshHKDF := hkdf.New(hash, secretKey, nil, []byte("go-utils/httputil/auth:refresh:v1"))
 
-	var keys [][]byte
-	for range 2 {
-		key := make([]byte, 16)
-		if _, err := io.ReadFull(hkdf, key); err != nil {
-			return nil, err
-		}
-		keys = append(keys, key)
+	keys := make([][]byte, 0, 2)
+	k1 := make([]byte, 32)
+	if _, err := io.ReadFull(accessHKDF, k1); err != nil {
+		return nil, err
 	}
+	keys = append(keys, k1)
+
+	k2 := make([]byte, 32)
+	if _, err := io.ReadFull(refreshHKDF, k2); err != nil {
+		return nil, err
+	}
+	keys = append(keys, k2)
 
 	return &keys, nil
 }
