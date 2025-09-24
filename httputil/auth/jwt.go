@@ -28,9 +28,10 @@ var (
 )
 
 const (
-	KEY_LENGTH = 32 // 256 bits for HMAC-SHA256
-	ACCESS_SALT  = "go-utils/httputil/auth:access:v1"
-	REFRESH_SALT = "go-utils/httputil/auth:refresh:v1"
+	KEY_LENGTH             = 32 // 256 bits for HMAC-SHA256
+	ACCESS_SALT            = "go-utils/httputil/auth:access:v1"
+	REFRESH_SALT           = "go-utils/httputil/auth:refresh:v1"
+	REFRESH_TOKEN_DURATION = time.Hour * 24 * 7 // Default 7 days for refresh tokens
 )
 
 // Claims represents the JWT claims structure
@@ -71,32 +72,25 @@ type KeyPair struct {
 
 // JWTManager handles JWT token creation and validation
 type JWTManager struct {
-	secretKey              []byte
-	tokenDuration          time.Duration
-	issuer                 string
-	refreshTokenDuration   time.Duration
-	refreshTokenSecretKey  []byte
+	secretKey             []byte
+	tokenDuration         time.Duration
+	issuer                string
+	refreshTokenDuration  time.Duration
+	refreshTokenSecretKey []byte
 }
 
 // NewJWTManager creates a new JWT manager with the given secret key and token duration
 func NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string) *JWTManager {
 	keys, err := deriveKeys([]byte(secretKey))
-	if err == nil {
-		return &JWTManager{
-			secretKey:             keys.AccessKey,
-			tokenDuration:         tokenDuration,
-			issuer:                issuer,
-			refreshTokenDuration:  time.Hour * 24 * 7, // Default 7 days for refresh tokens
-			refreshTokenSecretKey: keys.RefreshKey,
-		}
+	if err != nil {
+		logger.Fatalf("failed to derive keys: %v", err)
 	}
-	logger.Warnf("failed to derive keys from secret, falling back to original method: %v", err)
 	return &JWTManager{
-		secretKey:             []byte(secretKey),
+		secretKey:             keys.AccessKey,
 		tokenDuration:         tokenDuration,
 		issuer:                issuer,
-		refreshTokenDuration:  time.Hour * 24 * 7, // Default 7 days for refresh tokens
-		refreshTokenSecretKey: []byte(secretKey + "-refresh"), // Derive refresh secret from main secret
+		refreshTokenDuration:  REFRESH_TOKEN_DURATION,
+		refreshTokenSecretKey: keys.RefreshKey,
 	}
 }
 

@@ -13,7 +13,7 @@ import (
 // It expects a JSON payload with a "refresh_token" field and returns a new TokenPair
 func RefreshTokenHandler(manager *JWTManager) http.HandlerFunc {
 	responder := response.NewEmpty()
-	
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			responder.ErrorWithStatus(w, r, http.StatusMethodNotAllowed, errors.New("only POST method allowed"))
