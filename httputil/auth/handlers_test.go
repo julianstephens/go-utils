@@ -13,7 +13,10 @@ import (
 )
 
 func TestRefreshTokenHandler(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
 	handler := auth.RefreshTokenHandler(manager)
 
 	// Generate initial token pair
@@ -97,7 +100,10 @@ func TestRefreshTokenHandler(t *testing.T) {
 }
 
 func TestAuthenticationHandler(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
 
 	// Mock authentication function
 	authenticateUser := func(username, password string) (*auth.UserInfo, error) {

@@ -15,12 +15,14 @@ func TestNewJWTManager(t *testing.T) {
 	duration := time.Hour
 	issuer := "test-issuer"
 
-	manager := auth.NewJWTManager(secretKey, duration, issuer)
+	manager, err := auth.NewJWTManager(secretKey, duration, issuer)
+	tst.AssertNoError(t, err)
 	tst.AssertNotNil(t, manager, "NewJWTManager should not return nil")
 }
 
 func TestGenerateToken(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	userID := "user123"
 	roles := []string{"user", "admin"}
@@ -35,7 +37,8 @@ func TestGenerateToken(t *testing.T) {
 }
 
 func TestValidateToken(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	userID := "user123"
 	username := "testuser"
@@ -58,7 +61,8 @@ func TestValidateToken(t *testing.T) {
 }
 
 func TestValidateInvalidToken(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	tests := []struct {
 		name  string
@@ -79,7 +83,8 @@ func TestValidateInvalidToken(t *testing.T) {
 
 func TestValidateExpiredToken(t *testing.T) {
 	// Create manager with very short expiration
-	manager := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	token, err := manager.GenerateToken("user123", []string{"user"})
 	tst.AssertNoError(t, err)
@@ -93,7 +98,8 @@ func TestValidateExpiredToken(t *testing.T) {
 }
 
 func TestRefreshToken(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	// Generate original token
 	originalToken, err := manager.GenerateToken("user123", []string{"user"})
@@ -116,7 +122,8 @@ func TestRefreshToken(t *testing.T) {
 
 func TestRefreshExpiredToken(t *testing.T) {
 	// Create manager with very short expiration for initial token
-	shortManager := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
+	shortManager, err := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	token, err := shortManager.GenerateToken("user123", []string{"user"})
 	tst.AssertNoError(t, err)
@@ -125,7 +132,8 @@ func TestRefreshExpiredToken(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 
 	// Create a manager with longer expiration for refresh
-	longManager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	longManager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	// Should still be able to refresh expired token
 	newToken, err := longManager.RefreshToken(token)
@@ -251,7 +259,8 @@ func TestClaimsHasAnyRole(t *testing.T) {
 }
 
 func TestClaimsIsExpired(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	// Generate a valid token
 	token, err := manager.GenerateToken("user123", []string{"user"})
@@ -264,7 +273,8 @@ func TestClaimsIsExpired(t *testing.T) {
 	tst.AssertFalse(t, claims.IsExpired(), "Token should not be expired")
 
 	// Test with expired token
-	expiredManager := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
+	expiredManager, err := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
+	tst.AssertNoError(t, err)
 	expiredToken, err := expiredManager.GenerateToken("user123", []string{"user"})
 	tst.AssertNoError(t, err)
 
@@ -286,8 +296,10 @@ func TestClaimsIsExpired(t *testing.T) {
 }
 
 func TestTokenValidationWithDifferentSecrets(t *testing.T) {
-	manager1 := auth.NewJWTManager("secret1", time.Hour, "issuer1")
-	manager2 := auth.NewJWTManager("secret2", time.Hour, "issuer2")
+	manager1, err := auth.NewJWTManager("secret1", time.Hour, "issuer1")
+	tst.AssertNoError(t, err)
+	manager2, err := auth.NewJWTManager("secret2", time.Hour, "issuer2")
+	tst.AssertNoError(t, err)
 
 	// Generate token with first manager
 	token, err := manager1.GenerateToken("user123", []string{"user"})
@@ -303,7 +315,8 @@ func TestTokenValidationWithDifferentSecrets(t *testing.T) {
 }
 
 func TestGenerateTokenWithClaims(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	userID := "user123"
 	username := "testuser"
@@ -398,7 +411,8 @@ func TestCustomClaimMethods(t *testing.T) {
 }
 
 func TestCustomClaimsInRefreshToken(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	customClaims := map[string]interface{}{
 		"department": "engineering",
@@ -439,7 +453,8 @@ func TestCustomClaimsInRefreshToken(t *testing.T) {
 }
 
 func TestCustomClaimsWithJSONNumberTypes(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	customClaims := map[string]interface{}{
 		"int_as_float": float64(42), // JSON numbers are typically float64
@@ -463,7 +478,8 @@ func TestCustomClaimsWithJSONNumberTypes(t *testing.T) {
 }
 
 func TestEmptyCustomClaims(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	// Generate token with nil custom claims
 	token, err := manager.GenerateTokenWithUserInfo("user123", "testuser", "test@example.com", []string{"user"})
@@ -497,7 +513,8 @@ func TestEmptyCustomClaims(t *testing.T) {
 }
 
 func TestSimplifiedTokenGeneration(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	// Test basic token generation with just user ID and roles
 	token, err := manager.GenerateToken("user123", []string{"user", "admin"})
@@ -540,7 +557,8 @@ func TestSimplifiedTokenGeneration(t *testing.T) {
 }
 
 func TestTokenGenerationWithCustomClaimsOnly(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	customClaims := map[string]interface{}{
 		"username":   "john_doe",
@@ -586,7 +604,8 @@ func TestTokenGenerationWithCustomClaimsOnly(t *testing.T) {
 }
 
 func TestTokenExpiration(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	token, err := manager.GenerateToken("user123", []string{"user"})
 	if err != nil {
@@ -606,7 +625,8 @@ func TestTokenExpiration(t *testing.T) {
 
 func TestTokenExpirationExpiredToken(t *testing.T) {
 	// Create a token with very short duration so it expires
-	shortManager := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
+	shortManager, err := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	token, err := shortManager.GenerateToken("user123", []string{"user"})
 	if err != nil {
@@ -617,7 +637,8 @@ func TestTokenExpirationExpiredToken(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 
 	// Use a manager with same secret to retrieve expiration
-	mgr := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	mgr, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 	exp, err := mgr.TokenExpiration(token)
 	if err != nil {
 		t.Fatalf("TokenExpiration failed for expired token: %v", err)
@@ -631,7 +652,8 @@ func TestTokenExpirationExpiredToken(t *testing.T) {
 // Refresh Token Workflow Tests
 
 func TestGenerateTokenPair(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	userID := "user123"
 	roles := []string{"user", "admin"}
@@ -659,7 +681,8 @@ func TestGenerateTokenPair(t *testing.T) {
 }
 
 func TestGenerateTokenPairWithUserInfo(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	userID := "user123"
 	username := "testuser"
@@ -684,7 +707,8 @@ func TestGenerateTokenPairWithUserInfo(t *testing.T) {
 }
 
 func TestExchangeRefreshToken(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	userID := "user123"
 	roles := []string{"user", "admin"}
@@ -715,7 +739,8 @@ func TestExchangeRefreshToken(t *testing.T) {
 }
 
 func TestExchangeRefreshTokenWithCustomClaims(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	customClaims := map[string]interface{}{
 		"department": "engineering",
@@ -746,10 +771,11 @@ func TestExchangeRefreshTokenWithCustomClaims(t *testing.T) {
 }
 
 func TestInvalidRefreshToken(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	// Test with completely invalid token
-	_, err := manager.ValidateRefreshToken("invalid-token")
+	_, err = manager.ValidateRefreshToken("invalid-token")
 	tst.AssertTrue(t, errors.Is(err, auth.ErrInvalidRefreshToken), "Should return invalid refresh token error")
 
 	// Test exchange with invalid token
@@ -784,8 +810,10 @@ func TestExpiredRefreshToken(t *testing.T) {
 }
 
 func TestRefreshTokenSecretSeparation(t *testing.T) {
-	manager1 := auth.NewJWTManager("secret1", time.Hour, "test-issuer")
-	manager2 := auth.NewJWTManager("secret2", time.Hour, "test-issuer")
+	manager1, err := auth.NewJWTManager("secret1", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
+	manager2, err := auth.NewJWTManager("secret2", time.Hour, "test-issuer")
+	tst.AssertNoError(t, err)
 
 	// Generate token pair with manager1
 	tokenPair, err := manager1.GenerateTokenPair("user123", []string{"user"})

@@ -10,7 +10,10 @@ import (
 )
 
 func TestJWTAuthMiddleware_ValidToken(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
 	token, err := manager.GenerateToken("user1", []string{"user"})
 	if err != nil {
 		t.Fatalf("GenerateToken failed: %v", err)
@@ -35,7 +38,10 @@ func TestJWTAuthMiddleware_ValidToken(t *testing.T) {
 }
 
 func TestJWTAuthMiddleware_Unauthorized(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
 
 	handler := JWTAuth(manager)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -60,7 +66,10 @@ func TestJWTAuthMiddleware_Unauthorized(t *testing.T) {
 }
 
 func TestRequireRoles_AllowedAndForbidden(t *testing.T) {
-	manager := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
 
 	// token with admin role
 	adminToken, err := manager.GenerateToken("admin1", []string{"admin", "user"})

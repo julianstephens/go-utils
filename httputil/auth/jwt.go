@@ -10,8 +10,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/hkdf"
-
-	"github.com/julianstephens/go-utils/logger"
 )
 
 var (
@@ -80,10 +78,10 @@ type JWTManager struct {
 }
 
 // NewJWTManager creates a new JWT manager with the given secret key and token duration
-func NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string) *JWTManager {
+func NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string) (*JWTManager, error) {
 	keys, err := deriveKeys([]byte(secretKey))
 	if err != nil {
-		logger.Fatalf("failed to derive keys: %v", err)
+		return nil, err
 	}
 	return &JWTManager{
 		secretKey:             keys.AccessKey,
@@ -91,7 +89,7 @@ func NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string)
 		issuer:                issuer,
 		refreshTokenDuration:  REFRESH_TOKEN_DURATION,
 		refreshTokenSecretKey: keys.RefreshKey,
-	}
+	}, nil
 }
 
 // NewJWTManagerWithRefreshConfig creates a new JWT manager with custom refresh token configuration
