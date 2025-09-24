@@ -294,8 +294,8 @@ tokenPair, err := manager.GenerateTokenPair("user123", []string{"user"})
 // 3. Exchange refresh token when access token expires
 newTokenPair, err := manager.ExchangeRefreshToken(tokenPair.RefreshToken)
 
-fmt.Printf("Issued at: %v\n", time.Unix(claims.IssuedAt, 0))
-fmt.Printf("Expires at: %v\n", time.Unix(claims.ExpiresAt, 0))
+fmt.Printf("Issued at: %v\n", claims.IssuedAt.Time)
+fmt.Printf("Expires at: %v\n", claims.ExpiresAt.Time)
 ```
 
 ### Token with User Information

@@ -25,6 +25,8 @@ var (
 	ErrRefreshTokenExpired = errors.New("refresh token has expired")
 )
 
+const KEY_LENGTH = 32 // 256 bits for HMAC-SHA256
+
 // Claims represents the JWT claims structure
 type Claims struct {
 	UserID       string         `json:"user_id"`
@@ -55,6 +57,12 @@ type TokenPair struct {
 	ExpiresIn    int64  `json:"expires_in"` // Access token expiration in seconds
 }
 
+// KeyPair holds derived keys for access and refresh tokens
+type KeyPair struct {
+	AccessKey  []byte
+	RefreshKey []byte
+}
+
 // JWTManager handles JWT token creation and validation
 type JWTManager struct {
 	secretKey              []byte
@@ -67,13 +75,13 @@ type JWTManager struct {
 // NewJWTManager creates a new JWT manager with the given secret key and token duration
 func NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string) *JWTManager {
 	keys, err := deriveKeys([]byte(secretKey))
-	if err == nil && len(*keys) == 2 {
+	if err == nil {
 		return &JWTManager{
-			secretKey:             (*keys)[0],
+			secretKey:             keys.AccessKey,
 			tokenDuration:         tokenDuration,
 			issuer:                issuer,
 			refreshTokenDuration:  time.Hour * 24 * 7, // Default 7 days for refresh tokens
-			refreshTokenSecretKey: (*keys)[1],
+			refreshTokenSecretKey: keys.RefreshKey,
 		}
 	}
 	return &JWTManager{
@@ -513,24 +521,24 @@ func (c *Claims) DeleteCustomClaim(key string) {
 	}
 }
 
-func deriveKeys(secretKey []byte) (*[][]byte, error) {
+func deriveKeys(secretKey []byte) (*KeyPair, error) {
 	hash := sha256.New
 
 	accessHKDF := hkdf.New(hash, secretKey, nil, []byte("go-utils/httputil/auth:access:v1"))
 	refreshHKDF := hkdf.New(hash, secretKey, nil, []byte("go-utils/httputil/auth:refresh:v1"))
 
-	keys := make([][]byte, 0, 2)
-	k1 := make([]byte, 32)
+	var keys KeyPair
+	k1 := make([]byte, KEY_LENGTH)
 	if _, err := io.ReadFull(accessHKDF, k1); err != nil {
 		return nil, err
 	}
-	keys = append(keys, k1)
+	keys.AccessKey = k1
 
-	k2 := make([]byte, 32)
+	k2 := make([]byte, KEY_LENGTH)
 	if _, err := io.ReadFull(refreshHKDF, k2); err != nil {
 		return nil, err
 	}
-	keys = append(keys, k2)
+	keys.RefreshKey = k2
 
 	return &keys, nil
 }
