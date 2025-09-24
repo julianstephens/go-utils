@@ -523,8 +523,8 @@ func (c *Claims) DeleteCustomClaim(key string) {
 func deriveKeys(secretKey []byte) (*KeyPair, error) {
 	hash := sha256.New
 
-	accessHKDF := hkdf.New(hash, secretKey, nil, []byte(ACCESS_SALT))
-	refreshHKDF := hkdf.New(hash, secretKey, nil, []byte(REFRESH_SALT))
+	accessHKDF := hkdf.New(hash, secretKey, []byte(ACCESS_SALT), nil)
+	refreshHKDF := hkdf.New(hash, secretKey, []byte(REFRESH_SALT), nil)
 
 	var keys KeyPair
 	k1 := make([]byte, KEY_LENGTH)
