@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
 	"errors"
 	"io"
@@ -517,10 +516,9 @@ func (c *Claims) DeleteCustomClaim(key string) {
 func deriveKeys(secretKey []byte) (*[][]byte, error) {
 	hash := sha256.New
 	
-	salt := make([]byte, hash().Size())
-	if _, err := rand.Read(salt); err != nil {
-		return nil, err
-	}
+	// Use a deterministic salt derived from the secret key itself
+	// This ensures the same secret always produces the same derived keys
+	salt := hash().Sum(secretKey)[:hash().Size()]
 
 	hkdf := hkdf.New(hash, secretKey, salt, nil)
 
