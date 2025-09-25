@@ -113,14 +113,14 @@ type UserInfo struct {
 
 // SetRefreshTokenCookie sets a refresh token as an httpOnly cookie
 // This is a security best practice for web applications
-func SetRefreshTokenCookie(w http.ResponseWriter, refreshToken string, maxAge time.Duration, secure bool) {
+func SetRefreshTokenCookie(w http.ResponseWriter, refreshToken string, maxAge time.Duration, secure bool, sameSite http.SameSite) {
 	cookie := &http.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken,
 		MaxAge:   int(maxAge.Seconds()),
 		HttpOnly: true,
 		Secure:   secure, // Should be true in production with HTTPS
-		SameSite: http.SameSiteStrictMode,
+		SameSite: sameSite,
 		Path:     "/",
 	}
 	http.SetCookie(w, cookie)
