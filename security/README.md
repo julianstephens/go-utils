@@ -1,11 +1,12 @@
 # Security Package
 
-The `security` package provides cryptographic utilities including AES-GCM encryption/decryption, PBKDF2 key derivation, random key generation, bcrypt password hashing and verification, constant-time secure comparison, and base64 encoding/decoding.
+The `security` package provides cryptographic utilities including AES-GCM encryption/decryption, PBKDF2 key derivation, HKDF key derivation, random key generation, bcrypt password hashing and verification, constant-time secure comparison, and base64 encoding/decoding.
 
 ## Features
 
 - **AES-GCM Encryption/Decryption**: Authenticated encryption with AES-128, AES-192, and AES-256
 - **PBKDF2 Key Derivation**: Secure key derivation from passwords using PBKDF2 with SHA-256
+- **HKDF Key Derivation**: HMAC-based key derivation function for generating cryptographically independent keys
 - **Random Key Generation**: Cryptographically secure random key generation
 - **Bcrypt Password Hashing**: Secure password hashing and verification using bcrypt
 - **Constant-time Comparison**: Secure comparison functions resistant to timing attacks
@@ -93,6 +94,71 @@ func main() {
     // Verify they match
     if security.SecureCompare(key, sameKey) {
         fmt.Println("Keys match!")
+    }
+}
+```
+
+### HKDF Key Derivation
+
+Generate cryptographically independent keys from a master key using HKDF (HMAC-based Key Derivation Function).
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    
+    "github.com/julianstephens/go-utils/security"
+)
+
+func main() {
+    // Generate a master key
+    masterKey, err := security.GenerateRandomKey(32)
+    if err != nil {
+        log.Fatalf("Failed to generate master key: %v", err)
+    }
+    
+    // Derive two independent keys for different purposes
+    accessKey, refreshKey, err := security.DeriveKeyPair(
+        masterKey, 
+        "access-salt", "refresh-salt",
+        "JWT-access", "JWT-refresh",
+        32,
+    )
+    if err != nil {
+        log.Fatalf("Failed to derive key pair: %v", err)
+    }
+    
+    fmt.Printf("Access key: %x\n", accessKey)
+    fmt.Printf("Refresh key: %x\n", refreshKey)
+    
+    // Derive a single key for a specific purpose
+    encryptionKey, err := security.DeriveKeyHKDF(
+        masterKey,
+        "encryption-salt",
+        "AES-encryption", 
+        32,
+    )
+    if err != nil {
+        log.Fatalf("Failed to derive encryption key: %v", err)
+    }
+    
+    fmt.Printf("Encryption key: %x\n", encryptionKey)
+    
+    // Keys are deterministic - same inputs produce same outputs
+    sameKey, _, err := security.DeriveKeyPair(
+        masterKey,
+        "access-salt", "refresh-salt", 
+        "JWT-access", "JWT-refresh",
+        32,
+    )
+    if err != nil {
+        log.Fatalf("Failed to derive key pair again: %v", err)
+    }
+    
+    if security.SecureCompare(accessKey, sameKey) {
+        fmt.Println("Keys are deterministic!")
     }
 }
 ```
@@ -358,8 +424,13 @@ func main() {
 
 ### Key Derivation Functions
 
+**PBKDF2:**
 - `DeriveKey(password string, saltSize, iterations, keyLen int) (key []byte, salt []byte, err error)` — Derive key with new random salt
 - `DeriveKeyWithSalt(password string, salt []byte, iterations, keyLen int) []byte` — Derive key with existing salt
+
+**HKDF:**
+- `DeriveKeyPair(masterKey []byte, salt1, salt2, info1, info2 string, keyLength int) (key1, key2 []byte, err error)` — Derive two independent keys
+- `DeriveKeyHKDF(masterKey []byte, salt, info string, keyLength int) ([]byte, error)` — Derive single key using HKDF
 
 ### Random Key Generation
 
@@ -412,6 +483,14 @@ The package defines several error constants:
 - Use a minimum 16-byte salt (32 bytes recommended)
 - Consider using Argon2 for new applications (not included in this package)
 
+### HKDF
+
+- Excellent for deriving multiple independent keys from a single master key
+- Salt and info parameters provide domain separation
+- Deterministic - same inputs always produce same outputs
+- Use different salt/info combinations for different key purposes (e.g., "JWT-access" vs "JWT-refresh")
+- Suitable for key expansion in cryptographic protocols
+
 ### Bcrypt
 
 - Default cost (10) provides good security for most applications
@@ -430,6 +509,8 @@ The package defines several error constants:
 3. **Handle errors properly**: Don't ignore cryptographic operation errors
 4. **Use strong passwords**: For key derivation, use long, complex passwords
 5. **Store salts safely**: Keep salts alongside encrypted data, they don't need to be secret
+6. **Use HKDF for key expansion**: When you need multiple keys, use HKDF instead of reusing the same key
+7. **Provide domain separation**: Use distinct salt/info parameters for different key purposes
 6. **Regular security audits**: Review cryptographic implementations regularly
 
 ## Thread Safety
@@ -455,4 +536,11 @@ import "github.com/julianstephens/go-utils/helpers"
 
 keySize := helpers.Default(configKeySize, 32)
 key, err := security.GenerateAESKey(keySize)
+
+// Used by JWT authentication in httputil/auth package
+import "github.com/julianstephens/go-utils/httputil/auth"
+
+// The JWT package uses security.DeriveKeyPair for generating 
+// separate access and refresh token signing keys
+jwtManager, err := auth.NewJWTManager("secret", time.Hour, "issuer")
 ```
