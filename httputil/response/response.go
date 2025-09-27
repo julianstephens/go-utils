@@ -78,8 +78,8 @@ func (r *Responder) ErrorWithStatus(w http.ResponseWriter, req *http.Request, st
 		status = http.StatusInternalServerError
 	}
 
-	r.Encoder.Encode(w, Error{Message: http.StatusText(status), Details: map[string]any{
-		"error": msg,
+	r.Encoder.Encode(w, Error{Message: msg, Details: map[string]any{
+		"status": http.StatusText(status),
 	}}, status)
 }
 
