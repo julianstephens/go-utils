@@ -10,12 +10,6 @@ type JSONEncoder struct {
 	Indent string
 }
 
-type Error struct {
-	Message string         `json:"message"`
-	Code    string         `json:"code"`
-	Details map[string]any `json:"details,omitempty"`
-}
-
 // NewJSONEncoder creates a new JSONEncoder with default settings.
 func NewJSONEncoder() *JSONEncoder {
 	return &JSONEncoder{}

@@ -30,6 +30,15 @@ type Responder struct {
 	OnError OnErrorFunc // Hook called on encoding errors
 }
 
+// Error represents a structured error response.
+type Error struct {
+	Message string         `json:"message"`
+	Code    string         `json:"code"`
+	Details map[string]any `json:"details,omitempty"`
+}
+
+
+
 // WriteWithStatus writes a response with a specific HTTP status code.
 // It sets the status code before calling the encoder.
 func (r *Responder) WriteWithStatus(w http.ResponseWriter, req *http.Request, data any, statusCode int) {
