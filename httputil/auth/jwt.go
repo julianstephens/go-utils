@@ -92,15 +92,19 @@ func NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string)
 	}, nil
 }
 
-// NewJWTManagerWithRefreshConfig creates a new JWT manager with custom refresh token configuration
-func NewJWTManagerWithRefreshConfig(secretKey string, tokenDuration time.Duration, issuer string, refreshTokenDuration time.Duration, refreshSecretKey string) *JWTManager {
+// NewJWTManagerWithRefreshConfig creates a new JWT manager with custom refresh token duration
+func NewJWTManagerWithRefreshConfig(secretKey string, tokenDuration time.Duration, issuer string, refreshTokenDuration time.Duration) (*JWTManager, error) {
+	keys, err := deriveKeys([]byte(secretKey))
+	if err != nil {
+		return nil, err
+	}
 	return &JWTManager{
-		secretKey:             []byte(secretKey),
+		secretKey:             keys.AccessKey,
 		tokenDuration:         tokenDuration,
 		issuer:                issuer,
 		refreshTokenDuration:  refreshTokenDuration,
-		refreshTokenSecretKey: []byte(refreshSecretKey),
-	}
+		refreshTokenSecretKey: keys.RefreshKey,
+	}, nil
 }
 
 // GenerateTokenPair creates access and refresh token pair
