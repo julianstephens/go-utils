@@ -13,8 +13,8 @@ func New() *Responder {
 func NewEmpty() *Responder {
 	return &Responder{
 		Encoder: NewJSONEncoder(),
-		Before: nil,
-		After:  nil,
+		Before:  nil,
+		After:   nil,
 		OnError: nil,
 	}
 }

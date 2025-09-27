@@ -1,11 +1,15 @@
 package auth
 
 import (
+	"crypto/sha256"
 	"errors"
+	"io"
 	"slices"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	"golang.org/x/crypto/hkdf"
 )
 
 var (
@@ -15,6 +19,17 @@ var (
 	ErrTokenExpired = errors.New("token has expired")
 	// ErrInvalidClaims is returned when token claims are invalid
 	ErrInvalidClaims = errors.New("invalid token claims")
+	// ErrInvalidRefreshToken is returned when a refresh token is invalid
+	ErrInvalidRefreshToken = errors.New("invalid refresh token")
+	// ErrRefreshTokenExpired is returned when a refresh token has expired
+	ErrRefreshTokenExpired = errors.New("refresh token has expired")
+)
+
+const (
+	KEY_LENGTH             = 32 // 256 bits for HMAC-SHA256
+	ACCESS_SALT            = "go-utils/httputil/auth:access:v1"
+	REFRESH_SALT           = "go-utils/httputil/auth:refresh:v1"
+	REFRESH_TOKEN_DURATION = time.Hour * 24 * 7 // Default 7 days for refresh tokens
 )
 
 // Claims represents the JWT claims structure
@@ -28,20 +43,149 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+// RefreshClaims represents the refresh token claims structure
+type RefreshClaims struct {
+	UserID       string         `json:"user_id"`
+	Username     string         `json:"username,omitempty"`
+	Email        string         `json:"email,omitempty"`
+	Roles        []string       `json:"roles,omitempty"`
+	CustomClaims map[string]any `json:"custom_claims,omitempty"`
+	TokenID      string         `json:"token_id"` // Unique identifier for this refresh token
+	jwt.RegisteredClaims
+}
+
+// TokenPair represents both access and refresh tokens
+type TokenPair struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int64  `json:"expires_in"` // Access token expiration in seconds
+}
+
+// KeyPair holds derived keys for access and refresh tokens
+type KeyPair struct {
+	AccessKey  []byte
+	RefreshKey []byte
+}
+
 // JWTManager handles JWT token creation and validation
 type JWTManager struct {
-	secretKey     []byte
-	tokenDuration time.Duration
-	issuer        string
+	secretKey             []byte
+	tokenDuration         time.Duration
+	issuer                string
+	refreshTokenDuration  time.Duration
+	refreshTokenSecretKey []byte
 }
 
 // NewJWTManager creates a new JWT manager with the given secret key and token duration
-func NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string) *JWTManager {
-	return &JWTManager{
-		secretKey:     []byte(secretKey),
-		tokenDuration: tokenDuration,
-		issuer:        issuer,
+func NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string) (*JWTManager, error) {
+	keys, err := deriveKeys([]byte(secretKey))
+	if err != nil {
+		return nil, err
 	}
+	return &JWTManager{
+		secretKey:             keys.AccessKey,
+		tokenDuration:         tokenDuration,
+		issuer:                issuer,
+		refreshTokenDuration:  REFRESH_TOKEN_DURATION,
+		refreshTokenSecretKey: keys.RefreshKey,
+	}, nil
+}
+
+// NewJWTManagerWithRefreshConfig creates a new JWT manager with custom refresh token duration
+func NewJWTManagerWithRefreshConfig(secretKey string, tokenDuration time.Duration, issuer string, refreshTokenDuration time.Duration) (*JWTManager, error) {
+	keys, err := deriveKeys([]byte(secretKey))
+	if err != nil {
+		return nil, err
+	}
+	return &JWTManager{
+		secretKey:             keys.AccessKey,
+		tokenDuration:         tokenDuration,
+		issuer:                issuer,
+		refreshTokenDuration:  refreshTokenDuration,
+		refreshTokenSecretKey: keys.RefreshKey,
+	}, nil
+}
+
+// GenerateTokenPair creates access and refresh token pair
+func (j *JWTManager) GenerateTokenPair(userID string, roles []string) (*TokenPair, error) {
+	return j.GenerateTokenPairWithClaims(userID, roles, nil)
+}
+
+// GenerateTokenPairWithClaims creates access and refresh token pair with custom claims
+func (j *JWTManager) GenerateTokenPairWithClaims(userID string, roles []string, customClaims map[string]any) (*TokenPair, error) {
+	// Generate access token
+	accessToken, err := j.GenerateTokenWithClaims(userID, roles, customClaims)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate refresh token
+	refreshToken, err := j.generateRefreshToken(userID, roles, customClaims)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TokenPair{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		TokenType:    "Bearer",
+		ExpiresIn:    int64(j.tokenDuration.Seconds()),
+	}, nil
+}
+
+// GenerateTokenPairWithUserInfo creates access and refresh token pair with user info
+func (j *JWTManager) GenerateTokenPairWithUserInfo(userID, username, email string, roles []string) (*TokenPair, error) {
+	customClaims := make(map[string]any)
+	if username != "" {
+		customClaims["username"] = username
+	}
+	if email != "" {
+		customClaims["email"] = email
+	}
+
+	if len(customClaims) == 0 {
+		customClaims = nil
+	}
+
+	return j.GenerateTokenPairWithClaims(userID, roles, customClaims)
+}
+
+// generateRefreshToken creates a refresh token with longer expiration
+func (j *JWTManager) generateRefreshToken(userID string, roles []string, customClaims map[string]any) (string, error) {
+	now := time.Now()
+	tokenID := uuid.New().String()
+
+	// Extract username and email from custom claims if provided
+	var username, email string
+	if customClaims != nil {
+		if u, ok := customClaims["username"].(string); ok {
+			username = u
+		}
+		if e, ok := customClaims["email"].(string); ok {
+			email = e
+		}
+	}
+
+	claims := RefreshClaims{
+		UserID:       userID,
+		Username:     username,
+		Email:        email,
+		Roles:        roles,
+		CustomClaims: customClaims,
+		TokenID:      tokenID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(j.refreshTokenDuration)),
+			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
+			Issuer:    j.issuer,
+			Subject:   userID,
+			ID:        tokenID,
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(j.refreshTokenSecretKey)
 }
 
 // GenerateToken creates a new JWT token with the provided claims
@@ -185,6 +329,43 @@ func (j *JWTManager) RefreshToken(tokenString string) (string, error) {
 	}
 
 	return j.GenerateTokenWithClaims(claims.UserID, claims.Roles, refreshCustomClaims)
+}
+
+// ValidateRefreshToken validates a refresh token and returns the claims if valid
+func (j *JWTManager) ValidateRefreshToken(refreshTokenString string) (*RefreshClaims, error) {
+	token, err := jwt.ParseWithClaims(refreshTokenString, &RefreshClaims{}, func(token *jwt.Token) (any, error) {
+		// Verify the signing method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, ErrInvalidRefreshToken
+		}
+		return j.refreshTokenSecretKey, nil
+	})
+
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, ErrRefreshTokenExpired
+		}
+		return nil, ErrInvalidRefreshToken
+	}
+
+	claims, ok := token.Claims.(*RefreshClaims)
+	if !ok || !token.Valid {
+		return nil, ErrInvalidRefreshToken
+	}
+
+	return claims, nil
+}
+
+// ExchangeRefreshToken validates a refresh token and issues a new token pair
+func (j *JWTManager) ExchangeRefreshToken(refreshTokenString string) (*TokenPair, error) {
+	// Validate the refresh token
+	refreshClaims, err := j.ValidateRefreshToken(refreshTokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate new token pair with the same claims
+	return j.GenerateTokenPairWithClaims(refreshClaims.UserID, refreshClaims.Roles, refreshClaims.CustomClaims)
 }
 
 // ExtractTokenFromHeader extracts JWT token from Authorization header
@@ -341,4 +522,26 @@ func (c *Claims) DeleteCustomClaim(key string) {
 	if c.CustomClaims != nil {
 		delete(c.CustomClaims, key)
 	}
+}
+
+func deriveKeys(secretKey []byte) (*KeyPair, error) {
+	hash := sha256.New
+
+	accessHKDF := hkdf.New(hash, secretKey, []byte(ACCESS_SALT), []byte("access key"))
+	refreshHKDF := hkdf.New(hash, secretKey, []byte(REFRESH_SALT), []byte("refresh key"))
+
+	var keys KeyPair
+	k1 := make([]byte, KEY_LENGTH)
+	if _, err := io.ReadFull(accessHKDF, k1); err != nil {
+		return nil, err
+	}
+	keys.AccessKey = k1
+
+	k2 := make([]byte, KEY_LENGTH)
+	if _, err := io.ReadFull(refreshHKDF, k2); err != nil {
+		return nil, err
+	}
+	keys.RefreshKey = k2
+
+	return &keys, nil
 }

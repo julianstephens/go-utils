@@ -33,7 +33,8 @@ import (
 )
 
 func main() {
-    // Create JWT manager with secret key, expiration, and issuer
+    // Create JWT manager with secret key, access token duration, and issuer.
+    // By default the refresh token duration is 7 days and a refresh secret is derived.
     manager := auth.NewJWTManager("my-secret-key", time.Hour*24, "my-app")
     
     // Generate basic token
@@ -58,6 +59,243 @@ func main() {
     fmt.Printf("Issued at: %v\n", time.Unix(claims.IssuedAt, 0))
     fmt.Printf("Expires at: %v\n", time.Unix(claims.ExpiresAt, 0))
 }
+```
+
+### Refresh token workflow
+
+The package supports a secure refresh token workflow with separate long-lived refresh tokens. Use
+`GenerateTokenPair*` helpers to create an access + refresh token pair and `ExchangeRefreshToken` to
+exchange a valid refresh token for a new pair.
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "time"
+    
+    "github.com/julianstephens/go-utils/httputil/auth"
+)
+
+func main() {
+    // Create JWT manager - access tokens expire in 15 minutes, refresh tokens in 7 days
+    manager := auth.NewJWTManager("my-secret-key", time.Minute*15, "my-app")
+    
+    // Generate token pair (access + refresh token)
+    userID := "user123"
+    username := "john_doe"
+    email := "john@example.com"
+    roles := []string{"user", "admin"}
+    
+    tokenPair, err := manager.GenerateTokenPairWithUserInfo(userID, username, email, roles)
+    if err != nil {
+        log.Fatalf("Failed to generate token pair: %v", err)
+    }
+    
+    fmt.Printf("Access Token: %s\n", tokenPair.AccessToken)
+    fmt.Printf("Refresh Token: %s\n", tokenPair.RefreshToken)
+    fmt.Printf("Token Type: %s\n", tokenPair.TokenType)
+    fmt.Printf("Expires In: %d seconds\n", tokenPair.ExpiresIn)
+    
+    // Validate access token
+    claims, err := manager.ValidateToken(tokenPair.AccessToken)
+    if err != nil {
+        log.Fatalf("Failed to validate access token: %v", err)
+    }
+    fmt.Printf("Access token valid for user: %s\n", claims.UserID)
+    
+    // When access token expires, exchange refresh token for new tokens
+    newTokenPair, err := manager.ExchangeRefreshToken(tokenPair.RefreshToken)
+    if err != nil {
+        log.Fatalf("Failed to exchange refresh token: %v", err)
+    }
+    
+    fmt.Printf("New Access Token: %s\n", newTokenPair.AccessToken)
+    fmt.Printf("New Refresh Token: %s\n", newTokenPair.RefreshToken)
+}
+```
+
+### HTTP Handler Integration
+
+The package provides ready-to-use HTTP handlers for common authentication workflows:
+
+```go
+package main
+
+import (
+    "errors"  
+    "log"
+    "net/http"
+    "time"
+    
+    "github.com/julianstephens/go-utils/httputil/auth"
+)
+
+func main() {
+    // Setup JWT manager
+    manager := auth.NewJWTManager("my-secret-key", time.Minute*15, "my-app")
+    
+    // Mock user authentication function
+    authenticateUser := func(username, password string) (*auth.UserInfo, error) {
+        // Replace with your user authentication logic
+        if username == "demo" && password == "password" {
+            return &auth.UserInfo{
+                UserID:   "user123",
+                Username: "demo",
+                Email:    "demo@example.com",
+                Roles:    []string{"user"},
+            }, nil
+        }
+        return nil, errors.New("invalid credentials")
+    }
+    
+    // Setup handlers
+    http.HandleFunc("/auth/login", auth.AuthenticationHandler(manager, authenticateUser))
+    http.HandleFunc("/auth/refresh", auth.RefreshTokenHandler(manager))
+    
+    // Example protected route using middleware
+    http.Handle("/protected", jwtMiddleware(manager)(http.HandlerFunc(protectedHandler)))
+    
+    log.Println("Server starting on :8080")
+    log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func protectedHandler(w http.ResponseWriter, r *http.Request) {
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte("Access granted to protected resource"))
+}
+
+func jwtMiddleware(manager *auth.JWTManager) func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            authHeader := r.Header.Get("Authorization")
+            tokenString, err := auth.ExtractTokenFromHeader(authHeader)
+            if err != nil {
+                http.Error(w, "Authorization header required", http.StatusUnauthorized)
+                return
+            }
+
+            _, err = manager.ValidateToken(tokenString)
+            if err != nil {
+                http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+                return
+            }
+
+            next.ServeHTTP(w, r)
+        })
+    }
+}
+```
+
+### Cookie-Based Refresh Tokens
+
+For web applications, you can use httpOnly cookies for secure refresh token storage:
+
+```go
+func loginWithCookies(manager *auth.JWTManager) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        // ... authentication logic ...
+        
+        tokenPair, err := manager.GenerateTokenPairWithUserInfo(userID, username, email, roles)
+        if err != nil {
+            http.Error(w, "Failed to generate tokens", http.StatusInternalServerError)
+            return
+        }
+        
+        // Set refresh token as httpOnly cookie
+        auth.SetRefreshTokenCookie(w, tokenPair.RefreshToken, time.Hour*24*7, true)
+        
+        // Return only access token in response
+        response := map[string]interface{}{
+            "access_token": tokenPair.AccessToken,
+            "token_type":   tokenPair.TokenType,
+            "expires_in":   tokenPair.ExpiresIn,
+        }
+        
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(response)
+    }
+}
+
+func refreshFromCookie(manager *auth.JWTManager) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        // Get refresh token from cookie
+        refreshToken, err := auth.GetRefreshTokenFromCookie(r)
+        if err != nil {
+            http.Error(w, "Refresh token not found", http.StatusUnauthorized)
+            return
+        }
+        
+        // Exchange for new tokens
+        tokenPair, err := manager.ExchangeRefreshToken(refreshToken)
+        if err != nil {
+            auth.ClearRefreshTokenCookie(w) // Clear invalid cookie
+            http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+            return
+        }
+        
+        // Set new refresh token cookie
+        auth.SetRefreshTokenCookie(w, tokenPair.RefreshToken, time.Hour*24*7, true)
+        
+        // Return new access token
+        response := map[string]interface{}{
+            "access_token": tokenPair.AccessToken,
+            "token_type":   tokenPair.TokenType,
+            "expires_in":   tokenPair.ExpiresIn,
+        }
+        
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(response)
+    }
+}
+```
+
+### Advanced Token Management
+
+```go
+// Custom refresh token duration and separate secret
+manager := auth.NewJWTManagerWithRefreshConfig(
+    "access-secret",           // Access token secret
+    time.Minute*15,           // Access token duration (15 minutes)
+    "my-app",                 // Issuer
+    time.Hour*24*30,          // Refresh token duration (30 days)  
+    "refresh-secret-key",     // Separate refresh token secret
+)
+
+tokenPair, err := manager.GenerateTokenPair("user123", []string{"user"})
+if err != nil {
+    log.Fatalf("Failed to generate tokens: %v", err)
+}
+
+// Token introspection
+refreshClaims, err := manager.ValidateRefreshToken(tokenPair.RefreshToken)
+if err != nil {
+    log.Fatalf("Invalid refresh token: %v", err)
+}
+fmt.Printf("Refresh token ID: %s\n", refreshClaims.TokenID)
+fmt.Printf("Token expires: %v\n", refreshClaims.ExpiresAt.Time)
+```
+
+### Migration from Legacy RefreshToken Method
+
+If you're currently using the legacy `RefreshToken` method, here's how to migrate:
+
+```go
+// OLD: Legacy refresh (recreates access token from existing token)
+oldAccessToken := "existing-access-token"
+newAccessToken, err := manager.RefreshToken(oldAccessToken)
+
+// NEW: Token pair workflow (exchange refresh token for new pair)
+// 1. Generate token pair initially
+tokenPair, err := manager.GenerateTokenPair("user123", []string{"user"})
+
+// 2. Store refresh token securely (cookie, database, etc.)
+// 3. Exchange refresh token when access token expires
+newTokenPair, err := manager.ExchangeRefreshToken(tokenPair.RefreshToken)
+
+fmt.Printf("Issued at: %v\n", claims.IssuedAt.Time)
+fmt.Printf("Expires at: %v\n", claims.ExpiresAt.Time)
 ```
 
 ### Token with User Information
@@ -171,6 +409,30 @@ func main() {
     }
 }
 ```
+
+Utilities
+
+The package also provides a few utility helpers:
+
+- Password helpers in `utils.go`:
+    - `HashPassword(password string) (string, error)` — bcrypt-hash a password
+    - `CheckPasswordHash(password, hash string) bool` — compare plaintext password to bcrypt hash
+
+- Cookie helpers in `handlers.go`:
+    - `SetRefreshTokenCookie(w http.ResponseWriter, refreshToken string, maxAge time.Duration, secure bool)`
+    - `GetRefreshTokenFromCookie(r *http.Request) (string, error)`
+    - `ClearRefreshTokenCookie(w http.ResponseWriter)`
+
+Errors
+
+The package exports sentinel error values which callers can check with `errors.Is`:
+
+- `ErrInvalidToken`
+- `ErrTokenExpired`
+- `ErrInvalidClaims`
+- `ErrInvalidRefreshToken`
+- `ErrRefreshTokenExpired`
+
 
 ### HTTP Middleware Integration
 
@@ -347,14 +609,6 @@ func main() {
     timeUntilExpiry := time.Until(expirationTime)
     fmt.Printf("Time until expiry: %v\n", timeUntilExpiry)
     
-    // Parse token without validation (useful for debugging)
-    unverifiedClaims, err := manager.ParseToken(token)
-    if err != nil {
-        log.Fatalf("Failed to parse token: %v", err)
-    }
-    
-    fmt.Printf("Unverified claims - Issuer: %s\n", unverifiedClaims.Issuer)
-    
     // Test with expired token (simulate by creating manager with past time)
     expiredManager := auth.NewJWTManager("secret", -time.Hour, "test-app")
     expiredToken, _ := expiredManager.GenerateToken(userID, roles)
@@ -371,61 +625,84 @@ func main() {
 ### JWTManager
 
 #### Constructor
-- `NewJWTManager(secretKey string, expiration time.Duration, issuer string) *JWTManager`
+- `NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string) *JWTManager`
+- `NewJWTManagerWithRefreshConfig(secretKey string, tokenDuration time.Duration, issuer string, refreshTokenDuration time.Duration, refreshSecretKey string) *JWTManager`
 
 #### Token Generation
-- `GenerateToken(userID string, roles []string) (string, error)` - Generate basic token
-- `GenerateTokenWithUserInfo(userID, username, email string, roles []string) (string, error)` - Generate token with user info
-- `GenerateTokenWithClaims(userID string, roles []string, customClaims map[string]interface{}) (string, error)` - Generate token with custom claims
+- `GenerateToken(userID string, roles []string) (string, error)` - Generate basic access token
+- `GenerateTokenWithUserInfo(userID, username, email string, roles []string) (string, error)` - Generate access token with user info
+- `GenerateTokenWithClaims(userID string, roles []string, customClaims map[string]interface{}) (string, error)` - Generate access token with custom claims
+
+#### Token Pair Generation (Access + Refresh)
+- `GenerateTokenPair(userID string, roles []string) (*TokenPair, error)` - Generate token pair with basic claims
+- `GenerateTokenPairWithUserInfo(userID, username, email string, roles []string) (*TokenPair, error)` - Generate token pair with user info
+- `GenerateTokenPairWithClaims(userID string, roles []string, customClaims map[string]interface{}) (*TokenPair, error)` - Generate token pair with custom claims
 
 #### Token Validation
-- `ValidateToken(tokenString string) (*Claims, error)` - Validate and parse token
-- `ParseToken(tokenString string) (*Claims, error)` - Parse token without validation
+- `ValidateToken(tokenString string) (*Claims, error)` - Validate and parse access token
+- `ValidateRefreshToken(refreshTokenString string) (*RefreshClaims, error)` - Validate and parse refresh token
+- `ExchangeRefreshToken(refreshTokenString string) (*TokenPair, error)` - Exchange valid refresh token for new token pair
+
+#### Legacy Token Refresh
+- `RefreshToken(tokenString string) (string, error)` - Legacy method: refresh access token (deprecated, use ExchangeRefreshToken instead)
+
+### TokenPair
+Structure returned when generating token pairs:
+```go
+type TokenPair struct {
+    AccessToken  string `json:"access_token"`  // Short-lived access token
+    RefreshToken string `json:"refresh_token"` // Long-lived refresh token  
+    TokenType    string `json:"token_type"`    // Always "Bearer"
+    ExpiresIn    int64  `json:"expires_in"`    // Access token expiration in seconds
+}
+```
 
 ### Claims Structure
 
-```go
-type Claims struct {
-    UserID       string                 `json:"user_id"`
-    Username     string                 `json:"username,omitempty"`
-    Email        string                 `json:"email,omitempty"`
-    Roles        []string               `json:"roles"`
-    CustomClaims map[string]interface{} `json:"custom_claims,omitempty"`
-    
-    // Standard JWT claims
-    Issuer    string `json:"iss"`
-    Subject   string `json:"sub"`
-    Audience  string `json:"aud,omitempty"`
-    ExpiresAt int64  `json:"exp"`
-    IssuedAt  int64  `json:"iat"`
-    NotBefore int64  `json:"nbf"`
-}
-```
+The package defines `Claims` and `RefreshClaims` types. They embed `jwt.RegisteredClaims` and include convenience fields:
+
+- `UserID`, `Username`, `Email`, `Roles`, and `CustomClaims` (map[string]any)
+- `RefreshClaims` also includes a `TokenID` string
+
+`Claims` exposes helpers like `HasRole`, `HasAnyRole`, `IsExpired`, and `Expiration()`.
 
 ### Utility Functions
 
 - `ExtractTokenFromHeader(authHeader string) (string, error)` - Extract Bearer token from Authorization header
-- `GenerateSecretKey() (string, error)` - Generate cryptographically secure secret key
 
 ## Error Types
 
-The package provides specific error types for different validation failures:
+The package exports sentinel errors which callers can check with `errors.Is`:
 
-- **Invalid token format**: Malformed JWT structure
-- **Token expired**: Token past expiration time
-- **Invalid signature**: Token signature verification failed
-- **Invalid issuer**: Token issuer doesn't match expected value
-- **Missing required claims**: Required fields missing from token
+- `ErrInvalidToken`
+- `ErrTokenExpired`
+- `ErrInvalidClaims`
+- `ErrInvalidRefreshToken`
+- `ErrRefreshTokenExpired`
 
 ## Security Considerations
 
 1. **Secret Key Management**: Use a strong, randomly generated secret key
-2. **Token Expiration**: Set appropriate expiration times (shorter for sensitive operations)
+2. **Token Expiration**: Set appropriate expiration times (shorter for sensitive operations)  
 3. **HTTPS Only**: Always use HTTPS in production to protect tokens in transit
 4. **Token Storage**: Store tokens securely on the client side
-5. **Refresh Tokens**: Implement refresh token mechanism for long-lived sessions
+5. **Refresh Token Security**: 
+   - Use separate secrets for access and refresh tokens when possible
+   - Store refresh tokens securely (httpOnly cookies recommended for web apps)
+   - Implement refresh token rotation (each exchange issues new refresh token)
+   - Revoke refresh tokens when user logs out or suspicious activity detected
 6. **Rate Limiting**: Implement rate limiting on authentication endpoints
 7. **Logging**: Don't log full tokens, only token IDs or user IDs
+
+### Refresh Token Best Practices
+
+1. **Short Access Token Lifetime**: Keep access tokens short-lived (15 minutes or less)
+2. **Longer Refresh Token Lifetime**: Refresh tokens can be longer-lived (days to weeks)
+3. **Token Rotation**: Always issue new refresh tokens when exchanging (automatic in this implementation)
+4. **Secure Storage**: Store refresh tokens in httpOnly cookies or secure storage
+5. **Revocation**: Implement refresh token blacklisting/revocation for security incidents
+6. **Separate Secrets**: Use different secrets for access and refresh tokens
+7. **Monitoring**: Monitor refresh token usage patterns for anomalies
 
 ## Best Practices
 
