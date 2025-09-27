@@ -472,7 +472,7 @@ func TestDeriveKeyPairDifferentSalts(t *testing.T) {
 	// Same salts should produce same keys
 	key1a, key2a, err := security.DeriveKeyPair(masterKey, "salt1", "salt2", "info1", "info2", keyLength)
 	tst.RequireNoError(t, err)
-	key1b, key2b, err := security.DeriveKeyPair(masterKey, "salt1", "salt2", "info1", "info2", keyLength) 
+	key1b, key2b, err := security.DeriveKeyPair(masterKey, "salt1", "salt2", "info1", "info2", keyLength)
 	tst.RequireNoError(t, err)
 	tst.AssertDeepEqual(t, key1a, key1b)
 	tst.AssertDeepEqual(t, key2a, key2b)

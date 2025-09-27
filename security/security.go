@@ -134,12 +134,12 @@ func DeriveKeyPair(masterKey []byte, salt1, salt2, info1, info2 string, keyLengt
 func DeriveKeyHKDF(masterKey []byte, salt, info string, keyLength int) ([]byte, error) {
 	hash := sha256.New
 	hkdf := hkdf.New(hash, masterKey, []byte(salt), []byte(info))
-	
+
 	key := make([]byte, keyLength)
 	if _, err := io.ReadFull(hkdf, key); err != nil {
 		return nil, fmt.Errorf("failed to derive key: %w", err)
 	}
-	
+
 	return key, nil
 }
 

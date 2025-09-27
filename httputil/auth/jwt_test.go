@@ -11,13 +11,13 @@ import (
 )
 
 func TestNewJWTManager(t *testing.T) {
-    secretKey := "test-secret-key"
-    duration := time.Hour
-    issuer := "test-issuer"
+	secretKey := "test-secret-key"
+	duration := time.Hour
+	issuer := "test-issuer"
 
-    manager, err := auth.NewJWTManager(secretKey, duration, issuer)
-    tst.AssertNoError(t, err)
-    tst.AssertNotNil(t, manager, "NewJWTManager should not return nil")
+	manager, err := auth.NewJWTManager(secretKey, duration, issuer)
+	tst.AssertNoError(t, err)
+	tst.AssertNotNil(t, manager, "NewJWTManager should not return nil")
 }
 
 func TestGenerateToken(t *testing.T) {
@@ -624,65 +624,65 @@ func TestTokenExpiration(t *testing.T) {
 }
 
 func TestTokenExpirationExpiredToken(t *testing.T) {
-    // Create a token with very short duration so it expires
-    shortManager, err := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
-    if err != nil {
-        t.Fatalf("NewJWTManager failed: %v", err)
-    }
+	// Create a token with very short duration so it expires
+	shortManager, err := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
 
-    token, err := shortManager.GenerateToken("user123", []string{"user"})
-    if err != nil {
-        t.Fatalf("GenerateToken failed: %v", err)
-    }
+	token, err := shortManager.GenerateToken("user123", []string{"user"})
+	if err != nil {
+		t.Fatalf("GenerateToken failed: %v", err)
+	}
 
-    // Wait for token to expire
-    time.Sleep(time.Millisecond * 10)
+	// Wait for token to expire
+	time.Sleep(time.Millisecond * 10)
 
-    // Use a manager with same secret to retrieve expiration
-    mgr, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
-    if err != nil {
-        t.Fatalf("NewJWTManager failed: %v", err)
-    }
-    exp, err := mgr.TokenExpiration(token)
-    if err != nil {
-        t.Fatalf("TokenExpiration failed for expired token: %v", err)
-    }
+	// Use a manager with same secret to retrieve expiration
+	mgr, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
+	exp, err := mgr.TokenExpiration(token)
+	if err != nil {
+		t.Fatalf("TokenExpiration failed for expired token: %v", err)
+	}
 
-    if time.Now().Before(exp) {
-        t.Errorf("Expected expiration in the past for expired token, got %v", exp)
-    }
+	if time.Now().Before(exp) {
+		t.Errorf("Expected expiration in the past for expired token, got %v", exp)
+	}
 }
 
 func TestKeyDerivationConsistency(t *testing.T) {
-    // Test that key derivation produces consistent results
-    secret := "test-secret-key"
-    
-    manager1, err := auth.NewJWTManager(secret, time.Hour, "test-issuer")
-    if err != nil {
-        t.Fatalf("NewJWTManager failed: %v", err)
-    }
-    
-    manager2, err := auth.NewJWTManager(secret, time.Hour, "test-issuer")
-    if err != nil {
-        t.Fatalf("NewJWTManager failed: %v", err)
-    }
-    
-    // Generate token with first manager
-    token, err := manager1.GenerateToken("user123", []string{"user"})
-    if err != nil {
-        t.Fatalf("GenerateToken failed: %v", err)
-    }
-    
-    // Validate with second manager (should use same derived keys)
-    claims, err := manager2.ValidateToken(token)
-    if err != nil {
-        t.Fatalf("ValidateToken failed: %v", err)
-    }
-    
-    if claims.UserID != "user123" {
-        t.Errorf("Expected UserID 'user123', got %s", claims.UserID)
-    }
-}// Refresh Token Workflow Tests
+	// Test that key derivation produces consistent results
+	secret := "test-secret-key"
+
+	manager1, err := auth.NewJWTManager(secret, time.Hour, "test-issuer")
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
+
+	manager2, err := auth.NewJWTManager(secret, time.Hour, "test-issuer")
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
+
+	// Generate token with first manager
+	token, err := manager1.GenerateToken("user123", []string{"user"})
+	if err != nil {
+		t.Fatalf("GenerateToken failed: %v", err)
+	}
+
+	// Validate with second manager (should use same derived keys)
+	claims, err := manager2.ValidateToken(token)
+	if err != nil {
+		t.Fatalf("ValidateToken failed: %v", err)
+	}
+
+	if claims.UserID != "user123" {
+		t.Errorf("Expected UserID 'user123', got %s", claims.UserID)
+	}
+} // Refresh Token Workflow Tests
 
 func TestGenerateTokenPair(t *testing.T) {
 	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
