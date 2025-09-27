@@ -1,3 +1,7 @@
+## v0.2.3
+
+- adds `security` package
+
 ## v0.2.2
 
 - adds support for long-lived refresh tokens to `httputil.auth.JWTManager`
