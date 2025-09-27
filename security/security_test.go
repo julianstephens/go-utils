@@ -441,6 +441,85 @@ func TestBase64EncodeRandomData(t *testing.T) {
 	tst.AssertDeepEqual(t, decoded, randomData)
 }
 
+// Test HKDF Key Derivation
+
+func TestDeriveKeyPair(t *testing.T) {
+	masterKey := []byte("super-secret-master-key-for-testing")
+	salt1 := "salt1"
+	salt2 := "salt2"
+	info1 := "key1 info"
+	info2 := "key2 info"
+	keyLength := 32
+
+	key1, key2, err := security.DeriveKeyPair(masterKey, salt1, salt2, info1, info2, keyLength)
+	tst.RequireNoError(t, err)
+
+	tst.AssertTrue(t, len(key1) == keyLength, "Key1 should have correct length")
+	tst.AssertTrue(t, len(key2) == keyLength, "Key2 should have correct length")
+	tst.AssertFalse(t, bytes.Equal(key1, key2), "Derived keys should be different")
+
+	// Test deterministic behavior - same inputs should produce same outputs
+	key1b, key2b, err := security.DeriveKeyPair(masterKey, salt1, salt2, info1, info2, keyLength)
+	tst.RequireNoError(t, err)
+	tst.AssertDeepEqual(t, key1, key1b)
+	tst.AssertDeepEqual(t, key2, key2b)
+}
+
+func TestDeriveKeyPairDifferentSalts(t *testing.T) {
+	masterKey := []byte("master-key")
+	keyLength := 32
+
+	// Same salts should produce same keys
+	key1a, key2a, err := security.DeriveKeyPair(masterKey, "salt1", "salt2", "info1", "info2", keyLength)
+	tst.RequireNoError(t, err)
+	key1b, key2b, err := security.DeriveKeyPair(masterKey, "salt1", "salt2", "info1", "info2", keyLength) 
+	tst.RequireNoError(t, err)
+	tst.AssertDeepEqual(t, key1a, key1b)
+	tst.AssertDeepEqual(t, key2a, key2b)
+
+	// Different salts should produce different keys
+	key1c, key2c, err := security.DeriveKeyPair(masterKey, "different1", "different2", "info1", "info2", keyLength)
+	tst.RequireNoError(t, err)
+	tst.AssertFalse(t, bytes.Equal(key1a, key1c), "Different salts should produce different key1")
+	tst.AssertFalse(t, bytes.Equal(key2a, key2c), "Different salts should produce different key2")
+}
+
+func TestDeriveKeyHKDF(t *testing.T) {
+	masterKey := []byte("master-key-for-single-derivation")
+	salt := "unique-salt"
+	info := "key info"
+	keyLength := 32
+
+	key, err := security.DeriveKeyHKDF(masterKey, salt, info, keyLength)
+	tst.RequireNoError(t, err)
+	tst.AssertTrue(t, len(key) == keyLength, "Key should have correct length")
+
+	// Test deterministic behavior
+	key2, err := security.DeriveKeyHKDF(masterKey, salt, info, keyLength)
+	tst.RequireNoError(t, err)
+	tst.AssertDeepEqual(t, key, key2)
+
+	// Different salt should produce different key
+	key3, err := security.DeriveKeyHKDF(masterKey, "different-salt", info, keyLength)
+	tst.RequireNoError(t, err)
+	tst.AssertFalse(t, bytes.Equal(key, key3), "Different salt should produce different key")
+}
+
+func TestDeriveKeyHKDFDifferentLengths(t *testing.T) {
+	masterKey := []byte("master-key")
+	salt := "salt"
+	info := "info"
+
+	lengths := []int{16, 24, 32, 64}
+	for _, length := range lengths {
+		t.Run(fmt.Sprintf("Length%d", length), func(t *testing.T) {
+			key, err := security.DeriveKeyHKDF(masterKey, salt, info, length)
+			tst.RequireNoError(t, err)
+			tst.AssertTrue(t, len(key) == length, "Key should have requested length")
+		})
+	}
+}
+
 // Helper function for min (since Go 1.21+ has this built-in, but maintaining compatibility)
 func min(a, b int) int {
 	if a < b {

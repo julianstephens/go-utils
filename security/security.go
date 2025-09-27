@@ -11,7 +11,9 @@ import (
 	"io"
 
 	"crypto/sha256"
+
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/hkdf"
 	"golang.org/x/crypto/pbkdf2"
 )
 
@@ -102,6 +104,43 @@ func DeriveKey(password string, saltSize, iterations, keyLen int) (key []byte, s
 // DeriveKeyWithSalt derives a key from a password and existing salt using PBKDF2 with SHA-256.
 func DeriveKeyWithSalt(password string, salt []byte, iterations, keyLen int) []byte {
 	return pbkdf2.Key([]byte(password), salt, iterations, keyLen, sha256.New)
+}
+
+// HKDF Key Derivation
+
+// DeriveKeyPair derives two separate keys from a master key using HKDF with SHA-256.
+// This is useful for generating related but cryptographically independent keys.
+func DeriveKeyPair(masterKey []byte, salt1, salt2, info1, info2 string, keyLength int) (key1, key2 []byte, err error) {
+	hash := sha256.New
+
+	// Derive first key
+	hkdf1 := hkdf.New(hash, masterKey, []byte(salt1), []byte(info1))
+	key1 = make([]byte, keyLength)
+	if _, err := io.ReadFull(hkdf1, key1); err != nil {
+		return nil, nil, fmt.Errorf("failed to derive first key: %w", err)
+	}
+
+	// Derive second key
+	hkdf2 := hkdf.New(hash, masterKey, []byte(salt2), []byte(info2))
+	key2 = make([]byte, keyLength)
+	if _, err := io.ReadFull(hkdf2, key2); err != nil {
+		return nil, nil, fmt.Errorf("failed to derive second key: %w", err)
+	}
+
+	return key1, key2, nil
+}
+
+// DeriveKeyHKDF derives a single key from a master key using HKDF with SHA-256.
+func DeriveKeyHKDF(masterKey []byte, salt, info string, keyLength int) ([]byte, error) {
+	hash := sha256.New
+	hkdf := hkdf.New(hash, masterKey, []byte(salt), []byte(info))
+	
+	key := make([]byte, keyLength)
+	if _, err := io.ReadFull(hkdf, key); err != nil {
+		return nil, fmt.Errorf("failed to derive key: %w", err)
+	}
+	
+	return key, nil
 }
 
 // Random Key Generation

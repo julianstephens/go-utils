@@ -9,6 +9,7 @@ A collection of reusable Go utilities and helper functions designed to simplify 
 | `generic`             | Comprehensive generic utilities leveraging Go's type parameters for functional programming, slice operations, map utilities, and type-safe helpers           |
 | `config`              | Reusable and idiomatic configuration management with support for environment variables, YAML/JSON files, validation, and default values                      |
 | `logger`              | Unified structured logger wrapping logrus with log level control, custom formatting, and contextual logging support                                          |
+| `security`            | Security utilities for hashing, encryption, secure random generation, and cryptographic operations with best-practice defaults                               |
 | `slices`              | Generic slice utility functions for conditional selection, set operations, and element manipulation                                                          |
 | `helpers`             | General utility functions including slice operations, conditional helpers, file system utilities, and struct manipulation                                    |
 | `jsonutil`            | Enhanced JSON marshaling and unmarshaling with error context, formatting options, stream processing, and strict decoding support                             |
