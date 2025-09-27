@@ -1,15 +1,13 @@
 package auth
 
 import (
-	"crypto/sha256"
 	"errors"
-	"io"
 	"slices"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"golang.org/x/crypto/hkdf"
+	"github.com/julianstephens/go-utils/security"
 )
 
 var (
@@ -525,23 +523,20 @@ func (c *Claims) DeleteCustomClaim(key string) {
 }
 
 func deriveKeys(secretKey []byte) (*KeyPair, error) {
-	hash := sha256.New
-
-	accessHKDF := hkdf.New(hash, secretKey, []byte(ACCESS_SALT), []byte("access key"))
-	refreshHKDF := hkdf.New(hash, secretKey, []byte(REFRESH_SALT), []byte("refresh key"))
-
-	var keys KeyPair
-	k1 := make([]byte, KEY_LENGTH)
-	if _, err := io.ReadFull(accessHKDF, k1); err != nil {
+	accessKey, refreshKey, err := security.DeriveKeyPair(
+		secretKey,
+		ACCESS_SALT,
+		REFRESH_SALT,
+		"access key",
+		"refresh key",
+		KEY_LENGTH,
+	)
+	if err != nil {
 		return nil, err
 	}
-	keys.AccessKey = k1
 
-	k2 := make([]byte, KEY_LENGTH)
-	if _, err := io.ReadFull(refreshHKDF, k2); err != nil {
-		return nil, err
-	}
-	keys.RefreshKey = k2
-
-	return &keys, nil
+	return &KeyPair{
+		AccessKey:  accessKey,
+		RefreshKey: refreshKey,
+	}, nil
 }

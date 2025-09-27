@@ -626,7 +626,9 @@ func TestTokenExpiration(t *testing.T) {
 func TestTokenExpirationExpiredToken(t *testing.T) {
 	// Create a token with very short duration so it expires
 	shortManager, err := auth.NewJWTManager("test-secret", time.Millisecond, "test-issuer")
-	tst.AssertNoError(t, err)
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
 
 	token, err := shortManager.GenerateToken("user123", []string{"user"})
 	if err != nil {
@@ -638,7 +640,9 @@ func TestTokenExpirationExpiredToken(t *testing.T) {
 
 	// Use a manager with same secret to retrieve expiration
 	mgr, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
-	tst.AssertNoError(t, err)
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
 	exp, err := mgr.TokenExpiration(token)
 	if err != nil {
 		t.Fatalf("TokenExpiration failed for expired token: %v", err)
@@ -649,6 +653,36 @@ func TestTokenExpirationExpiredToken(t *testing.T) {
 	}
 }
 
+func TestKeyDerivationConsistency(t *testing.T) {
+	// Test that key derivation produces consistent results
+	secret := "test-secret-key"
+
+	manager1, err := auth.NewJWTManager(secret, time.Hour, "test-issuer")
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
+
+	manager2, err := auth.NewJWTManager(secret, time.Hour, "test-issuer")
+	if err != nil {
+		t.Fatalf("NewJWTManager failed: %v", err)
+	}
+
+	// Generate token with first manager
+	token, err := manager1.GenerateToken("user123", []string{"user"})
+	if err != nil {
+		t.Fatalf("GenerateToken failed: %v", err)
+	}
+
+	// Validate with second manager (should use same derived keys)
+	claims, err := manager2.ValidateToken(token)
+	if err != nil {
+		t.Fatalf("ValidateToken failed: %v", err)
+	}
+
+	if claims.UserID != "user123" {
+		t.Errorf("Expected UserID 'user123', got %s", claims.UserID)
+	}
+}
 // Refresh Token Workflow Tests
 
 func TestGenerateTokenPair(t *testing.T) {
@@ -792,7 +826,10 @@ func TestInvalidRefreshToken(t *testing.T) {
 
 func TestExpiredRefreshToken(t *testing.T) {
 	// Create manager with very short refresh token duration
-	shortManager := auth.NewJWTManagerWithRefreshConfig("test-secret", time.Hour, "test-issuer", time.Millisecond, "test-secret-refresh")
+	shortManager, err := auth.NewJWTManagerWithRefreshConfig("test-secret", time.Hour, "test-issuer", time.Millisecond)
+	if err != nil {
+		t.Fatalf("Failed to create JWTManager: %v", err)
+	}
 
 	tokenPair, err := shortManager.GenerateTokenPair("user123", []string{"user"})
 	tst.AssertNoError(t, err)

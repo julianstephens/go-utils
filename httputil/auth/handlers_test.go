@@ -193,7 +193,7 @@ func TestRefreshTokenCookieHelpers(t *testing.T) {
 		refreshToken := "test-refresh-token"
 		maxAge := time.Hour * 24
 
-		auth.SetRefreshTokenCookie(w, refreshToken, maxAge, true)
+		auth.SetRefreshTokenCookie(w, refreshToken, maxAge, true, http.SameSiteStrictMode)
 
 		cookies := w.Result().Cookies()
 		tst.AssertTrue(t, len(cookies) == 1, "Should set one cookie")
