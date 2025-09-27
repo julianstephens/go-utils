@@ -682,7 +682,8 @@ func TestKeyDerivationConsistency(t *testing.T) {
 	if claims.UserID != "user123" {
 		t.Errorf("Expected UserID 'user123', got %s", claims.UserID)
 	}
-} // Refresh Token Workflow Tests
+}
+// Refresh Token Workflow Tests
 
 func TestGenerateTokenPair(t *testing.T) {
 	manager, err := auth.NewJWTManager("test-secret", time.Hour, "test-issuer")
