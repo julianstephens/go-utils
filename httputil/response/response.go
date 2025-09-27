@@ -60,7 +60,7 @@ func (r *Responder) ErrorWithStatus(w http.ResponseWriter, req *http.Request, st
 		return
 	}
 
-	msg := "internal server error"
+	msg := http.StatusText(http.StatusInternalServerError)
 	if err != nil {
 		msg = err.Error()
 	}
@@ -69,7 +69,9 @@ func (r *Responder) ErrorWithStatus(w http.ResponseWriter, req *http.Request, st
 		status = http.StatusInternalServerError
 	}
 
-	r.Encoder.Encode(w, map[string]string{"error": msg}, status)
+	r.Encoder.Encode(w, Error{Message: http.StatusText(status), Details: map[string]any{
+		"error": msg,
+	}}, status)
 }
 
 // OK writes a response with HTTP 200 OK status.
