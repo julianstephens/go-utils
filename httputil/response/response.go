@@ -37,8 +37,6 @@ type Error struct {
 	Details map[string]any `json:"details,omitempty"`
 }
 
-
-
 // WriteWithStatus writes a response with a specific HTTP status code.
 // It sets the status code before calling the encoder.
 func (r *Responder) WriteWithStatus(w http.ResponseWriter, req *http.Request, data any, statusCode int) {
