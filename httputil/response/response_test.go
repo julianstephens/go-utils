@@ -31,7 +31,7 @@ func TestResponder_Created(t *testing.T) {
 func TestResponder_Unauthorized(t *testing.T) {
 	responder := response.New()
 	req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
-	responder.Unauthorized(w, req, "unauthorized access")
+	responder.Unauthorized(w, req, "unauthorized access", nil)
 	testhelpers.AssertStatus(t, w, 401)
 	testhelpers.AssertBodyContains(t, w, "unauthorized access")
 }
@@ -39,7 +39,7 @@ func TestResponder_Unauthorized(t *testing.T) {
 func TestResponder_Forbidden(t *testing.T) {
 	responder := response.New()
 	req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
-	responder.Forbidden(w, req, "forbidden access")
+	responder.Forbidden(w, req, "forbidden access", nil)
 	testhelpers.AssertStatus(t, w, 403)
 	testhelpers.AssertBodyContains(t, w, "forbidden access")
 }
@@ -47,7 +47,7 @@ func TestResponder_Forbidden(t *testing.T) {
 func TestResponder_NotFound(t *testing.T) {
 	responder := response.New()
 	req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
-	responder.NotFound(w, req, "not found")
+	responder.NotFound(w, req, "not found", nil)
 	testhelpers.AssertStatus(t, w, 404)
 	testhelpers.AssertBodyContains(t, w, "not found")
 }
@@ -55,7 +55,7 @@ func TestResponder_NotFound(t *testing.T) {
 func TestResponder_InternalServerError(t *testing.T) {
 	responder := response.New()
 	req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
-	responder.InternalServerError(w, req, "internal error")
+	responder.InternalServerError(w, req, "internal error", nil)
 	testhelpers.AssertStatus(t, w, 500)
 	testhelpers.AssertBodyContains(t, w, "internal error")
 }
@@ -91,7 +91,7 @@ func TestResponder_ErrorWithStatus(t *testing.T) {
 	responder := response.New()
 	req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
 	err := errors.New("test error")
-	responder.ErrorWithStatus(w, req, 500, err)
+	responder.ErrorWithStatus(w, req, 500, err, nil)
 	testhelpers.AssertStatus(t, w, 500)
 }
 
@@ -161,7 +161,7 @@ func TestHooks(t *testing.T) {
 	errorCalled = false
 
 	w = httptest.NewRecorder()
-	responder.ErrorWithStatus(w, req, http.StatusInternalServerError, errors.New("test error"))
+	responder.ErrorWithStatus(w, req, http.StatusInternalServerError, errors.New("test error"), nil)
 
 	if !errorCalled {
 		t.Error("OnError hook should have been called during ErrorWithStatus method")
@@ -222,7 +222,7 @@ func TestErrorWithStatus(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := response.New()
 			req, w := testhelpers.NewRequestAndRecorder("GET", "/test")
-			r.ErrorWithStatus(w, req, tt.status, tt.err)
+			r.ErrorWithStatus(w, req, tt.status, tt.err, nil)
 			testhelpers.AssertStatus(t, w, tt.status)
 		})
 	}
@@ -231,12 +231,12 @@ func TestErrorWithStatus(t *testing.T) {
 		r := response.New()
 		req, _ := testhelpers.NewRequestAndRecorder("GET", "/test")
 		defer func() { _ = recover() }()
-		r.ErrorWithStatus(nil, req, 500, errors.New("internal server error"))
+		r.ErrorWithStatus(nil, req, 500, errors.New("internal server error"), nil)
 	})
 	t.Run("Nil ResponseWriter and Request", func(t *testing.T) {
 		r := response.New()
 		defer func() { _ = recover() }()
-		r.ErrorWithStatus(nil, nil, 500, errors.New("internal server error"))
+		r.ErrorWithStatus(nil, nil, 500, errors.New("internal server error"), nil)
 	})
 
 	// Additional scenario: ErrorWithStatus with string data
@@ -245,7 +245,7 @@ func TestErrorWithStatus(t *testing.T) {
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", "/test", nil)
 		// Use BadRequest to trigger parseErrData with string
-		r.BadRequest(w, req, "string error message")
+		r.BadRequest(w, req, "string error message", nil)
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
 		}

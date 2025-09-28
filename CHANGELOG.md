@@ -1,3 +1,9 @@
+## v0.2.6
+
+- removes `Error.Code` from `httputil.response`
+- adds support for additional details in `Error.Details` in `httputil.response`
+- adds `ValidateUUID` to `validator`
+
 ## v0.2.5
 
 - adds `PromptPassword` and `PromptPasswordWithValidation` to `cliutil` 

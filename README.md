@@ -19,4 +19,5 @@ A collection of reusable Go utilities and helper functions designed to simplify 
 | `httputil/middleware` | Common, reusable HTTP middleware for logging, recovery, CORS, and request ID injection                                                                       |
 | `httputil/request`    | HTTP request parsing utilities for JSON, form data, query parameters, and URL values                                                                         |
 | `httputil/response`   | Structured HTTP response handling with extensible encoders, hooks, and status code helpers                                                                   |
+| `validator`           | Shared input validators (non-empty checks, basic email validation, and other common validators)                                                             |
 | `tests`               | Shared test helpers and assertion utilities used by package tests across the repository (assertions, HTTP test helpers, and miscellaneous helpers)           |

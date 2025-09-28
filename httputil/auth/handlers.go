@@ -16,7 +16,7 @@ func RefreshTokenHandler(manager *JWTManager) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			responder.ErrorWithStatus(w, r, http.StatusMethodNotAllowed, errors.New("only POST method allowed"))
+			responder.ErrorWithStatus(w, r, http.StatusMethodNotAllowed, errors.New("only POST method allowed"), nil)
 			return
 		}
 
@@ -25,12 +25,14 @@ func RefreshTokenHandler(manager *JWTManager) http.HandlerFunc {
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			responder.BadRequest(w, r, "invalid JSON payload")
+			responder.BadRequest(w, r, "invalid JSON payload", &map[string]any{
+				"error": err.Error(),
+			})
 			return
 		}
 
 		if request.RefreshToken == "" {
-			responder.BadRequest(w, r, "refresh_token is required")
+			responder.BadRequest(w, r, "refresh_token is required", nil)
 			return
 		}
 
@@ -38,14 +40,20 @@ func RefreshTokenHandler(manager *JWTManager) http.HandlerFunc {
 		tokenPair, err := manager.ExchangeRefreshToken(request.RefreshToken)
 		if err != nil {
 			if errors.Is(err, ErrRefreshTokenExpired) {
-				responder.Unauthorized(w, r, "refresh token expired")
+				responder.Unauthorized(w, r, "refresh token expired", &map[string]any{
+					"error": err.Error(),
+				})
 				return
 			}
 			if errors.Is(err, ErrInvalidRefreshToken) {
-				responder.Unauthorized(w, r, "invalid refresh token")
+				responder.Unauthorized(w, r, "invalid refresh token", &map[string]any{
+					"error": err.Error(),
+				})
 				return
 			}
-			responder.InternalServerError(w, r, "failed to exchange token")
+			responder.InternalServerError(w, r, "failed to exchange token", &map[string]any{
+				"error": err.Error(),
+			})
 			return
 		}
 
@@ -60,7 +68,7 @@ func AuthenticationHandler(manager *JWTManager, authenticateUser func(username, 
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			responder.ErrorWithStatus(w, r, http.StatusMethodNotAllowed, errors.New("only POST method allowed"))
+			responder.ErrorWithStatus(w, r, http.StatusMethodNotAllowed, errors.New("only POST method allowed"), nil)
 			return
 		}
 
@@ -70,19 +78,23 @@ func AuthenticationHandler(manager *JWTManager, authenticateUser func(username, 
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			responder.BadRequest(w, r, "invalid JSON payload")
+			responder.BadRequest(w, r, "invalid JSON payload", &map[string]any{
+				"error": err.Error(),
+			})
 			return
 		}
 
 		if request.Username == "" || request.Password == "" {
-			responder.BadRequest(w, r, "username and password are required")
+			responder.BadRequest(w, r, "username and password are required", nil)
 			return
 		}
 
 		// Authenticate user (implementation depends on your user store)
 		userInfo, err := authenticateUser(request.Username, request.Password)
 		if err != nil {
-			responder.Unauthorized(w, r, "invalid credentials")
+			responder.Unauthorized(w, r, "invalid credentials", &map[string]any{
+				"error": err.Error(),
+			})
 			return
 		}
 
@@ -94,7 +106,9 @@ func AuthenticationHandler(manager *JWTManager, authenticateUser func(username, 
 			userInfo.Roles,
 		)
 		if err != nil {
-			responder.InternalServerError(w, r, "failed to generate tokens")
+			responder.InternalServerError(w, r, "failed to generate tokens", &map[string]any{
+				"error": err.Error(),
+			})
 			return
 		}
 

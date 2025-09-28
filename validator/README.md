@@ -7,6 +7,7 @@ Common input validators extracted from `cliutil`.
 - `ValidateNonEmpty(input string) error` - returns an error if input is empty or whitespace.
 - `ValidateEmail(input string) error` - basic email format validation; returns an error on invalid format.
 - `ValidatePassword(input string) error` - basic password format validation; returns an error on invalid format.
+- `ValidateUUID(input string) error` - UUID string validation; returns an error on invalid format.
 
 ## Usage
 

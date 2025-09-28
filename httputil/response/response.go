@@ -33,7 +33,6 @@ type Responder struct {
 // Error represents a structured error response.
 type Error struct {
 	Message string         `json:"message"`
-	Code    string         `json:"code"`
 	Details map[string]any `json:"details,omitempty"`
 }
 
@@ -57,7 +56,7 @@ func (r *Responder) WriteWithStatus(w http.ResponseWriter, req *http.Request, da
 }
 
 // ErrorWithStatus handles error responses by calling the OnError hook.
-func (r *Responder) ErrorWithStatus(w http.ResponseWriter, req *http.Request, status int, err error) {
+func (r *Responder) ErrorWithStatus(w http.ResponseWriter, req *http.Request, status int, err error, details *map[string]any) {
 	if r.OnError != nil {
 		r.OnError(w, req, err, status)
 		return
@@ -104,28 +103,28 @@ func (r *Responder) NoContent(w http.ResponseWriter, req *http.Request) {
 }
 
 // BadRequest writes a response with HTTP 400 Bad Request status.
-func (r *Responder) BadRequest(w http.ResponseWriter, req *http.Request, data any) {
-	r.ErrorWithStatus(w, req, http.StatusBadRequest, ParseErrData(data))
+func (r *Responder) BadRequest(w http.ResponseWriter, req *http.Request, data any, details *map[string]any) {
+	r.ErrorWithStatus(w, req, http.StatusBadRequest, ParseErrData(data), details)
 }
 
 // Unauthorized writes a response with HTTP 401 Unauthorized status.
-func (r *Responder) Unauthorized(w http.ResponseWriter, req *http.Request, data any) {
-	r.ErrorWithStatus(w, req, http.StatusUnauthorized, ParseErrData(data))
+func (r *Responder) Unauthorized(w http.ResponseWriter, req *http.Request, data any, details *map[string]any) {
+	r.ErrorWithStatus(w, req, http.StatusUnauthorized, ParseErrData(data), details)
 }
 
 // Forbidden writes a response with HTTP 403 Forbidden status.
-func (r *Responder) Forbidden(w http.ResponseWriter, req *http.Request, data any) {
-	r.ErrorWithStatus(w, req, http.StatusForbidden, ParseErrData(data))
+func (r *Responder) Forbidden(w http.ResponseWriter, req *http.Request, data any, details *map[string]any) {
+	r.ErrorWithStatus(w, req, http.StatusForbidden, ParseErrData(data), details)
 }
 
 // NotFound writes a response with HTTP 404 Not Found status.
-func (r *Responder) NotFound(w http.ResponseWriter, req *http.Request, data any) {
-	r.ErrorWithStatus(w, req, http.StatusNotFound, ParseErrData(data))
+func (r *Responder) NotFound(w http.ResponseWriter, req *http.Request, data any, details *map[string]any) {
+	r.ErrorWithStatus(w, req, http.StatusNotFound, ParseErrData(data), details)
 }
 
 // InternalServerError writes a response with HTTP 500 Internal Server Error status.
-func (r *Responder) InternalServerError(w http.ResponseWriter, req *http.Request, data any) {
-	r.ErrorWithStatus(w, req, http.StatusInternalServerError, ParseErrData(data))
+func (r *Responder) InternalServerError(w http.ResponseWriter, req *http.Request, data any, details *map[string]any) {
+	r.ErrorWithStatus(w, req, http.StatusInternalServerError, ParseErrData(data), details)
 }
 
 func ParseErrData(data any) error {

@@ -22,13 +22,17 @@ func JWTAuth(manager *auth.JWTManager) func(http.Handler) http.Handler {
 			authHeader := r.Header.Get("Authorization")
 			tokenString, err := auth.ExtractTokenFromHeader(authHeader)
 			if err != nil {
-				responder.Unauthorized(w, r, "authorization header required")
+				responder.Unauthorized(w, r, "authorization header required", &map[string]any{
+					"error": err.Error(),
+				})
 				return
 			}
 
 			claims, err := manager.ValidateToken(tokenString)
 			if err != nil {
-				responder.Unauthorized(w, r, "invalid or expired token")
+				responder.Unauthorized(w, r, "invalid or expired token", &map[string]any{
+					"error": err.Error(),
+				})
 				return
 			}
 
@@ -61,7 +65,9 @@ func RequireRoles(manager *auth.JWTManager, roles ...string) func(http.Handler) 
 		return authMW(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			claims, ok := GetClaims(r.Context())
 			if !ok {
-				responder.Unauthorized(w, r, "authorization header required")
+				responder.Unauthorized(w, r, "authorization header required", &map[string]any{
+					"error": "no claims in context",
+				})
 				return
 			}
 
@@ -72,7 +78,10 @@ func RequireRoles(manager *auth.JWTManager, roles ...string) func(http.Handler) 
 			}
 
 			if !claims.HasAnyRole(roles...) {
-				responder.Forbidden(w, r, "insufficient role")
+				responder.Forbidden(w, r, "insufficient role", &map[string]any{
+					"required_roles": roles,
+					"user_roles":     claims.Roles,
+				})
 				return
 			}
 

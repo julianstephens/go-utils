@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/mail"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 // ValidationFunc is a function type for input validation
@@ -25,6 +27,11 @@ func ValidateEmail(input string) error {
 	_, err := mail.ParseAddress(input)
 	if err != nil {
 		return fmt.Errorf("invalid email format: %w", err)
+	}
+	// Require domain to contain a dot (simple TLD check) to reject addresses like a@b
+	parts := strings.Split(input, "@")
+	if len(parts) != 2 || !strings.Contains(parts[1], ".") {
+		return fmt.Errorf("invalid email format")
 	}
 	return nil
 }
@@ -54,6 +61,17 @@ func ValidatePassword(input string) error {
 	}
 	if !hasDigit {
 		return fmt.Errorf("password must contain at least one digit")
+	}
+	return nil
+}
+
+func ValidateUUID(input string) error {
+	if err := ValidateNonEmpty(input); err != nil {
+		return err
+	}
+	_, err := uuid.Parse(input)
+	if err != nil {
+		return fmt.Errorf("invalid UUID format: %w", err)
 	}
 	return nil
 }
