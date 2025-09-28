@@ -1,3 +1,8 @@
+## v0.2.5
+
+- adds `PromptPassword` and `PromptPasswordWithValidation` to `cliutil` 
+- adds `validator`
+
 ## v0.2.4
 
 - adds `Exists` to `helpers`

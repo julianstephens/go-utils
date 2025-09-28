@@ -683,6 +683,7 @@ func TestKeyDerivationConsistency(t *testing.T) {
 		t.Errorf("Expected UserID 'user123', got %s", claims.UserID)
 	}
 }
+
 // Refresh Token Workflow Tests
 
 func TestGenerateTokenPair(t *testing.T) {

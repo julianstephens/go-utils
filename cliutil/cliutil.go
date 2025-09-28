@@ -3,10 +3,13 @@ package cliutil
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/term"
 )
 
 // Args represents parsed command-line arguments
@@ -150,12 +153,7 @@ func GetFlagValue(args []string, flag, defaultValue string) string {
 
 // PromptString prompts the user for string input
 func PromptString(prompt string) string {
-	fmt.Print(prompt)
-	scanner := bufio.NewScanner(os.Stdin)
-	if scanner.Scan() {
-		return strings.TrimSpace(scanner.Text())
-	}
-	return ""
+	return PromptStringWithIO(prompt, os.Stdin, os.Stdout)
 }
 
 // PromptStringWithValidation prompts for string input with validation
@@ -167,6 +165,76 @@ func PromptStringWithValidation(prompt string, validator func(string) error) str
 			continue
 		}
 		return input
+	}
+}
+
+// PromptStringWithIO prompts the user for string input using the provided
+// io.Reader and io.Writer. This is useful for testing where stdin/stdout can
+// be simulated.
+func PromptStringWithIO(prompt string, in io.Reader, out io.Writer) string {
+	fmt.Fprint(out, prompt)
+	scanner := bufio.NewScanner(in)
+	if scanner.Scan() {
+		return strings.TrimSpace(scanner.Text())
+	}
+	return ""
+}
+
+// PromptPassword prompts the user for a password (secure string) without echoing
+// the input to the terminal. If stdin is not a terminal, it falls back to
+// reading a normal line (echoed).
+func PromptPassword(prompt string) string {
+	// Print prompt without newline so password can be entered on same line
+	return PromptPasswordWithIO(prompt, os.Stdin, os.Stdout)
+}
+
+// PromptPasswordWithValidation prompts for a secure string and validates it
+// using the provided validator function. It will re-prompt until the validator
+// returns nil.
+func PromptPasswordWithValidation(prompt string, validator func(string) error) string {
+	return PromptPasswordWithValidationIO(prompt, os.Stdin, os.Stdout, validator)
+}
+
+// PromptPasswordWithIO prompts for a secure string using the provided reader
+// and writer. If the reader is a terminal (os.File), it will attempt to use
+// term.ReadPassword to disable echo. Otherwise it falls back to a normal
+// line-read (echoed).
+func PromptPasswordWithIO(prompt string, in io.Reader, out io.Writer) string {
+	// Print prompt without newline so password can be entered on same line
+	fmt.Fprint(out, prompt)
+
+	// If in is an *os.File and a terminal, use ReadPassword to disable echo
+	if f, ok := in.(*os.File); ok {
+		if term.IsTerminal(int(f.Fd())) {
+			b, err := term.ReadPassword(int(f.Fd()))
+			fmt.Fprintln(out)
+			if err == nil {
+				return strings.TrimSpace(string(b))
+			}
+			// Fall through to fallback on error
+		}
+	}
+
+	// Fallback: read a normal line (echoed)
+	reader := bufio.NewReader(in)
+	input, _ := reader.ReadString('\n')
+	return strings.TrimSpace(input)
+}
+
+// PromptPasswordWithValidationIO prompts for a secure string and validates it
+// using the provided validator function and I/O streams. It will re-prompt
+// until the validator returns nil.
+func PromptPasswordWithValidationIO(prompt string, in io.Reader, out io.Writer, validator func(string) error) string {
+	for {
+		pw := PromptPasswordWithIO(prompt, in, out)
+		if validator == nil {
+			return pw
+		}
+		if err := validator(pw); err != nil {
+			PrintError(fmt.Sprintf("Invalid input: %v", err))
+			continue
+		}
+		return pw
 	}
 }
 
@@ -205,29 +273,6 @@ func PromptChoice(prompt string, options []string) int {
 
 // ValidationFunc is a function type for input validation
 type ValidationFunc func(string) error
-
-// ValidateNonEmpty validates that input is not empty
-func ValidateNonEmpty(input string) error {
-	if strings.TrimSpace(input) == "" {
-		return fmt.Errorf("input cannot be empty")
-	}
-	return nil
-}
-
-// ValidateEmail validates basic email format
-func ValidateEmail(input string) error {
-	if err := ValidateNonEmpty(input); err != nil {
-		return err
-	}
-	parts := strings.Split(input, "@")
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		return fmt.Errorf("invalid email format")
-	}
-	if !strings.Contains(parts[1], ".") {
-		return fmt.Errorf("invalid email format")
-	}
-	return nil
-}
 
 // Color constants for colored output
 type Color string
