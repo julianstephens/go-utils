@@ -260,11 +260,16 @@ func main() {
 - `Find[T any](slice []T, predicate func(T) bool) (T, bool)` - Find first matching element
 - `Any[T any](slice []T, predicate func(T) bool) bool` - Check if any element matches
 - `All[T any](slice []T, predicate func(T) bool) bool` - Check if all elements match
+- `ForEach[T any](slice []T, f func(T))` - Execute function for each element
 
 ### Slice Operations
 - `Contains[T comparable](slice []T, value T) bool` - Check if slice contains value
+- `ContainsAll[T comparable](mainSlice, subset []T) bool` - Check if all elements in subset are in mainSlice
+- `IndexOf[T comparable](slice []T, value T) int` - Find index of value in slice (-1 if not found)
 - `Unique[T comparable](slice []T) []T` - Remove duplicate elements
 - `Reverse[T any](slice []T) []T` - Reverse slice order
+- `DeleteElement[T any](slice []T, index int) []T` - Remove element at index
+- `InsertElement[T any](slice []T, index int, element T) []T` - Insert element at index
 - `Chunk[T any](slice []T, size int) [][]T` - Split slice into chunks
 - `Union[T comparable](slice1, slice2 []T) []T` - Union of two slices
 - `Intersection[T comparable](slice1, slice2 []T) []T` - Intersection of two slices
@@ -273,9 +278,15 @@ func main() {
 ### Map Operations
 - `Keys[K comparable, V any](m map[K]V) []K` - Extract all keys
 - `Values[K comparable, V any](m map[K]V) []V` - Extract all values
+- `HasKey[K comparable, V any](m map[K]V, key K) bool` - Check if map has key
+- `HasValue[K comparable, V comparable](m map[K]V, value V) bool` - Check if map has value
 - `FilterMap[K comparable, V any](m map[K]V, predicate func(K, V) bool) map[K]V` - Filter map entries
-- `MapMap[K comparable, V, U any](m map[K]V, f func(K, V) (K, U)) map[K]U` - Transform map
-- `MapToSlice[K comparable, V, U any](m map[K]V, f func(K, V) U) []U` - Convert map to slice
+- `MapMap[K1 comparable, V1, K2 comparable, V2 any](m map[K1]V1, f func(K1, V1) (K2, V2)) map[K2]V2` - Transform map
+- `MapToSlice[K comparable, V, T any](m map[K]V, f func(K, V) T) []T` - Convert map to slice
+- `SliceToMap[T any, K comparable, V any](slice []T, keyFunc func(T) K, valueFunc func(T) V) map[K]V` - Convert slice to map
+- `SliceToMapBy[T any, K comparable](slice []T, keyFunc func(T) K) map[K]T` - Convert slice to map using elements as values
+- `MergeMap[K comparable, V any](mergeMaps ...map[K]V) map[K]V` - Merge multiple maps
+- `CopyMap[K comparable, V any](m map[K]V) map[K]V` - Create shallow copy of map
 
 ### General Utilities
 - `If[T any](cond bool, vtrue T, vfalse T) T` - Ternary operator

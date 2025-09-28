@@ -441,16 +441,22 @@ type EncoderOptions struct {
 
 ### Basic Functions
 - `Marshal(v interface{}) ([]byte, error)` - Standard JSON marshaling
-- `MarshalPretty(v interface{}) ([]byte, error)` - Pretty-print with default formatting
-- `MarshalWithOptions(v interface{}, opts MarshalOptions) ([]byte, error)` - Marshal with custom options
+- `MarshalIndent(v interface{}, prefix, indent string) ([]byte, error)` - Marshal with custom indentation
+- `MarshalWithOptions(v interface{}, opts *MarshalOptions) ([]byte, error)` - Marshal with custom options
 - `Unmarshal(data []byte, v interface{}) error` - Standard JSON unmarshaling
-- `UnmarshalWithOptions(data []byte, v interface{}, opts UnmarshalOptions) error` - Unmarshal with options
+- `UnmarshalStrict(data []byte, v interface{}) error` - Strict unmarshaling (disallow unknown fields)
+- `UnmarshalWithOptions(data []byte, v interface{}, opts *UnmarshalOptions) error` - Unmarshal with options
 
 ### Stream Processing
-- `NewEncoder(w io.Writer) *json.Encoder` - Create standard encoder
-- `NewEncoderWithOptions(w io.Writer, opts EncoderOptions) *json.Encoder` - Create encoder with options
-- `NewDecoder(r io.Reader) *json.Decoder` - Create standard decoder
-- `NewDecoderWithOptions(r io.Reader, opts UnmarshalOptions) *json.Decoder` - Create decoder with options
+- `EncodeWriter(w io.Writer, v interface{}, opts *EncoderOptions) error` - Encode directly to writer
+- `DecodeReader(r io.Reader, v interface{}, opts *DecoderOptions) error` - Decode directly from reader
+- `DecodeReaderStrict(r io.Reader, v interface{}) error` - Strict decode from reader
+
+### Utility Functions
+- `Valid(data []byte) bool` - Check if JSON is valid
+- `Compact(dst *bytes.Buffer, src []byte) error` - Remove whitespace from JSON
+- `Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error` - Add indentation to JSON
+- `HTMLEscape(dst *bytes.Buffer, src []byte)` - Escape HTML characters in JSON
 
 ## Error Handling
 

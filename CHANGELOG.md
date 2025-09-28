@@ -1,3 +1,8 @@
+## v0.2.4
+
+- adds `Exists` to `helpers`
+- improves pacakge documentation
+
 ## v0.2.3
 
 - adds `security` package

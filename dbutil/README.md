@@ -55,7 +55,7 @@ func main() {
 
     // Test connection
     ctx := context.Background()
-    if err := dbutil.PingWithTimeout(ctx, db, 5*time.Second); err != nil {
+    if err := dbutil.PingWithContext(ctx, db, 5*time.Second); err != nil {
         log.Fatal("Database ping failed:", err)
     }
 
@@ -416,28 +416,39 @@ opts := dbutil.DefaultTransactionOptions()
 
 ### Connection Management
 - `ConfigureDB(db *sql.DB, opts ConnectionOptions) error` - Configure database connection
-- `PingWithTimeout(ctx context.Context, db *sql.DB, timeout time.Duration) error` - Ping with timeout
+- `PingWithContext(ctx context.Context, db *sql.DB, timeout time.Duration) error` - Ping with timeout
+- `PingWithRetry(ctx context.Context, db *sql.DB, attempts int, delay time.Duration) error` - Ping with retry logic
 - `DefaultConnectionOptions() ConnectionOptions` - Get default connection options
 
 ### Query Execution
-- `QueryRowScan(ctx context.Context, db *sql.DB, dest interface{}, query string, args ...interface{}) error` - Query single row
-- `QuerySlice(ctx context.Context, db *sql.DB, dest interface{}, query string, args ...interface{}) error` - Query multiple rows
-- `QuerySliceWithOptions(ctx context.Context, db *sql.DB, dest interface{}, opts QueryOptions, query string, args ...interface{}) error` - Query with options
+- `QueryRowScan(ctx context.Context, db *sql.DB, dest interface{}, query string, args ...interface{}) error` - Query single row into struct
+- `QuerySlice(ctx context.Context, db *sql.DB, dest interface{}, query string, args ...interface{}) error` - Query multiple rows into slice
+- `QuerySliceWithOptions(ctx context.Context, db *sql.DB, dest interface{}, query string, opts *QueryOptions, args ...interface{}) error` - Query with options
+- `QueryMap(ctx context.Context, db *sql.DB, query string, args ...interface{}) (map[string]any, error)` - Query single row into map
+- `QueryMaps(ctx context.Context, db *sql.DB, query string, args ...interface{}) ([]map[string]any, error)` - Query multiple rows into maps
+- `QueryRow(ctx context.Context, db *sql.DB, query string, args ...interface{}) *sql.Row` - Query single row (raw)
+- `QueryRows(ctx context.Context, db *sql.DB, query string, args ...interface{}) (*sql.Rows, error)` - Query multiple rows (raw)
 - `Exec(ctx context.Context, db *sql.DB, query string, args ...interface{}) (sql.Result, error)` - Execute query
 
 ### Transaction Management
 - `WithTransaction(ctx context.Context, db *sql.DB, fn func(*sql.Tx) error) error` - Execute in transaction
-- `WithTransactionOptions(ctx context.Context, db *sql.DB, opts TransactionOptions, fn func(*sql.Tx) error) error` - Execute with options
-- `QueryRowScanTx(ctx context.Context, tx *sql.Tx, dest interface{}, query string, args ...interface{}) error` - Query in transaction
+- `WithTransactionOptions(ctx context.Context, db *sql.DB, opts *TransactionOptions, fn func(*sql.Tx) error) error` - Execute with options
+- `QueryRowScanTx(ctx context.Context, tx *sql.Tx, dest interface{}, query string, args ...interface{}) error` - Query single row in transaction
+- `QuerySliceTx(ctx context.Context, tx *sql.Tx, dest interface{}, query string, args ...interface{}) error` - Query slice in transaction
+- `QueryMapTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (map[string]any, error)` - Query map in transaction
+- `QueryMapsTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) ([]map[string]any, error)` - Query maps in transaction
+- `QueryRowTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) *sql.Row` - Query raw row in transaction
+- `QueryRowsTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (*sql.Rows, error)` - Query raw rows in transaction
 - `ExecTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (sql.Result, error)` - Execute in transaction
 
 ### Utility Functions
 - `Exists(ctx context.Context, db *sql.DB, query string, args ...interface{}) (bool, error)` - Check if record exists
+- `ExistsTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (bool, error)` - Check existence in transaction
 - `Count(ctx context.Context, db *sql.DB, query string, args ...interface{}) (int64, error)` - Count records
+- `CountTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (int64, error)` - Count records in transaction
 
 ### Error Detection
 - `IsNoRowsError(err error) bool` - Check if error is sql.ErrNoRows
-- `IsContextError(err error) bool` - Check if error is context-related
 - `IsConnectionError(err error) bool` - Check if error is connection-related
 
 ### Field Mapping

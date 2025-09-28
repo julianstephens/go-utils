@@ -6,7 +6,7 @@ The `helpers` package provides general utility functions including slice operati
 
 - **Slice Operations**: Contains, subset checking, and manipulation functions
 - **Conditional Helpers**: Ternary operator implementation and default value handling
-- **File Operations**: JSON file reading and writing utilities
+- **File Operations**: JSON file reading and writing utilities, file system checks
 - **Type Utilities**: Generic helper functions for common operations
 
 ## Installation
@@ -164,6 +164,45 @@ func main() {
 }
 ```
 
+### File System Utilities
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+    "path/filepath"
+    "github.com/julianstephens/go-utils/helpers"
+)
+
+func main() {
+    // Check if files and directories exist
+    fmt.Printf("Current directory exists: %v\n", helpers.Exists("."))
+    fmt.Printf("go.mod exists: %v\n", helpers.Exists("go.mod"))
+    fmt.Printf("Non-existent file: %v\n", helpers.Exists("does_not_exist.txt"))
+    
+    // Create a temporary file to test
+    tempFile := filepath.Join(os.TempDir(), "test_file.txt")
+    
+    // Check before creation
+    fmt.Printf("Temp file exists before creation: %v\n", helpers.Exists(tempFile))
+    
+    // Create the file using Ensure
+    if err := helpers.Ensure(tempFile, false); err != nil {
+        fmt.Printf("Error creating file: %v\n", err)
+        return
+    }
+    
+    // Check after creation
+    fmt.Printf("Temp file exists after creation: %v\n", helpers.Exists(tempFile))
+    
+    // Clean up
+    os.Remove(tempFile)
+    fmt.Printf("Temp file exists after cleanup: %v\n", helpers.Exists(tempFile))
+}
+```
+
 ### Working with Different Types
 
 ```go
@@ -280,14 +319,23 @@ func main() {
 
 ### Slice Operations
 - `ContainsAll[T comparable](mainSlice, subset []T) bool` - Check if all elements in subset are present in mainSlice
+- `Difference(a []string, b []string) []string` - Return elements in slice a that are not in slice b
+- `DeleteElement[T any](slice []T, index int) []T` - Remove element at specified index from slice
 
 ### Conditional Helpers
 - `If[T any](cond bool, vtrue T, vfalse T) T` - Ternary operator: returns vtrue if cond is true, otherwise vfalse
 - `Default[T any](val T, defaultVal T) T` - Returns defaultVal if val is the zero value for its type, otherwise returns val
 
 ### File Operations
+- `Exists(path string) bool` - Check if a file or directory exists at the given path
+- `Ensure(path string, isDir bool) error` - Create a file or directory if it doesn't exist
 - `ReadJSONFile(filename string, v interface{}) error` - Read JSON file and unmarshal into provided struct
 - `WriteJSONFile(filename string, v interface{}) error` - Marshal struct to JSON and write to file
+
+### Utility Functions
+- `StringPtr(s string) *string` - Return a pointer to the given string
+- `MustMarshalJson(v any) []byte` - Marshal value to JSON, panic on error
+- `StructToMap(obj any) map[string]any` - Convert struct to map using reflection
 
 ## Type Support
 
