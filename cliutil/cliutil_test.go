@@ -6,6 +6,7 @@ import (
 
 	"github.com/julianstephens/go-utils/cliutil"
 	tst "github.com/julianstephens/go-utils/tests"
+	"github.com/julianstephens/go-utils/validator"
 )
 
 func TestParseArgs(t *testing.T) {
@@ -124,7 +125,7 @@ func TestValidateNonEmpty(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := cliutil.ValidateNonEmpty(tt.input)
+		err := validator.ValidateNonEmpty(tt.input)
 		if tt.shouldErr {
 			tst.AssertNotNil(t, err, "expected error for input")
 		} else {
@@ -148,7 +149,7 @@ func TestValidateEmail(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := cliutil.ValidateEmail(tt.input)
+		err := validator.ValidateEmail(tt.input)
 		if tt.shouldErr {
 			tst.AssertNotNil(t, err, "expected error for email")
 		} else {
@@ -261,7 +262,7 @@ func BenchmarkValidateEmail(b *testing.B) {
 	email := "test@example.com"
 
 	for i := 0; i < b.N; i++ {
-		cliutil.ValidateEmail(email)
+		validator.ValidateEmail(email)
 	}
 }
 

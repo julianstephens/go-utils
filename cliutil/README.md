@@ -146,14 +146,75 @@ func main() {
         cliutil.PrintWarning("Operation cancelled")
     }
     
-    // String prompt with validation
-    email := cliutil.PromptStringWithValidation("Enter your email: ", cliutil.ValidateEmail)
+    // String prompt with validation (uses the shared validator package)
+    // Import the validator package: github.com/julianstephens/go-utils/validator
+    email := cliutil.PromptStringWithValidation("Enter your email: ", validator.ValidateEmail)
     cliutil.PrintSuccess(fmt.Sprintf("Email %s is valid!", email))
     
     // Choice prompt
     options := []string{"Create new project", "Open existing project", "Exit"}
     choice := cliutil.PromptChoice("What would you like to do?", options)
     fmt.Printf("You selected: %s\n", options[choice])
+}
+```
+
+### Secure / Password Prompts
+
+The package provides secure password input helpers that disable terminal echo when possible and fall back to a safe line-read when not running in a TTY. Use these for passphrases, API keys, and other sensitive input.
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/julianstephens/go-utils/cliutil"
+)
+
+func main() {
+    // Simple secure prompt (no validation)
+    pass := cliutil.PromptPassword("Enter passphrase: ")
+    fmt.Printf("Received %d characters\n", len(pass))
+
+    // Secure prompt with validation: repeat until validator returns nil
+    validate := func(p string) error {
+        if len(p) < 8 {
+            return fmt.Errorf("passphrase must be at least 8 characters")
+        }
+        return nil
+    }
+
+    confirmed := cliutil.PromptPasswordWithValidation("Choose a passphrase: ", validate)
+    fmt.Printf("Received %d characters for confirmed passphrase\n", len(confirmed))
+}
+```
+
+#### Password + confirmation
+
+A common pattern is to ask the user to enter a passphrase and then confirm it. The validator passed to `PromptPasswordWithValidation` can call `PromptPassword` again to request confirmation and return an error if the two entries don't match. The outer prompt will repeat until the validator returns nil.
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/julianstephens/go-utils/cliutil"
+)
+
+func main() {
+    validator := func(p string) error {
+        // Ask for confirmation (secure, no-echo)
+        confirm := cliutil.PromptPassword("Confirm passphrase: ")
+        if p != confirm {
+            return fmt.Errorf("passphrases do not match")
+        }
+        if len(p) < 8 {
+            return fmt.Errorf("passphrase must be at least 8 characters")
+        }
+        return nil
+    }
+
+    pass := cliutil.PromptPasswordWithValidation("Enter a new passphrase: ", validator)
+    fmt.Printf("Passphrase set (%d characters)\n", len(pass))
 }
 ```
 
@@ -171,7 +232,7 @@ func main() {
     testEmails := []string{"valid@example.com", "invalid-email", "@example.com", "user@domain.org"}
     
     for _, email := range testEmails {
-        if err := cliutil.ValidateEmail(email); err != nil {
+        if err := validator.ValidateEmail(email); err != nil {
             cliutil.PrintError(fmt.Sprintf("Invalid email '%s': %v", email, err))
         } else {
             cliutil.PrintSuccess(fmt.Sprintf("Valid email: %s", email))
@@ -247,6 +308,8 @@ Methods:
 - `PromptBool(message string) bool` - Prompt for yes/no input
 - `PromptStringWithValidation(message string, validator func(string) error) string` - Prompt with validation
 - `PromptChoice(message string, options []string) int` - Prompt for choice selection
+- `PromptPassword(prompt string) string` - Prompt for a secure string (no-echo when running in a TTY)
+- `PromptPasswordWithValidation(prompt string, validator func(string) error) string` - Prompt for a secure string and repeat until validator succeeds
 
 #### Validation
 - `ValidateEmail(email string) error` - Validate email format
