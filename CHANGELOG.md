@@ -1,7 +1,7 @@
 ## v0.2.4
 
 - adds `Exists` to `helpers`
-- improves pacakge documentation
+- improves package documentation
 
 ## v0.2.3
 
