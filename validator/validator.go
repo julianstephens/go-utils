@@ -22,11 +22,11 @@ func ValidateEmail(input string) error {
     if err := ValidateNonEmpty(input); err != nil {
         return err
     }
-    _, err := mail.ParseAddress(input)
+	_, err := mail.ParseAddress(input)
 	if err != nil {
 		return fmt.Errorf("invalid email format: %w", err)
 	}
-    return nil
+	return nil
 }
 
 // ValidatePassword validates that a password meets basic criteria
