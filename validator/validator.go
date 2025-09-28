@@ -11,17 +11,17 @@ type ValidationFunc func(string) error
 
 // ValidateNonEmpty validates that input is not empty
 func ValidateNonEmpty(input string) error {
-    if strings.TrimSpace(input) == "" {
-        return fmt.Errorf("input cannot be empty")
-    }
-    return nil
+	if strings.TrimSpace(input) == "" {
+		return fmt.Errorf("input cannot be empty")
+	}
+	return nil
 }
 
 // ValidateEmail validates basic email format
 func ValidateEmail(input string) error {
-    if err := ValidateNonEmpty(input); err != nil {
-        return err
-    }
+	if err := ValidateNonEmpty(input); err != nil {
+		return err
+	}
 	_, err := mail.ParseAddress(input)
 	if err != nil {
 		return fmt.Errorf("invalid email format: %w", err)
@@ -57,4 +57,3 @@ func ValidatePassword(input string) error {
 	}
 	return nil
 }
-
