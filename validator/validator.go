@@ -2,6 +2,7 @@ package validator
 
 import (
 	"fmt"
+	"net/mail"
 	"strings"
 )
 
@@ -21,13 +22,10 @@ func ValidateEmail(input string) error {
     if err := ValidateNonEmpty(input); err != nil {
         return err
     }
-    parts := strings.Split(input, "@")
-    if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-        return fmt.Errorf("invalid email format")
-    }
-    if !strings.Contains(parts[1], ".") {
-        return fmt.Errorf("invalid email format")
-    }
+    _, err := mail.ParseAddress(input)
+	if err != nil {
+		return fmt.Errorf("invalid email format: %w", err)
+	}
     return nil
 }
 
