@@ -235,6 +235,60 @@ func TestDeleteElementString(t *testing.T) {
 	tst.AssertDeepEqual(t, result, expected)
 }
 
+func TestExists(t *testing.T) {
+	// Test with existing file
+	t.Run("existing file", func(t *testing.T) {
+		tempFile := filepath.Join(os.TempDir(), "test_exists_file.txt")
+		defer os.Remove(tempFile)
+
+		// Create the file
+		file, err := os.Create(tempFile)
+		if err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+		file.Close()
+
+		// Test that it exists
+		if !helpers.Exists(tempFile) {
+			t.Error("Exists should return true for existing file")
+		}
+	})
+
+	// Test with existing directory
+	t.Run("existing directory", func(t *testing.T) {
+		tempDir := filepath.Join(os.TempDir(), "test_exists_dir")
+		defer os.RemoveAll(tempDir)
+
+		// Create the directory
+		err := os.MkdirAll(tempDir, 0755)
+		if err != nil {
+			t.Fatalf("Failed to create test directory: %v", err)
+		}
+
+		// Test that it exists
+		if !helpers.Exists(tempDir) {
+			t.Error("Exists should return true for existing directory")
+		}
+	})
+
+	// Test with non-existing path
+	t.Run("non-existing path", func(t *testing.T) {
+		nonExistentPath := filepath.Join(os.TempDir(), "non_existent_path_12345")
+
+		// Test that it doesn't exist
+		if helpers.Exists(nonExistentPath) {
+			t.Error("Exists should return false for non-existing path")
+		}
+	})
+
+	// Test with empty string
+	t.Run("empty string", func(t *testing.T) {
+		if helpers.Exists("") {
+			t.Error("Exists should return false for empty string")
+		}
+	})
+}
+
 func TestEnsure(t *testing.T) {
 	// Test directory creation
 	t.Run("create directory", func(t *testing.T) {

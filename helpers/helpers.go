@@ -62,6 +62,12 @@ func DeleteElement[T any](slice []T, index int) []T {
 	return append(slice[:index], slice[index+1:]...)
 }
 
+// Exists checks if the given file or directory path exists
+func Exists(path string) bool {
+	_, err := os.Stat(path)
+	return !os.IsNotExist(err)
+}
+
 // Ensure checks if the given path exists and creates it if not
 func Ensure(path string, isDir bool) error {
 	var f *os.File
