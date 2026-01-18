@@ -1,3 +1,7 @@
+## v0.2.8
+
+- adds MIT license
+
 ## v0.2.7
 
 - adds optional custom error messages to all assertion functions in `tests`
