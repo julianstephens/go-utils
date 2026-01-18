@@ -1,5 +1,7 @@
 ## v0.2.7
-- adds greater than, less than, gte, lte, and equal assertion helpers to `tests`
+
+- adds optional custom error messages to all assertion functions in `tests`
+- adds generic comparison functions to `tests`: `AssertGreaterThan`, `AssertLessThan`, `AssertGreaterThanOrEqual`, `AssertLessThanOrEqual`, `AssertEqual`
 
 ## v0.2.6
 

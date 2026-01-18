@@ -21,11 +21,21 @@ Common helpers
 - AssertNoError / RequireNoError: fail when an error is non-nil
 - AssertTrue / AssertFalse: boolean assertions with messages
 - AssertNotNil / AssertNil: nil checks that handle typed nils
-- AssertJSONEquals / AssertResponseJSON: compare JSON payloads
+- AssertJSONEquals: compare JSON payloads
 - AssertErrorContains / AssertErrorIs: check error messages or wrap matches
 - AssertWithinDuration: compare times with a tolerance
-- AssertPanics: assert that a function panics
 - AssertCloseTo: numeric closeness for floats
+- AssertGreaterThan / AssertLessThan: compare ordered types
+- AssertGreaterThanOrEqual / AssertLessThanOrEqual: compare ordered types with equality
+- AssertEqual: compare equatable types (supports booleans)
+- AssertPanics: assert that a function panics
+
+All assertion functions support optional custom error messages:
+
+```go
+tst.AssertEqual(t, got, want)                           // without message
+tst.AssertEqual(t, got, want, "custom error message")   // with message
+```
 
 HTTP helpers (in http_helpers.go)
 ---------------------------------
