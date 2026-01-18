@@ -1,3 +1,6 @@
+## v0.2.7
+- adds greater than, less than, gte, lte, and equal assertion helpers to `tests`
+
 ## v0.2.6
 
 - removes `Error.Code` from `httputil.response`

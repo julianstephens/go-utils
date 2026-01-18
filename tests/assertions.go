@@ -152,3 +152,43 @@ func AssertCloseTo(t *testing.T, got, want, tol float64) {
 		t.Errorf("Values differ by %v which is more than %v (got=%v, want=%v)", diff, tol, got, want)
 	}
 }
+
+// AssertGreaterThan asserts that got is greater than want.
+func AssertGreaterThan[T interface{ ~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~float32 | ~float64 | ~string }](t *testing.T, got, want T) {
+	t.Helper()
+	if !(got > want) {
+		t.Errorf("Expected %v to be greater than %v", got, want)
+	}
+}
+
+// AssertLessThan asserts that got is less than want.
+func AssertLessThan[T interface{ ~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~float32 | ~float64 | ~string }](t *testing.T, got, want T) {
+	t.Helper()
+	if !(got < want) {
+		t.Errorf("Expected %v to be less than %v", got, want)
+	}
+}
+
+// AssertGreaterThanOrEqual asserts that got is greater than or equal to want.
+func AssertGreaterThanOrEqual[T interface{ ~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~float32 | ~float64 | ~string }](t *testing.T, got, want T) {
+	t.Helper()
+	if !(got >= want) {
+		t.Errorf("Expected %v to be greater than or equal to %v", got, want)
+	}
+}
+
+// AssertLessThanOrEqual asserts that got is less than or equal to want.
+func AssertLessThanOrEqual[T interface{ ~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~float32 | ~float64 | ~string }](t *testing.T, got, want T) {
+	t.Helper()
+	if !(got <= want) {
+		t.Errorf("Expected %v to be less than or equal to %v", got, want)
+	}
+}
+
+// AssertEqual asserts that got is equal to want using == comparison.
+func AssertEqual[T interface{ ~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~float32 | ~float64 | ~string | ~bool }](t *testing.T, got, want T) {
+	t.Helper()
+	if got != want {
+		t.Errorf("Expected %v to equal %v", got, want)
+	}
+}
