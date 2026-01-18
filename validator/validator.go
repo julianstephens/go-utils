@@ -2,76 +2,72 @@ package validator
 
 import (
 	"fmt"
-	"net/mail"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
-// ValidationFunc is a function type for input validation
-type ValidationFunc func(string) error
+// Type constraints
+type Number interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~float32 | ~float64
+}
+
+type StringLike interface {
+	~string | ~[]byte | ~[]rune
+}
+
+type Emptyable interface {
+	~string | ~[]byte | ~[]rune | ~map[string]interface{} | ~[]interface{}
+}
+
+// Validator is the main validator that provides access to specialized validators.
+type Validator struct{}
+
+// New creates a new Validator instance.
+func New() *Validator {
+	return &Validator{}
+}
+
+// Numbers returns a NumberValidator for the specified numeric type.
+func Numbers[T Number]() *NumberValidator[T] {
+	return &NumberValidator[T]{}
+}
+
+// Strings returns a StringValidator for the specified string-like type.
+func Strings[T StringLike]() *StringValidator[T] {
+	return &StringValidator[T]{
+		Parse: &ParseValidator{},
+	}
+}
+
+// Parse returns a ParseValidator for parsing string inputs.
+func Parse() *ParseValidator {
+	return &ParseValidator{}
+}
 
 // ValidateNonEmpty validates that input is not empty
-func ValidateNonEmpty(input string) error {
-	if strings.TrimSpace(input) == "" {
-		return fmt.Errorf("input cannot be empty")
-	}
-	return nil
-}
-
-// ValidateEmail validates basic email format
-func ValidateEmail(input string) error {
-	if err := ValidateNonEmpty(input); err != nil {
-		return err
-	}
-	_, err := mail.ParseAddress(input)
-	if err != nil {
-		return fmt.Errorf("invalid email format: %w", err)
-	}
-	// Require domain to contain a dot (simple TLD check) to reject addresses like a@b
-	parts := strings.Split(input, "@")
-	if len(parts) != 2 || !strings.Contains(parts[1], ".") {
-		return fmt.Errorf("invalid email format")
-	}
-	return nil
-}
-
-// ValidatePassword validates that a password meets basic criteria
-// (at least 8 characters, contains upper and lower case letters, and a digit)
-func ValidatePassword(input string) error {
-	if len(input) < 8 {
-		return fmt.Errorf("password must be at least 8 characters long")
-	}
-	var hasUpper, hasLower, hasDigit bool
-	for _, char := range input {
-		switch {
-		case 'A' <= char && char <= 'Z':
-			hasUpper = true
-		case 'a' <= char && char <= 'z':
-			hasLower = true
-		case '0' <= char && char <= '9':
-			hasDigit = true
+func ValidateNonEmpty[T Emptyable](input T) error {
+	switch v := any(input).(type) {
+	case string:
+		if strings.TrimSpace(v) == "" {
+			return fmt.Errorf("input cannot be empty")
 		}
-	}
-	if !hasUpper {
-		return fmt.Errorf("password must contain at least one uppercase letter")
-	}
-	if !hasLower {
-		return fmt.Errorf("password must contain at least one lowercase letter")
-	}
-	if !hasDigit {
-		return fmt.Errorf("password must contain at least one digit")
-	}
-	return nil
-}
-
-func ValidateUUID(input string) error {
-	if err := ValidateNonEmpty(input); err != nil {
-		return err
-	}
-	_, err := uuid.Parse(input)
-	if err != nil {
-		return fmt.Errorf("invalid UUID format: %w", err)
+	case []byte:
+		if len(v) == 0 {
+			return fmt.Errorf("input cannot be empty")
+		}
+	case []rune:
+		if len(v) == 0 {
+			return fmt.Errorf("input cannot be empty")
+		}
+	case map[string]interface{}:
+		if len(v) == 0 {
+			return fmt.Errorf("input cannot be empty")
+		}
+	case []interface{}:
+		if len(v) == 0 {
+			return fmt.Errorf("input cannot be empty")
+		}
+	default:
+		return fmt.Errorf("unsupported type for emptiness check")
 	}
 	return nil
 }

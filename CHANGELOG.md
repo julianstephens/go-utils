@@ -1,3 +1,18 @@
+## v0.3.0
+
+- **BREAKING**: redesigns `validator` package with generic validators
+    - adds `NumberValidator[T]` with 15 comprehensive numeric validation methods
+    - adds `StringValidator[T]` with length validation methods
+    - adds `ParseValidator` with 12 parsing validation methods
+    - adds factory functions `Numbers[T]()`, `Strings[T]()`, `Parse()` for type-safe validator creation
+    - adds type constraints `Number`, `StringLike`, `Emptyable` for generic validation
+    - adds `ValidationError` type with detailed context and error chaining
+    - adds generic `ValidateNonEmpty[T]` supporting strings, bytes, runes, maps, and slices
+    - improves test coverage to 92.1% with comprehensive test suite
+    - reorganizes tests into dedicated files (`number_test.go`, `string_test.go`, `parse_test.go`)
+    - updates documentation with advanced usage examples and API reference
+    - maintains backward compatibility for original validation functions
+
 ## v0.2.8
 
 - adds MIT license

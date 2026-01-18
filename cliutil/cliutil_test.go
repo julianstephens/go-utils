@@ -134,30 +134,6 @@ func TestValidateNonEmpty(t *testing.T) {
 	}
 }
 
-func TestValidateEmail(t *testing.T) {
-	tests := []struct {
-		input     string
-		shouldErr bool
-	}{
-		{"test@example.com", false},
-		{"user@domain.org", false},
-		{"invalid-email", true},
-		{"", true},
-		{"@domain.com", true},
-		{"user@", true},
-		{"user.domain", true},
-	}
-
-	for _, tt := range tests {
-		err := validator.ValidateEmail(tt.input)
-		if tt.shouldErr {
-			tst.AssertNotNil(t, err, "expected error for email")
-		} else {
-			tst.AssertNoError(t, err)
-		}
-	}
-}
-
 func TestNewProgressBar(t *testing.T) {
 	pb := cliutil.NewProgressBar(100)
 	tst.AssertNotNil(t, pb, "progress bar should be created")
@@ -255,14 +231,6 @@ func BenchmarkHasFlag(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		cliutil.HasFlag(args, "--verbose")
-	}
-}
-
-func BenchmarkValidateEmail(b *testing.B) {
-	email := "test@example.com"
-
-	for i := 0; i < b.N; i++ {
-		validator.ValidateEmail(email)
 	}
 }
 

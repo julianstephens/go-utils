@@ -25,74 +25,143 @@ func TestValidateNonEmpty(t *testing.T) {
 	}
 }
 
-func TestValidateEmail(t *testing.T) {
+func TestValidateNonEmpty_Bytes(t *testing.T) {
 	tests := []struct {
-		input   string
+		input   []byte
 		wantErr bool
 	}{
-		{"test@example.com", false},
-		{"user@domain.org", false},
-		{"invalid-email", true},
-		{"", true},
-		{"@domain.com", true},
-		{"user@", true},
-		{"user.domain", true},
-		{"a@b", true},
+		{[]byte("valid"), false},
+		{[]byte(""), true},
+		{[]byte{0}, false},
 	}
 
 	for _, tc := range tests {
-		err := ValidateEmail(tc.input)
+		err := ValidateNonEmpty(tc.input)
 		if tc.wantErr && err == nil {
-			t.Fatalf("ValidateEmail(%q) expected error, got nil", tc.input)
+			t.Fatalf("ValidateNonEmpty(%v) expected error, got nil", tc.input)
 		}
 		if !tc.wantErr && err != nil {
-			t.Fatalf("ValidateEmail(%q) unexpected error: %v", tc.input, err)
+			t.Fatalf("ValidateNonEmpty(%v) unexpected error: %v", tc.input, err)
 		}
 	}
 }
 
-func TestValidatePassword(t *testing.T) {
+func TestValidateNonEmpty_Runes(t *testing.T) {
 	tests := []struct {
-		pass    string
+		input   []rune
 		wantErr bool
 	}{
-		{"Abcdef1g", false},     // valid: length 8, upper, lower, digit
-		{"short1A", true},       // too short (7)
-		{"alllowercase1", true}, // no uppercase
-		{"ALLUPPERCASE1", true}, // no lowercase
-		{"NoDigitsHere", true},  // no digit
-		{"A1b2C3d4", false},     // valid
+		{[]rune("valid"), false},
+		{[]rune(""), true},
+		{[]rune{'a'}, false},
 	}
 
 	for _, tc := range tests {
-		err := ValidatePassword(tc.pass)
+		err := ValidateNonEmpty(tc.input)
 		if tc.wantErr && err == nil {
-			t.Fatalf("ValidatePassword(%q) expected error, got nil", tc.pass)
+			t.Fatalf("ValidateNonEmpty(%v) expected error, got nil", tc.input)
 		}
 		if !tc.wantErr && err != nil {
-			t.Fatalf("ValidatePassword(%q) unexpected error: %v", tc.pass, err)
+			t.Fatalf("ValidateNonEmpty(%v) unexpected error: %v", tc.input, err)
 		}
 	}
 }
 
-func TestValidateUUID(t *testing.T) {
+func TestValidateNonEmpty_Map(t *testing.T) {
 	tests := []struct {
-		input   string
+		input   map[string]interface{}
 		wantErr bool
 	}{
-		{"", true},
-		{"not-a-uuid", true},
-		{"550e8400-e29b-41d4-a716-446655440000", false},
-		{"00000000-0000-0000-0000-000000000000", false},
+		{map[string]interface{}{"key": "value"}, false},
+		{map[string]interface{}{}, true},
+		{nil, true}, // maps are nil by default
 	}
 
 	for _, tc := range tests {
-		err := ValidateUUID(tc.input)
+		err := ValidateNonEmpty(tc.input)
 		if tc.wantErr && err == nil {
-			t.Fatalf("ValidateUUID(%q) expected error, got nil", tc.input)
+			t.Fatalf("ValidateNonEmpty(%v) expected error, got nil", tc.input)
 		}
 		if !tc.wantErr && err != nil {
-			t.Fatalf("ValidateUUID(%q) unexpected error: %v", tc.input, err)
+			t.Fatalf("ValidateNonEmpty(%v) unexpected error: %v", tc.input, err)
 		}
+	}
+}
+
+func TestValidateNonEmpty_Slice(t *testing.T) {
+	tests := []struct {
+		input   []interface{}
+		wantErr bool
+	}{
+		{[]interface{}{"item"}, false},
+		{[]interface{}{}, true},
+		{nil, true}, // slices are nil by default
+	}
+
+	for _, tc := range tests {
+		err := ValidateNonEmpty(tc.input)
+		if tc.wantErr && err == nil {
+			t.Fatalf("ValidateNonEmpty(%v) expected error, got nil", tc.input)
+		}
+		if !tc.wantErr && err != nil {
+			t.Fatalf("ValidateNonEmpty(%v) unexpected error: %v", tc.input, err)
+		}
+	}
+}
+
+func TestFactoryFunctions(t *testing.T) {
+	// Test Numbers factory
+	intVal := Numbers[int]()
+	if intVal == nil {
+		t.Fatal("Numbers[int]() returned nil")
+	}
+
+	floatVal := Numbers[float64]()
+	if floatVal == nil {
+		t.Fatal("Numbers[float64]() returned nil")
+	}
+
+	// Test Strings factory
+	stringVal := Strings[string]()
+	if stringVal == nil {
+		t.Fatal("Strings[string]() returned nil")
+	}
+
+	bytesVal := Strings[[]byte]()
+	if bytesVal == nil {
+		t.Fatal("Strings[[]byte]() returned nil")
+	}
+
+	// Test Parse factory
+	parseVal := Parse()
+	if parseVal == nil {
+		t.Fatal("Parse() returned nil")
+	}
+
+	// Test New function
+	validator := New()
+	if validator == nil {
+		t.Fatal("New() returned nil")
+	}
+}
+
+func TestStringValidator_ParseAccess(t *testing.T) {
+	// Test that StringValidator provides access to Parse validator
+	strVal := Strings[string]()
+	if strVal == nil {
+		t.Fatal("Strings[string]() returned nil")
+	}
+
+	if strVal.Parse == nil {
+		t.Fatal("StringValidator.Parse should not be nil")
+	}
+
+	// Test that we can call parse methods through the string validator
+	if err := strVal.Parse.ValidateEmail("user@example.com"); err != nil {
+		t.Errorf("Parse access through StringValidator failed: %v", err)
+	}
+
+	if err := strVal.Parse.ValidateEmail("invalid-email"); err == nil {
+		t.Error("Parse access through StringValidator should fail for invalid email")
 	}
 }
