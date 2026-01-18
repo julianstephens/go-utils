@@ -45,7 +45,11 @@ func TestDefaultFieldMapper(t *testing.T) {
 
 func TestIsNoRowsError(t *testing.T) {
 	tst.AssertTrue(t, dbutil.IsNoRowsError(sql.ErrNoRows), "IsNoRowsError should return true for sql.ErrNoRows")
-	tst.AssertFalse(t, dbutil.IsNoRowsError(errors.New("other error")), "IsNoRowsError should return false for other errors")
+	tst.AssertFalse(
+		t,
+		dbutil.IsNoRowsError(errors.New("other error")),
+		"IsNoRowsError should return false for other errors",
+	)
 	tst.AssertFalse(t, dbutil.IsNoRowsError(nil), "IsNoRowsError should return false for nil")
 }
 

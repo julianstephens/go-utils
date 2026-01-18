@@ -63,7 +63,10 @@ func RefreshTokenHandler(manager *JWTManager) http.HandlerFunc {
 
 // AuthenticationHandler creates an HTTP handler for user authentication
 // This is an example handler that shows how to issue token pairs during login
-func AuthenticationHandler(manager *JWTManager, authenticateUser func(username, password string) (*UserInfo, error)) http.HandlerFunc {
+func AuthenticationHandler(
+	manager *JWTManager,
+	authenticateUser func(username, password string) (*UserInfo, error),
+) http.HandlerFunc {
 	responder := response.NewEmpty()
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +130,13 @@ type UserInfo struct {
 
 // SetRefreshTokenCookie sets a refresh token as an httpOnly cookie
 // This is a security best practice for web applications
-func SetRefreshTokenCookie(w http.ResponseWriter, refreshToken string, maxAge time.Duration, secure bool, sameSite http.SameSite) {
+func SetRefreshTokenCookie(
+	w http.ResponseWriter,
+	refreshToken string,
+	maxAge time.Duration,
+	secure bool,
+	sameSite http.SameSite,
+) {
 	cookie := &http.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken,

@@ -11,26 +11,26 @@ import (
 
 // Test configuration structs
 type BasicConfig struct {
-	Port     int    `env:"PORT" default:"8080"`
-	Host     string `env:"HOST" default:"localhost"`
-	Database string `env:"DATABASE_URL" required:"true"`
-	Debug    bool   `env:"DEBUG" default:"false"`
+	Port     int    `env:"PORT"         default:"8080"`
+	Host     string `env:"HOST"         default:"localhost"`
+	Database string `env:"DATABASE_URL"                     required:"true"`
+	Debug    bool   `env:"DEBUG"        default:"false"`
 }
 
 type ComplexConfig struct {
 	// Basic types
 	StringField string  `env:"STRING_FIELD" default:"default_string"`
-	IntField    int     `env:"INT_FIELD" default:"42"`
-	BoolField   bool    `env:"BOOL_FIELD" default:"true"`
-	FloatField  float64 `env:"FLOAT_FIELD" default:"3.14"`
+	IntField    int     `env:"INT_FIELD"    default:"42"`
+	BoolField   bool    `env:"BOOL_FIELD"   default:"true"`
+	FloatField  float64 `env:"FLOAT_FIELD"  default:"3.14"`
 
 	// Pointer types
 	StringPtr *string `env:"STRING_PTR"`
-	IntPtr    *int    `env:"INT_PTR" default:"100"`
+	IntPtr    *int    `env:"INT_PTR"    default:"100"`
 
 	// Slice types
 	StringSlice []string `env:"STRING_SLICE" default:"a,b,c"`
-	IntSlice    []int    `env:"INT_SLICE" default:"1,2,3"`
+	IntSlice    []int    `env:"INT_SLICE"    default:"1,2,3"`
 
 	// Required fields
 	RequiredField string `env:"REQUIRED_FIELD" required:"true"`
@@ -40,7 +40,7 @@ type FileConfig struct {
 	Server struct {
 		Host string `yaml:"host" json:"host"`
 		Port int    `yaml:"port" json:"port"`
-	} `yaml:"server" json:"server"`
+	} `yaml:"server"   json:"server"`
 	Database struct {
 		URL      string `yaml:"url" json:"url"`
 		MaxConns int    `yaml:"max_conns" json:"max_conns"`
@@ -54,15 +54,15 @@ type FileConfig struct {
 func TestLoadFromEnv(t *testing.T) {
 	// Clean environment
 	cleanEnv := func() {
-		os.Unsetenv("PORT")
-		os.Unsetenv("HOST")
-		os.Unsetenv("DATABASE_URL")
-		os.Unsetenv("DEBUG")
+		_ = os.Unsetenv("PORT")
+		_ = os.Unsetenv("HOST")
+		_ = os.Unsetenv("DATABASE_URL")
+		_ = os.Unsetenv("DEBUG")
 	}
 
 	t.Run("default values", func(t *testing.T) {
 		cleanEnv()
-		os.Setenv("DATABASE_URL", "postgres://localhost/test")
+		_ = os.Setenv("DATABASE_URL", "postgres://localhost/test")
 		defer cleanEnv()
 
 		var cfg BasicConfig
@@ -76,10 +76,10 @@ func TestLoadFromEnv(t *testing.T) {
 
 	t.Run("environment overrides", func(t *testing.T) {
 		cleanEnv()
-		os.Setenv("PORT", "3000")
-		os.Setenv("HOST", "0.0.0.0")
-		os.Setenv("DATABASE_URL", "postgres://prod/db")
-		os.Setenv("DEBUG", "true")
+		_ = os.Setenv("PORT", "3000")
+		_ = os.Setenv("HOST", "0.0.0.0")
+		_ = os.Setenv("DATABASE_URL", "postgres://prod/db")
+		_ = os.Setenv("DEBUG", "true")
 		defer cleanEnv()
 
 		var cfg BasicConfig
@@ -98,7 +98,11 @@ func TestLoadFromEnv(t *testing.T) {
 		var cfg BasicConfig
 		err := config.LoadFromEnv(&cfg)
 		tst.AssertNotNil(t, err, "expected error for missing required field")
-		tst.AssertTrue(t, err.Error() == "required field 'Database' (env: DATABASE_URL) is missing or empty", "error message should match")
+		tst.AssertTrue(
+			t,
+			err.Error() == "required field 'Database' (env: DATABASE_URL) is missing or empty",
+			"error message should match",
+		)
 	})
 
 	t.Run("invalid pointer", func(t *testing.T) {
@@ -116,13 +120,13 @@ func TestComplexTypes(t *testing.T) {
 			"STRING_FIELD", "INT_FIELD", "BOOL_FIELD", "FLOAT_FIELD",
 			"STRING_PTR", "INT_PTR", "STRING_SLICE", "INT_SLICE", "REQUIRED_FIELD",
 		} {
-			os.Unsetenv(env)
+			_ = os.Unsetenv(env)
 		}
 	}
 
 	t.Run("complex types with defaults", func(t *testing.T) {
 		cleanEnv()
-		os.Setenv("REQUIRED_FIELD", "required_value")
+		_ = os.Setenv("REQUIRED_FIELD", "required_value")
 		defer cleanEnv()
 
 		var cfg ComplexConfig
@@ -148,15 +152,15 @@ func TestComplexTypes(t *testing.T) {
 
 	t.Run("complex types with overrides", func(t *testing.T) {
 		cleanEnv()
-		os.Setenv("STRING_FIELD", "override_string")
-		os.Setenv("INT_FIELD", "999")
-		os.Setenv("BOOL_FIELD", "false")
-		os.Setenv("FLOAT_FIELD", "2.71")
-		os.Setenv("STRING_PTR", "pointer_value")
-		os.Setenv("INT_PTR", "200")
-		os.Setenv("STRING_SLICE", "x,y,z")
-		os.Setenv("INT_SLICE", "10,20,30")
-		os.Setenv("REQUIRED_FIELD", "required_override")
+		_ = os.Setenv("STRING_FIELD", "override_string")
+		_ = os.Setenv("INT_FIELD", "999")
+		_ = os.Setenv("BOOL_FIELD", "false")
+		_ = os.Setenv("FLOAT_FIELD", "2.71")
+		_ = os.Setenv("STRING_PTR", "pointer_value")
+		_ = os.Setenv("INT_PTR", "200")
+		_ = os.Setenv("STRING_SLICE", "x,y,z")
+		_ = os.Setenv("INT_SLICE", "10,20,30")
+		_ = os.Setenv("REQUIRED_FIELD", "required_override")
 		defer cleanEnv()
 
 		var cfg ComplexConfig
@@ -249,7 +253,11 @@ features:
 		var cfg FileConfig
 		err := config.LoadFromFile(&cfg, unsupportedFile)
 		tst.AssertNotNil(t, err, "expected error for unsupported file format")
-		tst.AssertTrue(t, err.Error() == "unsupported config file format '.xml', supported formats: .yaml, .yml, .json", "error message should match")
+		tst.AssertTrue(
+			t,
+			err.Error() == "unsupported config file format '.xml', supported formats: .yaml, .yml, .json",
+			"error message should match",
+		)
 	})
 
 	t.Run("non-existent file", func(t *testing.T) {
@@ -281,11 +289,11 @@ features:
 
 	t.Run("file with env overrides", func(t *testing.T) {
 		// Set environment variables to override some file values
-		os.Setenv("SERVER_HOST", "env-host")
-		os.Setenv("SERVER_PORT", "4000")
+		_ = os.Setenv("SERVER_HOST", "env-host")
+		_ = os.Setenv("SERVER_PORT", "4000")
 		defer func() {
-			os.Unsetenv("SERVER_HOST")
-			os.Unsetenv("SERVER_PORT")
+			_ = os.Unsetenv("SERVER_HOST")
+			_ = os.Unsetenv("SERVER_PORT")
 		}()
 
 		// Use a struct that supports both file loading and env overrides
@@ -293,7 +301,7 @@ features:
 			Server struct {
 				Host string `yaml:"host" json:"host" env:"SERVER_HOST"`
 				Port int    `yaml:"port" json:"port" env:"SERVER_PORT"`
-			} `yaml:"server" json:"server"`
+			} `yaml:"server"   json:"server"`
 			Database struct {
 				URL      string `yaml:"url" json:"url" env:"DATABASE_URL"`
 				MaxConns int    `yaml:"max_conns" json:"max_conns" env:"MAX_CONNS"`
@@ -337,8 +345,8 @@ func TestMustFunctions(t *testing.T) {
 	})
 
 	t.Run("MustLoadFromEnv succeeds", func(t *testing.T) {
-		os.Setenv("DATABASE_URL", "postgres://localhost/test")
-		defer os.Unsetenv("DATABASE_URL")
+		_ = os.Setenv("DATABASE_URL", "postgres://localhost/test")
+		defer func() { _ = os.Unsetenv("DATABASE_URL") }()
 
 		var cfg BasicConfig
 		config.MustLoadFromEnv(&cfg) // Should not panic
@@ -349,11 +357,11 @@ func TestMustFunctions(t *testing.T) {
 
 func TestErrorHandling(t *testing.T) {
 	t.Run("invalid integer", func(t *testing.T) {
-		os.Setenv("PORT", "invalid")
-		os.Setenv("DATABASE_URL", "postgres://localhost/test")
+		_ = os.Setenv("PORT", "invalid")
+		_ = os.Setenv("DATABASE_URL", "postgres://localhost/test")
 		defer func() {
-			os.Unsetenv("PORT")
-			os.Unsetenv("DATABASE_URL")
+			_ = os.Unsetenv("PORT")
+			_ = os.Unsetenv("DATABASE_URL")
 		}()
 
 		var cfg BasicConfig
@@ -362,11 +370,11 @@ func TestErrorHandling(t *testing.T) {
 	})
 
 	t.Run("invalid boolean", func(t *testing.T) {
-		os.Setenv("DEBUG", "maybe")
-		os.Setenv("DATABASE_URL", "postgres://localhost/test")
+		_ = os.Setenv("DEBUG", "maybe")
+		_ = os.Setenv("DATABASE_URL", "postgres://localhost/test")
 		defer func() {
-			os.Unsetenv("DEBUG")
-			os.Unsetenv("DATABASE_URL")
+			_ = os.Unsetenv("DEBUG")
+			_ = os.Unsetenv("DATABASE_URL")
 		}()
 
 		var cfg BasicConfig

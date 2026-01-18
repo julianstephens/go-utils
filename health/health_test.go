@@ -250,7 +250,11 @@ func TestRepairAll_MixedResults(t *testing.T) {
 	tst.AssertTrue(t, aCheck.Repaired, "a should be repaired")
 
 	// Exit code should still be warning or error (b wasn't repaired)
-	tst.AssertTrue(t, updated.ExitCode == health.ExitWarning || updated.ExitCode == health.ExitError, "exit code should be warning or error")
+	tst.AssertTrue(
+		t,
+		updated.ExitCode == health.ExitWarning || updated.ExitCode == health.ExitError,
+		"exit code should be warning or error",
+	)
 }
 
 func TestTimestamp(t *testing.T) {

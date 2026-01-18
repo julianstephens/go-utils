@@ -1,0 +1,38 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck
+    - staticcheck
+    - ineffassign
+    - unused
+    - gosec
+    - govet
+  settings:
+    gosec:
+      excludes:
+        - G404 # Use of weak random number generator
+        - G301 # Expect directory permissions to be 0750 or less (acceptable for tests and temp dirs)
+        - G302 # Expect file permissions to be 0600 or less (acceptable for temp files)
+        - G304 # Potential file inclusion via variable (acceptable for tests)
+        - G306 # Expect WriteFile permissions to be 0600 or less (acceptable for tests)
+        - G602 # Slice index out of range (false positives with modulo)
+        - G115 # Integer overflow conversion (necessary for type conversions)
+        - G104 # Errors unhandled in stream operations (acceptable in tests)
+
+formatters:
+  enable:
+    - goimports
+    - gofmt
+    - golines
+  settings:
+    golines:
+      max-len: 120
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

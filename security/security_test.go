@@ -252,7 +252,11 @@ func TestVerifyPassword(t *testing.T) {
 	tst.RequireNoError(t, err)
 
 	tst.AssertTrue(t, security.VerifyPassword(password, hash), "VerifyPassword should return true for correct password")
-	tst.AssertFalse(t, security.VerifyPassword("wrong_password", hash), "VerifyPassword should return false for incorrect password")
+	tst.AssertFalse(
+		t,
+		security.VerifyPassword("wrong_password", hash),
+		"VerifyPassword should return false for incorrect password",
+	)
 }
 
 func TestVerifyPasswordDifferentHashes(t *testing.T) {
@@ -394,7 +398,11 @@ func TestBase64VsBase64URL(t *testing.T) {
 	urlEncoded := security.EncodeBase64URL(data)
 
 	// They should be different due to URL-safe encoding
-	tst.AssertFalse(t, stdEncoded == urlEncoded, "Standard and URL encodings should be different for data with special chars")
+	tst.AssertFalse(
+		t,
+		stdEncoded == urlEncoded,
+		"Standard and URL encodings should be different for data with special chars",
+	)
 
 	// Both should decode to the same original data
 	stdDecoded, err := security.DecodeBase64(stdEncoded)

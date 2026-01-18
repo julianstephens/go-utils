@@ -226,7 +226,7 @@ func AssertCloseTo(t *testing.T, got, want, tol float64, msg ...string) {
 // AssertGreaterThan asserts that got is greater than want.
 func AssertGreaterThan[T Ordered](t *testing.T, got, want T, msg ...string) {
 	t.Helper()
-	if !(got > want) {
+	if got <= want {
 		var errMsg string
 		if len(msg) > 0 && msg[0] != "" {
 			errMsg = " (" + msg[0] + ")"
@@ -238,7 +238,7 @@ func AssertGreaterThan[T Ordered](t *testing.T, got, want T, msg ...string) {
 // AssertLessThan asserts that got is less than want.
 func AssertLessThan[T Ordered](t *testing.T, got, want T, msg ...string) {
 	t.Helper()
-	if !(got < want) {
+	if got >= want {
 		var errMsg string
 		if len(msg) > 0 && msg[0] != "" {
 			errMsg = " (" + msg[0] + ")"
@@ -250,7 +250,7 @@ func AssertLessThan[T Ordered](t *testing.T, got, want T, msg ...string) {
 // AssertGreaterThanOrEqual asserts that got is greater than or equal to want.
 func AssertGreaterThanOrEqual[T Ordered](t *testing.T, got, want T, msg ...string) {
 	t.Helper()
-	if !(got >= want) {
+	if got < want {
 		var errMsg string
 		if len(msg) > 0 && msg[0] != "" {
 			errMsg = " (" + msg[0] + ")"
@@ -262,7 +262,7 @@ func AssertGreaterThanOrEqual[T Ordered](t *testing.T, got, want T, msg ...strin
 // AssertLessThanOrEqual asserts that got is less than or equal to want.
 func AssertLessThanOrEqual[T Ordered](t *testing.T, got, want T, msg ...string) {
 	t.Helper()
-	if !(got <= want) {
+	if got > want {
 		var errMsg string
 		if len(msg) > 0 && msg[0] != "" {
 			errMsg = " (" + msg[0] + ")"

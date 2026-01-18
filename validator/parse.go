@@ -21,7 +21,12 @@ func (pv *ParseValidator) ValidateEmail(input string) error {
 	}
 	_, err := mail.ParseAddress(input)
 	if err != nil {
-		return pv.Errorf("invalid email format", "valid email address", input, fmt.Errorf("%w: %v", ErrInvalidEmail, err))
+		return pv.Errorf(
+			"invalid email format",
+			"valid email address",
+			input,
+			fmt.Errorf("%w: %v", ErrInvalidEmail, err),
+		)
 	}
 	// Require domain to contain a dot (simple TLD check) to reject addresses like a@b
 	parts := strings.Split(input, "@")
@@ -50,10 +55,20 @@ func (pv *ParseValidator) ValidatePassword(input string) error {
 		}
 	}
 	if !hasUpper {
-		return pv.Errorf("password must contain at least one uppercase letter", "at least one uppercase letter", input, ErrMissingUppercase)
+		return pv.Errorf(
+			"password must contain at least one uppercase letter",
+			"at least one uppercase letter",
+			input,
+			ErrMissingUppercase,
+		)
 	}
 	if !hasLower {
-		return pv.Errorf("password must contain at least one lowercase letter", "at least one lowercase letter", input, ErrMissingLowercase)
+		return pv.Errorf(
+			"password must contain at least one lowercase letter",
+			"at least one lowercase letter",
+			input,
+			ErrMissingLowercase,
+		)
 	}
 	if !hasDigit {
 		return pv.Errorf("password must contain at least one digit", "at least one digit", input, ErrMissingDigit)
@@ -223,7 +238,12 @@ func (pv *ParseValidator) ValidateDuration(input string) error {
 	}
 	_, err := time.ParseDuration(input)
 	if err != nil {
-		return pv.Errorf("invalid duration format", "valid duration (e.g., 5m, 2h, 1s)", input, fmt.Errorf("%w: %v", ErrInvalidDuration, err))
+		return pv.Errorf(
+			"invalid duration format",
+			"valid duration (e.g., 5m, 2h, 1s)",
+			input,
+			fmt.Errorf("%w: %v", ErrInvalidDuration, err),
+		)
 	}
 	return nil
 }

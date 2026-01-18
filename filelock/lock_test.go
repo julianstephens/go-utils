@@ -49,7 +49,7 @@ func TestLockTwice(t *testing.T) {
 	tst.AssertNotNil(t, err, "Second Lock() from same process should fail")
 
 	// Clean up
-	lock.Unlock()
+	_ = lock.Unlock()
 }
 
 func TestUnlockWithoutLock(t *testing.T) {
@@ -73,7 +73,7 @@ func TestTryLock(t *testing.T) {
 	tst.AssertTrue(t, lock.IsLocked(), "lock should be locked after TryLock()")
 
 	// Clean up
-	lock.Unlock()
+	_ = lock.Unlock()
 }
 
 func TestTryLockTwice(t *testing.T) {
@@ -88,11 +88,11 @@ func TestTryLockTwice(t *testing.T) {
 	tst.AssertTrue(t, acquired, "First TryLock() should succeed")
 
 	// Try to acquire again from same process
-	acquired, err = lock.TryLock()
+	_, err = lock.TryLock()
 	tst.AssertNotNil(t, err, "Second TryLock() from same process should error")
 
 	// Clean up
-	lock.Unlock()
+	_ = lock.Unlock()
 }
 
 func TestMultipleInstances(t *testing.T) {
@@ -121,7 +121,7 @@ func TestMultipleInstances(t *testing.T) {
 	tst.AssertTrue(t, acquired, "Second instance should acquire after release")
 
 	// Clean up
-	lock2.Unlock()
+	_ = lock2.Unlock()
 }
 
 func TestLockCreatesFile(t *testing.T) {
@@ -140,7 +140,7 @@ func TestLockCreatesFile(t *testing.T) {
 	_, err = os.Stat(lockPath)
 	tst.AssertNoError(t, err, "Lock file should exist after Lock()")
 
-	lock.Unlock()
+	_ = lock.Unlock()
 }
 
 func TestLockWithExistingFile(t *testing.T) {
@@ -150,13 +150,13 @@ func TestLockWithExistingFile(t *testing.T) {
 	// Create the file beforehand
 	f, err := os.Create(lockPath)
 	tst.AssertNoError(t, err, "Create should succeed")
-	f.Close()
+	_ = f.Close()
 
 	lock := filelock.New(lockPath)
 	err = lock.Lock()
 	tst.AssertNoError(t, err, "Lock should succeed on existing file")
 
-	lock.Unlock()
+	_ = lock.Lock()
 }
 
 func TestString(t *testing.T) {
@@ -164,10 +164,10 @@ func TestString(t *testing.T) {
 	str := lock.String()
 	tst.AssertTrue(t, len(str) > 0, "String() should return non-empty string")
 
-	lock.Lock()
+	_ = lock.Lock()
 	strLocked := lock.String()
 	tst.AssertTrue(t, len(strLocked) > 0, "String() should return non-empty string when locked")
-	lock.Unlock()
+	_ = lock.Unlock()
 }
 
 func TestConcurrentLocking(t *testing.T) {
@@ -194,7 +194,7 @@ func TestConcurrentLocking(t *testing.T) {
 			return
 		}
 		acquired <- true
-		lock2.Unlock()
+		_ = lock2.Unlock()
 	}()
 
 	// Wait for goroutine to start trying

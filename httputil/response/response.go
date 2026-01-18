@@ -56,7 +56,13 @@ func (r *Responder) WriteWithStatus(w http.ResponseWriter, req *http.Request, da
 }
 
 // ErrorWithStatus handles error responses by calling the OnError hook.
-func (r *Responder) ErrorWithStatus(w http.ResponseWriter, req *http.Request, status int, err error, details *map[string]any) {
+func (r *Responder) ErrorWithStatus(
+	w http.ResponseWriter,
+	req *http.Request,
+	status int,
+	err error,
+	details *map[string]any,
+) {
 	if r.OnError != nil {
 		r.OnError(w, req, err, status)
 		return
@@ -75,7 +81,7 @@ func (r *Responder) ErrorWithStatus(w http.ResponseWriter, req *http.Request, st
 		status = http.StatusInternalServerError
 	}
 
-	r.Encoder.Encode(w, Error{Message: msg, Details: map[string]any{
+	_ = r.Encoder.Encode(w, Error{Message: msg, Details: map[string]any{
 		"status": http.StatusText(status),
 	}}, status)
 }

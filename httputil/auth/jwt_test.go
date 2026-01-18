@@ -421,7 +421,13 @@ func TestCustomClaimsInRefreshToken(t *testing.T) {
 	}
 
 	// Generate original token with custom claims
-	originalToken, err := manager.GenerateTokenWithUserInfoAndClaims("user123", "testuser", "test@example.com", []string{"user"}, customClaims)
+	originalToken, err := manager.GenerateTokenWithUserInfoAndClaims(
+		"user123",
+		"testuser",
+		"test@example.com",
+		[]string{"user"},
+		customClaims,
+	)
 	if err != nil {
 		t.Fatalf("GenerateTokenWithClaims failed: %v", err)
 	}
@@ -461,7 +467,13 @@ func TestCustomClaimsWithJSONNumberTypes(t *testing.T) {
 		"large_int":    int64(9223372036854775807),
 	}
 
-	token, err := manager.GenerateTokenWithUserInfoAndClaims("user123", "testuser", "test@example.com", []string{"user"}, customClaims)
+	token, err := manager.GenerateTokenWithUserInfoAndClaims(
+		"user123",
+		"testuser",
+		"test@example.com",
+		[]string{"user"},
+		customClaims,
+	)
 	if err != nil {
 		t.Fatalf("GenerateTokenWithClaims failed: %v", err)
 	}
@@ -551,8 +563,8 @@ func TestSimplifiedTokenGeneration(t *testing.T) {
 	}
 
 	// Verify Subject claim is set to UserID
-	if claims.RegisteredClaims.Subject != "user123" {
-		t.Errorf("Expected Subject claim 'user123', got %s", claims.RegisteredClaims.Subject)
+	if claims.Subject != "user123" {
+		t.Errorf("Expected Subject claim 'user123', got %s", claims.Subject)
 	}
 }
 
@@ -598,8 +610,8 @@ func TestTokenGenerationWithCustomClaimsOnly(t *testing.T) {
 	}
 
 	// Verify Subject claim is set to UserID
-	if claims.RegisteredClaims.Subject != "user123" {
-		t.Errorf("Expected Subject claim 'user123', got %s", claims.RegisteredClaims.Subject)
+	if claims.Subject != "user123" {
+		t.Errorf("Expected Subject claim 'user123', got %s", claims.Subject)
 	}
 }
 

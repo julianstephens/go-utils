@@ -34,7 +34,7 @@ func TestGlobalLoggingMethods(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	logger.SetFormatter(&logrus.JSONFormatter{})
-	logger.SetLogLevel("debug")
+	_ = logger.SetLogLevel("debug")
 
 	tests := []struct {
 		name    string
@@ -97,7 +97,7 @@ func TestGlobalFormattedLoggingMethods(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	logger.SetFormatter(&logrus.JSONFormatter{})
-	logger.SetLogLevel("debug")
+	_ = logger.SetLogLevel("debug")
 
 	tests := []struct {
 		name     string
@@ -166,7 +166,7 @@ func TestGlobalWithField(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	logger.SetFormatter(&logrus.JSONFormatter{})
-	logger.SetLogLevel("info")
+	_ = logger.SetLogLevel("info")
 
 	contextLogger := logger.WithField("service", "test-service")
 	contextLogger.Info("service started")
@@ -201,7 +201,7 @@ func TestGlobalWithFields(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	logger.SetFormatter(&logrus.JSONFormatter{})
-	logger.SetLogLevel("info")
+	_ = logger.SetLogLevel("info")
 
 	fields := map[string]interface{}{
 		"service": "test-service",
@@ -291,7 +291,7 @@ func TestGlobalConcurrentLoggingAndConfiguration(t *testing.T) {
 	// Set initial output
 	logger.SetOutput(&buf)
 	logger.SetFormatter(&logrus.JSONFormatter{})
-	logger.SetLogLevel("debug")
+	_ = logger.SetLogLevel("debug")
 
 	// Launch goroutines that log concurrently
 	numLoggers := 10
@@ -347,7 +347,7 @@ func TestGlobalConcurrentConfigurationChanges(t *testing.T) {
 	var buf bytes.Buffer
 
 	logger.SetOutput(&buf)
-	logger.SetLogLevel("info")
+	_ = logger.SetLogLevel("info")
 
 	numGoroutines := 20
 	wg.Add(numGoroutines)
@@ -360,7 +360,7 @@ func TestGlobalConcurrentConfigurationChanges(t *testing.T) {
 			levels := []string{"debug", "info", "warn", "error"}
 			for j := 0; j < 25; j++ {
 				level := levels[j%len(levels)]
-				logger.SetLogLevel(level)
+				_ = logger.SetLogLevel(level)
 				logger.Infof("log from goroutine %d, iteration %d, level %s", id, j, level)
 			}
 		}(i)

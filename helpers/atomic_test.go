@@ -127,7 +127,7 @@ func TestSafeFileSync(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create file: %v", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	_, err = file.WriteString("test data")
 	if err != nil {

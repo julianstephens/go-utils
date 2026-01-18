@@ -90,7 +90,11 @@ func TestMapToSlice(t *testing.T) {
 	tst.AssertDeepEqual(t, result, expected)
 
 	// Test with nil map
-	tst.AssertNil(t, generic.MapToSlice[string, int, string](nil, func(k string, v int) string { return k }), "MapToSlice with nil map should return nil")
+	tst.AssertNil(
+		t,
+		generic.MapToSlice[string, int, string](nil, func(k string, v int) string { return k }),
+		"MapToSlice with nil map should return nil",
+	)
 }
 
 func TestSliceToMap(t *testing.T) {
@@ -159,7 +163,11 @@ func TestFilterMap(t *testing.T) {
 	tst.AssertDeepEqual(t, result, expected)
 
 	// Test with nil map
-	tst.AssertNil(t, generic.FilterMap[string, int](nil, func(k string, v int) bool { return true }), "FilterMap with nil map should return nil")
+	tst.AssertNil(
+		t,
+		generic.FilterMap[string, int](nil, func(k string, v int) bool { return true }),
+		"FilterMap with nil map should return nil",
+	)
 
 	// Test with no matches
 	noMatch := generic.FilterMap(m, func(k string, v int) bool { return v > 10 })

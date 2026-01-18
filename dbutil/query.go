@@ -19,14 +19,28 @@ func QuerySliceTx(ctx context.Context, tx *sql.Tx, dest any, query string, args 
 }
 
 // QuerySliceWithOptions executes a query and scans all rows into a slice of structs with options.
-func QuerySliceWithOptions(ctx context.Context, db *sql.DB, dest any, query string, opts *QueryOptions, args ...any) error {
+func QuerySliceWithOptions(
+	ctx context.Context,
+	db *sql.DB,
+	dest any,
+	query string,
+	opts *QueryOptions,
+	args ...any,
+) error {
 	return querySliceImpl(ctx, func() (*sql.Rows, error) {
 		return db.QueryContext(ctx, query, args...)
 	}, dest, opts)
 }
 
 // QuerySliceWithOptionsTx is like QuerySliceWithOptions but uses a transaction.
-func QuerySliceWithOptionsTx(ctx context.Context, tx *sql.Tx, dest any, query string, opts *QueryOptions, args ...any) error {
+func QuerySliceWithOptionsTx(
+	ctx context.Context,
+	tx *sql.Tx,
+	dest any,
+	query string,
+	opts *QueryOptions,
+	args ...any,
+) error {
 	return querySliceImpl(ctx, func() (*sql.Rows, error) {
 		return tx.QueryContext(ctx, query, args...)
 	}, dest, opts)
@@ -74,7 +88,7 @@ func querySliceImpl(_ context.Context, queryFn func() (*sql.Rows, error), dest a
 	if err != nil {
 		return fmt.Errorf("dbutil: query slice failed: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Create new slice to hold results
 	result := reflect.MakeSlice(sliceType, 0, 0)
@@ -168,7 +182,7 @@ func queryMapImpl(_ context.Context, queryFn func() (*sql.Rows, error)) (map[str
 	if err != nil {
 		return nil, fmt.Errorf("dbutil: query map failed: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	if !rows.Next() {
 		if err := rows.Err(); err != nil {
@@ -186,7 +200,7 @@ func queryMapsImpl(_ context.Context, queryFn func() (*sql.Rows, error)) ([]map[
 	if err != nil {
 		return nil, fmt.Errorf("dbutil: query maps failed: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var result []map[string]any
 	for rows.Next() {
@@ -276,7 +290,7 @@ func existsImpl(_ context.Context, queryFn func() (*sql.Rows, error)) (bool, err
 	if err != nil {
 		return false, fmt.Errorf("dbutil: exists query failed: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	exists := rows.Next()
 	if err := rows.Err(); err != nil {

@@ -82,7 +82,14 @@ type ValidationError struct {
 }
 
 func (ve *ValidationError) Error() string {
-	return fmt.Sprintf("validation error in module %d: %s (want: %v, have: %v): %v", ve.Module, ve.Cause, ve.Want, ve.Have, ve.Err)
+	return fmt.Sprintf(
+		"validation error in module %d: %s (want: %v, have: %v): %v",
+		ve.Module,
+		ve.Cause,
+		ve.Want,
+		ve.Have,
+		ve.Err,
+	)
 }
 
 func NewValidationError(module ValidationModule, cause string, want, have any, err error) *ValidationError {

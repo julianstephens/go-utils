@@ -41,7 +41,7 @@ func Ensure(path string, isDir bool) error {
 			if err != nil {
 				return err
 			}
-			f.Close()
+			_ = f.Close()
 		}
 	}
 

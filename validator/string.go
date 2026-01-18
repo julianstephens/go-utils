@@ -30,7 +30,12 @@ func (sv *StringValidator[T]) ValidateMaxLength(input T, max int) error {
 func (sv *StringValidator[T]) ValidateLengthRange(input T, min, max int) error {
 	length := len(input)
 	if length < min || length > max {
-		return sv.Errorf("string length out of range", map[string]int{"min": min, "max": max}, length, ErrStringLengthOutOfRange)
+		return sv.Errorf(
+			"string length out of range",
+			map[string]int{"min": min, "max": max},
+			length,
+			ErrStringLengthOutOfRange,
+		)
 	}
 	return nil
 }
@@ -53,7 +58,12 @@ func (sv *StringValidator[T]) ValidateAlphanumeric(input T) error {
 	str := toString(input)
 	for _, ch := range str {
 		if !unicode.IsLetter(ch) && !unicode.IsDigit(ch) {
-			return sv.Errorf("string contains non-alphanumeric characters", "only letters and digits", str, ErrNotAlphanumeric)
+			return sv.Errorf(
+				"string contains non-alphanumeric characters",
+				"only letters and digits",
+				str,
+				ErrNotAlphanumeric,
+			)
 		}
 	}
 	return nil
@@ -86,7 +96,12 @@ func (sv *StringValidator[T]) ValidateSlug(input T) error {
 	str := toString(input)
 	for _, ch := range str {
 		if !unicode.IsLower(ch) && !unicode.IsDigit(ch) && ch != '-' && ch != '_' {
-			return sv.Errorf("string is not a valid slug", "lowercase alphanumeric with hyphens/underscores", str, ErrInvalidSlug)
+			return sv.Errorf(
+				"string is not a valid slug",
+				"lowercase alphanumeric with hyphens/underscores",
+				str,
+				ErrInvalidSlug,
+			)
 		}
 	}
 	return nil

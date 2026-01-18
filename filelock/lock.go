@@ -49,12 +49,12 @@ func (l *Locker) TryLock() (bool, error) {
 	// Try to acquire the lock
 	acquired, err := tryLockFile(f)
 	if err != nil {
-		f.Close()
+		_ = f.Close()
 		return false, err
 	}
 
 	if !acquired {
-		f.Close()
+		_ = f.Close()
 		return false, nil
 	}
 
@@ -78,7 +78,7 @@ func (l *Locker) Lock() error {
 
 	// Acquire the lock (blocks until available)
 	if err := lockFile(f); err != nil {
-		f.Close()
+		_ = f.Close()
 		return err
 	}
 

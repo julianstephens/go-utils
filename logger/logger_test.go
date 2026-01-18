@@ -262,7 +262,11 @@ func TestLogLevelFiltering(t *testing.T) {
 		t.Fatalf("Failed to parse first JSON log entry: %v", err)
 	}
 	if firstEntry["level"] != "warning" || firstEntry["msg"] != "warn message" {
-		t.Errorf("First entry should be warning level with 'warn message', got level='%s' msg='%s'", firstEntry["level"], firstEntry["msg"])
+		t.Errorf(
+			"First entry should be warning level with 'warn message', got level='%s' msg='%s'",
+			firstEntry["level"],
+			firstEntry["msg"],
+		)
 	}
 
 	// Check second line is error
@@ -271,6 +275,10 @@ func TestLogLevelFiltering(t *testing.T) {
 		t.Fatalf("Failed to parse second JSON log entry: %v", err)
 	}
 	if secondEntry["level"] != "error" || secondEntry["msg"] != "error message" {
-		t.Errorf("Second entry should be error level with 'error message', got level='%s' msg='%s'", secondEntry["level"], secondEntry["msg"])
+		t.Errorf(
+			"Second entry should be error level with 'error message', got level='%s' msg='%s'",
+			secondEntry["level"],
+			secondEntry["msg"],
+		)
 	}
 }

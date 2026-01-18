@@ -28,19 +28,19 @@ func AtomicFileWrite(path string, data []byte) error {
 	// Clean up temp file if something goes wrong
 	defer func() {
 		if err != nil {
-			os.Remove(tmpPath)
+			_ = os.Remove(tmpPath)
 		}
 	}()
 
 	// Write data to temp file
 	if _, err := tmpFile.Write(data); err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return fmt.Errorf("failed to write data: %w", err)
 	}
 
 	// Sync to disk
 	if err := SafeFileSync(tmpFile); err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return fmt.Errorf("failed to sync temp file: %w", err)
 	}
 
@@ -78,7 +78,7 @@ func SafeDirSync(dirPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open directory for sync: %w", err)
 	}
-	defer dir.Close()
+	defer func() { _ = dir.Close() }()
 
 	if err := dir.Sync(); err != nil {
 		return fmt.Errorf("failed to sync directory: %w", err)
@@ -105,25 +105,25 @@ func AtomicFileWriteWithPerm(path string, data []byte, perm os.FileMode) error {
 	// Clean up temp file if something goes wrong
 	defer func() {
 		if err != nil {
-			os.Remove(tmpPath)
+			_ = os.Remove(tmpPath)
 		}
 	}()
 
 	// Write data to temp file
 	if _, err := tmpFile.Write(data); err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return fmt.Errorf("failed to write data: %w", err)
 	}
 
 	// Set permissions before closing
 	if err := tmpFile.Chmod(perm); err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return fmt.Errorf("failed to set file permissions: %w", err)
 	}
 
 	// Sync to disk
 	if err := SafeFileSync(tmpFile); err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		return fmt.Errorf("failed to sync temp file: %w", err)
 	}
 

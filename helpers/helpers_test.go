@@ -67,14 +67,14 @@ func TestExists(t *testing.T) {
 	// Test with existing file
 	t.Run("existing file", func(t *testing.T) {
 		tempFile := filepath.Join(os.TempDir(), "test_exists_file.txt")
-		defer os.Remove(tempFile)
+		defer func() { _ = os.Remove(tempFile) }()
 
 		// Create the file
 		file, err := os.Create(tempFile)
 		if err != nil {
 			t.Fatalf("Failed to create test file: %v", err)
 		}
-		file.Close()
+		_ = file.Close()
 
 		// Test that it exists
 		if !helpers.Exists(tempFile) {
@@ -85,7 +85,7 @@ func TestExists(t *testing.T) {
 	// Test with existing directory
 	t.Run("existing directory", func(t *testing.T) {
 		tempDir := filepath.Join(os.TempDir(), "test_exists_dir")
-		defer os.RemoveAll(tempDir)
+		defer func() { _ = os.RemoveAll(tempDir) }()
 
 		// Create the directory
 		err := os.MkdirAll(tempDir, 0755)
@@ -121,7 +121,7 @@ func TestEnsure(t *testing.T) {
 	// Test directory creation
 	t.Run("create directory", func(t *testing.T) {
 		tempDir := filepath.Join(os.TempDir(), "test_ensure_dir")
-		defer os.RemoveAll(tempDir)
+		defer func() { _ = os.RemoveAll(tempDir) }()
 
 		err := helpers.Ensure(tempDir, true)
 		if err != nil {
@@ -143,7 +143,7 @@ func TestEnsure(t *testing.T) {
 	// Test file creation
 	t.Run("create file", func(t *testing.T) {
 		tempFile := filepath.Join(os.TempDir(), "test_ensure_file.txt")
-		defer os.Remove(tempFile)
+		defer func() { _ = os.Remove(tempFile) }()
 
 		err := helpers.Ensure(tempFile, false)
 		if err != nil {
@@ -165,7 +165,7 @@ func TestEnsure(t *testing.T) {
 	// Test nested directory creation
 	t.Run("create nested directory", func(t *testing.T) {
 		tempDir := filepath.Join(os.TempDir(), "test_ensure", "nested", "dir")
-		defer os.RemoveAll(filepath.Join(os.TempDir(), "test_ensure"))
+		defer func() { _ = os.RemoveAll(filepath.Join(os.TempDir(), "test_ensure")) }()
 
 		err := helpers.Ensure(tempDir, true)
 		if err != nil {

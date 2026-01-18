@@ -93,7 +93,11 @@ func TestArgs_GetFlagWithDefault(t *testing.T) {
 	args := cliutil.ParseArgs([]string{"--output", "file.txt"})
 
 	tst.AssertTrue(t, args.GetFlagWithDefault("output", "default.txt") == "file.txt", "should get actual flag value")
-	tst.AssertTrue(t, args.GetFlagWithDefault("nonexistent", "default.txt") == "default.txt", "should get default for nonexistent flag")
+	tst.AssertTrue(
+		t,
+		args.GetFlagWithDefault("nonexistent", "default.txt") == "default.txt",
+		"should get default for nonexistent flag",
+	)
 }
 
 func TestHasFlag(t *testing.T) {
@@ -107,9 +111,21 @@ func TestHasFlag(t *testing.T) {
 func TestGetFlagValue(t *testing.T) {
 	args := []string{"--output", "file.txt", "--config=config.yaml", "input.txt"}
 
-	tst.AssertTrue(t, cliutil.GetFlagValue(args, "--output", "default") == "file.txt", "GetFlagValue --output should return file.txt")
-	tst.AssertTrue(t, cliutil.GetFlagValue(args, "--config", "default") == "config.yaml", "GetFlagValue --config should return config.yaml")
-	tst.AssertTrue(t, cliutil.GetFlagValue(args, "--nonexistent", "default") == "default", "GetFlagValue nonexistent should return default")
+	tst.AssertTrue(
+		t,
+		cliutil.GetFlagValue(args, "--output", "default") == "file.txt",
+		"GetFlagValue --output should return file.txt",
+	)
+	tst.AssertTrue(
+		t,
+		cliutil.GetFlagValue(args, "--config", "default") == "config.yaml",
+		"GetFlagValue --config should return config.yaml",
+	)
+	tst.AssertTrue(
+		t,
+		cliutil.GetFlagValue(args, "--nonexistent", "default") == "default",
+		"GetFlagValue nonexistent should return default",
+	)
 }
 
 func TestValidateNonEmpty(t *testing.T) {

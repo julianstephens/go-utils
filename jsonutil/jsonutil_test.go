@@ -118,7 +118,11 @@ func TestMarshalWithOptions(t *testing.T) {
 			data, err := jsonutil.MarshalWithOptions(input, tt.opts)
 			tst.AssertNoError(t, err)
 			result := string(data)
-			tst.AssertTrue(t, strings.Contains(result, tt.wantStr), "MarshalWithOptions() result missing expected substring")
+			tst.AssertTrue(
+				t,
+				strings.Contains(result, tt.wantStr),
+				"MarshalWithOptions() result missing expected substring",
+			)
 			tst.AssertTrue(t, jsonutil.Valid(data), "MarshalWithOptions() produced invalid JSON")
 		})
 	}
@@ -283,7 +287,11 @@ func TestEncodeWriter(t *testing.T) {
 			tst.AssertNoError(t, err)
 			tst.AssertTrue(t, jsonutil.Valid(buf.Bytes()), "EncodeWriter() produced invalid JSON")
 			if tt.opts != nil && tt.opts.Indent != "" {
-				tst.AssertTrue(t, strings.Contains(buf.String(), "\n"), "EncodeWriter() should produce indented output when indent is specified")
+				tst.AssertTrue(
+					t,
+					strings.Contains(buf.String(), "\n"),
+					"EncodeWriter() should produce indented output when indent is specified",
+				)
 			}
 		})
 	}
@@ -420,7 +428,11 @@ func TestCompact(t *testing.T) {
 	err := jsonutil.Compact(&buf, []byte(indentedJSON))
 	tst.AssertNoError(t, err)
 	result := buf.String()
-	tst.AssertFalse(t, strings.Contains(result, "\n") || strings.Contains(result, "  "), "Compact() should remove whitespace")
+	tst.AssertFalse(
+		t,
+		strings.Contains(result, "\n") || strings.Contains(result, "  "),
+		"Compact() should remove whitespace",
+	)
 	tst.AssertTrue(t, jsonutil.Valid(buf.Bytes()), "Compact() produced invalid JSON")
 }
 

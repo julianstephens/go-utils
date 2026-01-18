@@ -19,7 +19,7 @@ func TestLogging(t *testing.T) {
 
 	handler := middleware.Logging(logger)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("test response"))
+		_, _ = w.Write([]byte("test response"))
 	}))
 
 	req := httptest.NewRequest("GET", "/test", nil)
@@ -89,7 +89,7 @@ func TestRecoveryNoPanic(t *testing.T) {
 
 	handler := middleware.Recovery(logger)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("no panic"))
+		_, _ = w.Write([]byte("no panic"))
 	}))
 
 	req := httptest.NewRequest("GET", "/test", nil)
@@ -101,7 +101,11 @@ func TestRecoveryNoPanic(t *testing.T) {
 
 	tst.AssertBodyEquals(t, w, "no panic")
 	logOutput := buf.String()
-	tst.AssertFalse(t, strings.Contains(logOutput, "Panic"), "Log should not contain panic message when no panic occurs")
+	tst.AssertFalse(
+		t,
+		strings.Contains(logOutput, "Panic"),
+		"Log should not contain panic message when no panic occurs",
+	)
 }
 
 func TestCORS(t *testing.T) {
@@ -116,7 +120,7 @@ func TestCORS(t *testing.T) {
 
 	handler := middleware.CORS(config)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("cors test"))
+		_, _ = w.Write([]byte("cors test"))
 	}))
 
 	// Test with allowed origin
@@ -126,11 +130,31 @@ func TestCORS(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Origin") == "https://example.com", "Should set Access-Control-Allow-Origin for allowed origin")
-	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Methods") == "GET, POST", "Should set Access-Control-Allow-Methods")
-	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Headers") == "Content-Type, Authorization", "Should set Access-Control-Allow-Headers")
-	tst.AssertTrue(t, w.Header().Get("Access-Control-Expose-Headers") == "X-Total-Count", "Should set Access-Control-Expose-Headers")
-	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Credentials") == "true", "Should set Access-Control-Allow-Credentials")
+	tst.AssertTrue(
+		t,
+		w.Header().Get("Access-Control-Allow-Origin") == "https://example.com",
+		"Should set Access-Control-Allow-Origin for allowed origin",
+	)
+	tst.AssertTrue(
+		t,
+		w.Header().Get("Access-Control-Allow-Methods") == "GET, POST",
+		"Should set Access-Control-Allow-Methods",
+	)
+	tst.AssertTrue(
+		t,
+		w.Header().Get("Access-Control-Allow-Headers") == "Content-Type, Authorization",
+		"Should set Access-Control-Allow-Headers",
+	)
+	tst.AssertTrue(
+		t,
+		w.Header().Get("Access-Control-Expose-Headers") == "X-Total-Count",
+		"Should set Access-Control-Expose-Headers",
+	)
+	tst.AssertTrue(
+		t,
+		w.Header().Get("Access-Control-Allow-Credentials") == "true",
+		"Should set Access-Control-Allow-Credentials",
+	)
 	tst.AssertTrue(t, w.Header().Get("Access-Control-Max-Age") == "3600", "Should set Access-Control-Max-Age")
 }
 
@@ -138,7 +162,7 @@ func TestCORSPreflightRequest(t *testing.T) {
 	config := middleware.DefaultCORSConfig()
 	handler := middleware.CORS(config)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("should not reach here"))
+		_, _ = w.Write([]byte("should not reach here"))
 	}))
 
 	req := httptest.NewRequest("OPTIONS", "/test", nil)
@@ -163,7 +187,11 @@ func TestCORSWildcardOrigin(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Origin") == "*", "Should set Access-Control-Allow-Origin to * for wildcard config")
+	tst.AssertTrue(
+		t,
+		w.Header().Get("Access-Control-Allow-Origin") == "*",
+		"Should set Access-Control-Allow-Origin to * for wildcard config",
+	)
 }
 
 func TestCORSDisallowedOrigin(t *testing.T) {
@@ -181,7 +209,11 @@ func TestCORSDisallowedOrigin(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Origin") == "", "Should not set Access-Control-Allow-Origin for disallowed origin")
+	tst.AssertTrue(
+		t,
+		w.Header().Get("Access-Control-Allow-Origin") == "",
+		"Should not set Access-Control-Allow-Origin for disallowed origin",
+	)
 }
 
 func TestRequestID(t *testing.T) {
@@ -235,7 +267,11 @@ func TestGetRequestIDFromEmptyContext(t *testing.T) {
 func TestDefaultCORSConfig(t *testing.T) {
 	config := middleware.DefaultCORSConfig()
 
-	tst.AssertTrue(t, len(config.AllowedOrigins) == 1 && config.AllowedOrigins[0] == "*", "Default config should allow all origins")
+	tst.AssertTrue(
+		t,
+		len(config.AllowedOrigins) == 1 && config.AllowedOrigins[0] == "*",
+		"Default config should allow all origins",
+	)
 	expectedMethods := []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
 	tst.AssertDeepEqual(t, len(config.AllowedMethods), len(expectedMethods))
 	tst.AssertTrue(t, config.MaxAge == 86400, "Default config should have 24 hour max age")
@@ -258,7 +294,11 @@ func TestCORSWildcardSubdomain(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	tst.AssertTrue(t, w.Header().Get("Access-Control-Allow-Origin") == "https://api.example.com", "Should allow subdomain matching wildcard pattern")
+	tst.AssertTrue(
+		t,
+		w.Header().Get("Access-Control-Allow-Origin") == "https://api.example.com",
+		"Should allow subdomain matching wildcard pattern",
+	)
 
 	// Test domain that should not be allowed
 	req2 := httptest.NewRequest("GET", "/test", nil)
@@ -267,5 +307,9 @@ func TestCORSWildcardSubdomain(t *testing.T) {
 
 	handler.ServeHTTP(w2, req2)
 
-	tst.AssertTrue(t, w2.Header().Get("Access-Control-Allow-Origin") == "", "Should not allow domain that doesn't match wildcard pattern")
+	tst.AssertTrue(
+		t,
+		w2.Header().Get("Access-Control-Allow-Origin") == "",
+		"Should not allow domain that doesn't match wildcard pattern",
+	)
 }

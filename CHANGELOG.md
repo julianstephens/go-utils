@@ -1,3 +1,13 @@
+## v0.4.1
+
+- logger: adds rotating file output support
+    - adds `FileRotationConfig` type for configurable rotation parameters
+    - adds `SetFileOutput(filepath)` for rotating file logs with sensible defaults (100MB, 3 backups, 28 days, compression enabled)
+    - adds `SetFileOutputWithConfig(config)` for custom rotation configuration
+    - adds support for global and instance-level file output configuration
+    - integrates [lumberjack](https://github.com/natefinch/lumberjack) for robust log rotation
+- improves code formatting consistency across validator and test packages
+
 ## v0.4.0
 
 - checksum: adds fast cryptographic checksum utilities

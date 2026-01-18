@@ -107,7 +107,12 @@ func (nv *NumberValidator[T]) ValidateGreaterThan(input T, threshold T) error {
 // ValidateGreaterThanOrEqual validates that a number is greater than or equal to the threshold
 func (nv *NumberValidator[T]) ValidateGreaterThanOrEqual(input T, threshold T) error {
 	if input < threshold {
-		return nv.Errorf("number not greater than or equal to threshold", fmt.Sprintf(">= %v", threshold), input, ErrNotGreaterThan)
+		return nv.Errorf(
+			"number not greater than or equal to threshold",
+			fmt.Sprintf(">= %v", threshold),
+			input,
+			ErrNotGreaterThan,
+		)
 	}
 	return nil
 }
@@ -123,7 +128,12 @@ func (nv *NumberValidator[T]) ValidateLessThan(input T, threshold T) error {
 // ValidateLessThanOrEqual validates that a number is less than or equal to the threshold
 func (nv *NumberValidator[T]) ValidateLessThanOrEqual(input T, threshold T) error {
 	if input > threshold {
-		return nv.Errorf("number not less than or equal to threshold", fmt.Sprintf("<= %v", threshold), input, ErrNotLessThan)
+		return nv.Errorf(
+			"number not less than or equal to threshold",
+			fmt.Sprintf("<= %v", threshold),
+			input,
+			ErrNotLessThan,
+		)
 	}
 	return nil
 }
@@ -139,7 +149,12 @@ func (nv *NumberValidator[T]) ValidateBetween(input T, lower T, upper T) error {
 // ValidateConsecutive validates that the second number is exactly one greater than the first
 func (nv *NumberValidator[T]) ValidateConsecutive(input1, input2 T) error {
 	if input2 != input1+1 {
-		return nv.Errorf("numbers are not consecutive", fmt.Sprintf("%v followed by %v", input1, input1+1), input2, fmt.Errorf("%w:%v", ErrNumberOutOfRange, errors.New("not consecutive")))
+		return nv.Errorf(
+			"numbers are not consecutive",
+			fmt.Sprintf("%v followed by %v", input1, input1+1),
+			input2,
+			fmt.Errorf("%w:%v", ErrNumberOutOfRange, errors.New("not consecutive")),
+		)
 	}
 	return nil
 }
@@ -182,7 +197,12 @@ func (nv *NumberValidator[T]) ValidateDivisibleBy(input T, divisor T) error {
 		return nv.Errorf("divisor cannot be zero", "non-zero divisor", divisor, fmt.Errorf("division by zero"))
 	}
 	if intInput%intDivisor != 0 {
-		return nv.Errorf("number is not divisible by divisor", fmt.Sprintf("divisible by %v", divisor), input, fmt.Errorf("%w:%v", ErrNotEqual, "not divisible"))
+		return nv.Errorf(
+			"number is not divisible by divisor",
+			fmt.Sprintf("divisible by %v", divisor),
+			input,
+			fmt.Errorf("%w:%v", ErrNotEqual, "not divisible"),
+		)
 	}
 	return nil
 }
@@ -205,7 +225,12 @@ func (nv *NumberValidator[T]) ValidatePowerOf(input T, base T) error {
 		power *= intBase
 	}
 	if power != intInput {
-		return nv.Errorf("number is not a power of the base", fmt.Sprintf("power of %v", base), input, fmt.Errorf("%w:%v", ErrNotEqual, "not a power"))
+		return nv.Errorf(
+			"number is not a power of the base",
+			fmt.Sprintf("power of %v", base),
+			input,
+			fmt.Errorf("%w:%v", ErrNotEqual, "not a power"),
+		)
 	}
 	return nil
 }
@@ -217,14 +242,24 @@ func (nv *NumberValidator[T]) ValidateFibonacci(input T) error {
 		return nv.Errorf("type does not support Fibonacci validation", "integer type", input, err)
 	}
 	if intInput < 0 {
-		return nv.Errorf("Fibonacci number cannot be negative", "non-negative number", input, fmt.Errorf("negative number"))
+		return nv.Errorf(
+			"Fibonacci number cannot be negative",
+			"non-negative number",
+			input,
+			fmt.Errorf("negative number"),
+		)
 	}
 	a, b := int64(0), int64(1)
 	for a < intInput {
 		a, b = b, a+b
 	}
 	if a != intInput {
-		return nv.Errorf("number is not a Fibonacci number", "Fibonacci number", input, fmt.Errorf("%w:%v", ErrNotEqual, "not a Fibonacci number"))
+		return nv.Errorf(
+			"number is not a Fibonacci number",
+			"Fibonacci number",
+			input,
+			fmt.Errorf("%w:%v", ErrNotEqual, "not a Fibonacci number"),
+		)
 	}
 	return nil
 }

@@ -28,7 +28,7 @@ func TestMiddlewareIntegration(t *testing.T) {
 	router.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		requestID := middleware.GetRequestID(r.Context())
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"ok","request_id":"` + requestID + `"}`))
+		_, _ = w.Write([]byte(`{"status":"ok","request_id":"` + requestID + `"}`))
 	}).Methods("GET")
 
 	router.HandleFunc("/api/panic", func(w http.ResponseWriter, r *http.Request) {
@@ -116,10 +116,14 @@ func TestMiddlewareIntegration(t *testing.T) {
 	// Test OPTIONS preflight request
 	t.Run("CORS preflight", func(t *testing.T) {
 		// Test CORS middleware directly without router constraints
-		corsHandler := middleware.CORS(middleware.DefaultCORSConfig())(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("should not reach here for OPTIONS"))
-		}))
+		corsHandler := middleware.CORS(
+			middleware.DefaultCORSConfig(),
+		)(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("should not reach here for OPTIONS"))
+			}),
+		)
 
 		req := httptest.NewRequest("OPTIONS", "/api/health", nil)
 		req.Header.Set("Origin", "https://example.com")

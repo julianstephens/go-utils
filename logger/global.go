@@ -130,3 +130,18 @@ func Panic(args ...interface{}) {
 func GetDefaultLogger() *Logger {
 	return defaultLogger
 }
+
+// SetFileOutput configures the default logger to write to a rotating file with sensible defaults.
+// The file will rotate when it reaches 100MB, keeping 3 backups for 28 days with compression enabled.
+func SetFileOutput(filepath string) error {
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	return defaultLogger.SetFileOutput(filepath)
+}
+
+// SetFileOutputWithConfig configures rotating file output on the default logger with custom settings.
+func SetFileOutputWithConfig(config FileRotationConfig) error {
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	return defaultLogger.SetFileOutputWithConfig(config)
+}

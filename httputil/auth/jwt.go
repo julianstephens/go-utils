@@ -91,7 +91,12 @@ func NewJWTManager(secretKey string, tokenDuration time.Duration, issuer string)
 }
 
 // NewJWTManagerWithRefreshConfig creates a new JWT manager with custom refresh token duration
-func NewJWTManagerWithRefreshConfig(secretKey string, tokenDuration time.Duration, issuer string, refreshTokenDuration time.Duration) (*JWTManager, error) {
+func NewJWTManagerWithRefreshConfig(
+	secretKey string,
+	tokenDuration time.Duration,
+	issuer string,
+	refreshTokenDuration time.Duration,
+) (*JWTManager, error) {
 	keys, err := deriveKeys([]byte(secretKey))
 	if err != nil {
 		return nil, err
@@ -111,7 +116,11 @@ func (j *JWTManager) GenerateTokenPair(userID string, roles []string) (*TokenPai
 }
 
 // GenerateTokenPairWithClaims creates access and refresh token pair with custom claims
-func (j *JWTManager) GenerateTokenPairWithClaims(userID string, roles []string, customClaims map[string]any) (*TokenPair, error) {
+func (j *JWTManager) GenerateTokenPairWithClaims(
+	userID string,
+	roles []string,
+	customClaims map[string]any,
+) (*TokenPair, error) {
 	// Generate access token
 	accessToken, err := j.GenerateTokenWithClaims(userID, roles, customClaims)
 	if err != nil {
@@ -192,7 +201,11 @@ func (j *JWTManager) GenerateToken(userID string, roles []string) (string, error
 }
 
 // GenerateTokenWithClaims creates a new JWT token with the provided claims and custom claims
-func (j *JWTManager) GenerateTokenWithClaims(userID string, roles []string, customClaims map[string]any) (string, error) {
+func (j *JWTManager) GenerateTokenWithClaims(
+	userID string,
+	roles []string,
+	customClaims map[string]any,
+) (string, error) {
 	now := time.Now()
 
 	// Extract username and email from custom claims if provided
@@ -246,7 +259,11 @@ func (j *JWTManager) GenerateTokenWithUserInfo(userID, username, email string, r
 
 // GenerateTokenWithUserInfoAndClaims creates a new JWT token with user info and additional custom claims
 // This is a convenience method for backward compatibility
-func (j *JWTManager) GenerateTokenWithUserInfoAndClaims(userID, username, email string, roles []string, customClaims map[string]any) (string, error) {
+func (j *JWTManager) GenerateTokenWithUserInfoAndClaims(
+	userID, username, email string,
+	roles []string,
+	customClaims map[string]any,
+) (string, error) {
 	if customClaims == nil {
 		customClaims = make(map[string]any)
 	}
@@ -393,19 +410,19 @@ func (c *Claims) HasAnyRole(roles ...string) bool {
 
 // IsExpired checks if the token is expired
 func (c *Claims) IsExpired() bool {
-	if c.RegisteredClaims.ExpiresAt == nil {
+	if c.ExpiresAt == nil {
 		return false
 	}
-	return time.Now().After(c.RegisteredClaims.ExpiresAt.Time)
+	return time.Now().After(c.ExpiresAt.Time)
 }
 
 // Expiration returns the token expiration time and true if present.
 // If the token has no expiration claim the returned bool is false.
 func (c *Claims) Expiration() (time.Time, bool) {
-	if c.RegisteredClaims.ExpiresAt == nil {
+	if c.ExpiresAt == nil {
 		return time.Time{}, false
 	}
-	return c.RegisteredClaims.ExpiresAt.Time, true
+	return c.ExpiresAt.Time, true
 }
 
 // TokenExpiration returns the expiration time for the provided token string.
@@ -437,16 +454,16 @@ func (j *JWTManager) TokenExpiration(tokenString string) (time.Time, error) {
 			return time.Time{}, ErrInvalidClaims
 		}
 
-		if c.RegisteredClaims.ExpiresAt == nil {
+		if c.ExpiresAt == nil {
 			return time.Time{}, ErrInvalidClaims
 		}
-		return c.RegisteredClaims.ExpiresAt.Time, nil
+		return c.ExpiresAt.Time, nil
 	}
 
-	if claims.RegisteredClaims.ExpiresAt == nil {
+	if claims.ExpiresAt == nil {
 		return time.Time{}, ErrInvalidClaims
 	}
-	return claims.RegisteredClaims.ExpiresAt.Time, nil
+	return claims.ExpiresAt.Time, nil
 }
 
 // GetCustomClaim retrieves a custom claim value by key

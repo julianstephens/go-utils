@@ -173,7 +173,7 @@ func PromptStringWithValidation(prompt string, validator func(string) error) str
 // io.Reader and io.Writer. This is useful for testing where stdin/stdout can
 // be simulated.
 func PromptStringWithIO(prompt string, in io.Reader, out io.Writer) string {
-	fmt.Fprint(out, prompt)
+	_, _ = fmt.Fprint(out, prompt)
 	scanner := bufio.NewScanner(in)
 	if scanner.Scan() {
 		return strings.TrimSpace(scanner.Text())
@@ -202,13 +202,13 @@ func PromptPasswordWithValidation(prompt string, validator func(string) error) s
 // line-read (echoed).
 func PromptPasswordWithIO(prompt string, in io.Reader, out io.Writer) string {
 	// Print prompt without newline so password can be entered on same line
-	fmt.Fprint(out, prompt)
+	_, _ = fmt.Fprint(out, prompt)
 
 	// If in is an *os.File and a terminal, use ReadPassword to disable echo
 	if f, ok := in.(*os.File); ok {
 		if term.IsTerminal(int(f.Fd())) {
 			b, err := term.ReadPassword(int(f.Fd()))
-			fmt.Fprintln(out)
+			_, _ = fmt.Fprintln(out)
 			if err == nil {
 				return strings.TrimSpace(string(b))
 			}

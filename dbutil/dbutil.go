@@ -231,7 +231,7 @@ func WithTransactionOptions(ctx context.Context, db *sql.DB, opts *TransactionOp
 	// Ensure rollback on panic or error
 	defer func() {
 		if p := recover(); p != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			panic(p) // Re-throw panic after rollback
 		}
 	}()

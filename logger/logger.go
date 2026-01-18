@@ -5,7 +5,17 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
+
+// FileRotationConfig configures rotating file output for the logger.
+type FileRotationConfig struct {
+	Filename   string // Path to log file
+	MaxSize    int    // Max file size in megabytes (default: 100)
+	MaxBackups int    // Max backup files to retain (default: 3)
+	MaxAge     int    // Max age in days before deletion (default: 28)
+	Compress   bool   // Compress old logs (default: true)
+}
 
 // Logger wraps logrus to provide a unified logging interface for all julianstephens Go projects.
 // It offers structured logging with configurable levels, custom formatting, and contextual logging support.
@@ -143,4 +153,30 @@ func (l *Logger) Panic(args ...interface{}) {
 // GetLevel returns the current logging level.
 func (l *Logger) GetLevel() string {
 	return l.entry.Logger.GetLevel().String()
+}
+
+// SetFileOutput configures the logger to write to a rotating file with sensible defaults.
+// The file will rotate when it reaches 100MB, keeping 3 backups for 28 days with compression enabled.
+func (l *Logger) SetFileOutput(filepath string) error {
+	config := FileRotationConfig{
+		Filename:   filepath,
+		MaxSize:    100,
+		MaxBackups: 3,
+		MaxAge:     28,
+		Compress:   true,
+	}
+	return l.SetFileOutputWithConfig(config)
+}
+
+// SetFileOutputWithConfig configures rotating file output with custom settings.
+func (l *Logger) SetFileOutputWithConfig(config FileRotationConfig) error {
+	rotatingFile := &lumberjack.Logger{
+		Filename:   config.Filename,
+		MaxSize:    config.MaxSize,
+		MaxBackups: config.MaxBackups,
+		MaxAge:     config.MaxAge,
+		Compress:   config.Compress,
+	}
+	l.entry.Logger.SetOutput(rotatingFile)
+	return nil
 }
