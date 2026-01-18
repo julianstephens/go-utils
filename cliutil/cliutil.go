@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/term"
@@ -426,6 +427,7 @@ type Spinner struct {
 	frames   []string
 	active   bool
 	stopChan chan bool
+	mu       sync.RWMutex
 }
 
 // NewSpinner creates a new spinner
@@ -434,16 +436,21 @@ func NewSpinner(message string) *Spinner {
 		message:  message,
 		frames:   []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
 		stopChan: make(chan bool),
+		mu:       sync.RWMutex{},
 	}
 }
 
 // Start starts the spinner animation
 func (s *Spinner) Start() {
+	s.mu.Lock()
 	if s.active {
+		s.mu.Unlock()
 		return
 	}
 
 	s.active = true
+	s.mu.Unlock()
+
 	go func() {
 		i := 0
 		for {
@@ -451,7 +458,10 @@ func (s *Spinner) Start() {
 			case <-s.stopChan:
 				return
 			default:
-				fmt.Printf("\r%s %s", s.frames[i%len(s.frames)], s.message)
+				s.mu.RLock()
+				message := s.message
+				s.mu.RUnlock()
+				fmt.Printf("\r%s %s", s.frames[i%len(s.frames)], message)
 				i++
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -461,11 +471,15 @@ func (s *Spinner) Start() {
 
 // Stop stops the spinner animation
 func (s *Spinner) Stop() {
+	s.mu.Lock()
 	if !s.active {
+		s.mu.Unlock()
 		return
 	}
 
 	s.active = false
+	s.mu.Unlock()
+
 	select {
 	case s.stopChan <- true:
 	default:
@@ -476,5 +490,7 @@ func (s *Spinner) Stop() {
 
 // UpdateMessage updates the spinner message
 func (s *Spinner) UpdateMessage(message string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.message = message
 }

@@ -152,3 +152,182 @@ func TestStringValidator_Bytes(t *testing.T) {
 		t.Error("ValidateLengthRange([]byte('hi'), 5, 10) should fail")
 	}
 }
+
+func TestStringValidator_Pattern(t *testing.T) {
+	v := validator.Strings[string]()
+
+	// Test ValidatePattern - should pass
+	if err := v.ValidatePattern("hello123", `^[a-z0-9]+$`); err != nil {
+		t.Errorf("ValidatePattern('hello123', '^[a-z0-9]+$') should pass, got error: %v", err)
+	}
+
+	// Test ValidatePattern - should fail
+	if err := v.ValidatePattern("hello_123", `^[a-z0-9]+$`); err == nil {
+		t.Error("ValidatePattern('hello_123', '^[a-z0-9]+$') should fail")
+	}
+
+	// Test ValidatePattern - invalid regex
+	if err := v.ValidatePattern("test", "[invalid"); err == nil {
+		t.Error("ValidatePattern with invalid regex should fail")
+	}
+}
+
+func TestStringValidator_Alphanumeric(t *testing.T) {
+	v := validator.Strings[string]()
+
+	// Test ValidateAlphanumeric - should pass
+	if err := v.ValidateAlphanumeric("abc123"); err != nil {
+		t.Errorf("ValidateAlphanumeric('abc123') should pass, got error: %v", err)
+	}
+
+	// Test ValidateAlphanumeric - with special char
+	if err := v.ValidateAlphanumeric("abc_123"); err == nil {
+		t.Error("ValidateAlphanumeric('abc_123') should fail")
+	}
+
+	// Test ValidateAlphanumeric - with space
+	if err := v.ValidateAlphanumeric("abc 123"); err == nil {
+		t.Error("ValidateAlphanumeric('abc 123') should fail")
+	}
+}
+
+func TestStringValidator_Alpha(t *testing.T) {
+	v := validator.Strings[string]()
+
+	// Test ValidateAlpha - should pass
+	if err := v.ValidateAlpha("abcXYZ"); err != nil {
+		t.Errorf("ValidateAlpha('abcXYZ') should pass, got error: %v", err)
+	}
+
+	// Test ValidateAlpha - with digit
+	if err := v.ValidateAlpha("abc123"); err == nil {
+		t.Error("ValidateAlpha('abc123') should fail")
+	}
+
+	// Test ValidateAlpha - with special char
+	if err := v.ValidateAlpha("abc_"); err == nil {
+		t.Error("ValidateAlpha('abc_') should fail")
+	}
+}
+
+func TestStringValidator_Numeric(t *testing.T) {
+	v := validator.Strings[string]()
+
+	// Test ValidateNumeric - should pass
+	if err := v.ValidateNumeric("12345"); err != nil {
+		t.Errorf("ValidateNumeric('12345') should pass, got error: %v", err)
+	}
+
+	// Test ValidateNumeric - with letter
+	if err := v.ValidateNumeric("12345a"); err == nil {
+		t.Error("ValidateNumeric('12345a') should fail")
+	}
+
+	// Test ValidateNumeric - with special char
+	if err := v.ValidateNumeric("123-45"); err == nil {
+		t.Error("ValidateNumeric('123-45') should fail")
+	}
+}
+
+func TestStringValidator_Slug(t *testing.T) {
+	v := validator.Strings[string]()
+
+	// Test ValidateSlug - should pass
+	if err := v.ValidateSlug("my-slug_123"); err != nil {
+		t.Errorf("ValidateSlug('my-slug_123') should pass, got error: %v", err)
+	}
+
+	// Test ValidateSlug - with uppercase
+	if err := v.ValidateSlug("My-Slug"); err == nil {
+		t.Error("ValidateSlug('My-Slug') should fail")
+	}
+
+	// Test ValidateSlug - with space
+	if err := v.ValidateSlug("my slug"); err == nil {
+		t.Error("ValidateSlug('my slug') should fail")
+	}
+}
+
+func TestStringValidator_Lowercase(t *testing.T) {
+	v := validator.Strings[string]()
+
+	// Test ValidateLowercase - should pass
+	if err := v.ValidateLowercase("abc123_"); err != nil {
+		t.Errorf("ValidateLowercase('abc123_') should pass, got error: %v", err)
+	}
+
+	// Test ValidateLowercase - with uppercase
+	if err := v.ValidateLowercase("Abc"); err == nil {
+		t.Error("ValidateLowercase('Abc') should fail")
+	}
+}
+
+func TestStringValidator_Uppercase(t *testing.T) {
+	v := validator.Strings[string]()
+
+	// Test ValidateUppercase - should pass
+	if err := v.ValidateUppercase("ABC123_"); err != nil {
+		t.Errorf("ValidateUppercase('ABC123_') should pass, got error: %v", err)
+	}
+
+	// Test ValidateUppercase - with lowercase
+	if err := v.ValidateUppercase("ABc"); err == nil {
+		t.Error("ValidateUppercase('ABc') should fail")
+	}
+}
+
+func TestStringValidator_Contains(t *testing.T) {
+	v := validator.Strings[string]()
+
+	// Test ValidateContains - should pass
+	if err := v.ValidateContains("hello world", "world"); err != nil {
+		t.Errorf("ValidateContains('hello world', 'world') should pass, got error: %v", err)
+	}
+
+	// Test ValidateContains - should fail
+	if err := v.ValidateContains("hello world", "foo"); err == nil {
+		t.Error("ValidateContains('hello world', 'foo') should fail")
+	}
+}
+
+func TestStringValidator_NotContains(t *testing.T) {
+	v := validator.Strings[string]()
+
+	// Test ValidateNotContains - should pass
+	if err := v.ValidateNotContains("hello world", "foo"); err != nil {
+		t.Errorf("ValidateNotContains('hello world', 'foo') should pass, got error: %v", err)
+	}
+
+	// Test ValidateNotContains - should fail
+	if err := v.ValidateNotContains("hello world", "world"); err == nil {
+		t.Error("ValidateNotContains('hello world', 'world') should fail")
+	}
+}
+
+func TestStringValidator_Prefix(t *testing.T) {
+	v := validator.Strings[string]()
+
+	// Test ValidatePrefix - should pass
+	if err := v.ValidatePrefix("hello world", "hello"); err != nil {
+		t.Errorf("ValidatePrefix('hello world', 'hello') should pass, got error: %v", err)
+	}
+
+	// Test ValidatePrefix - should fail
+	if err := v.ValidatePrefix("hello world", "world"); err == nil {
+		t.Error("ValidatePrefix('hello world', 'world') should fail")
+	}
+}
+
+func TestStringValidator_Suffix(t *testing.T) {
+	v := validator.Strings[string]()
+
+	// Test ValidateSuffix - should pass
+	if err := v.ValidateSuffix("hello world", "world"); err != nil {
+		t.Errorf("ValidateSuffix('hello world', 'world') should pass, got error: %v", err)
+	}
+
+	// Test ValidateSuffix - should fail
+	if err := v.ValidateSuffix("hello world", "hello"); err == nil {
+		t.Error("ValidateSuffix('hello world', 'hello') should fail")
+	}
+}

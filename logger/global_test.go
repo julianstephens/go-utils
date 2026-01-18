@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/julianstephens/go-utils/logger"
@@ -279,5 +280,101 @@ func TestGetDefaultLogger(t *testing.T) {
 	}
 
 	// Reset to stdout to avoid affecting other tests
+	logger.SetOutput(os.Stdout)
+}
+
+func TestGlobalConcurrentLoggingAndConfiguration(t *testing.T) {
+	// Test that concurrent logging and configuration changes don't cause race conditions
+	var wg sync.WaitGroup
+	var buf bytes.Buffer
+
+	// Set initial output
+	logger.SetOutput(&buf)
+	logger.SetFormatter(&logrus.JSONFormatter{})
+	logger.SetLogLevel("debug")
+
+	// Launch goroutines that log concurrently
+	numLoggers := 10
+	logsPerGoroutine := 100
+	wg.Add(numLoggers)
+
+	for i := 0; i < numLoggers; i++ {
+		go func(id int) {
+			defer wg.Done()
+			for j := 0; j < logsPerGoroutine; j++ {
+				logger.Infof("concurrent log from goroutine %d, iteration %d", id, j)
+			}
+		}(i)
+	}
+
+	// Wait for all logging goroutines to complete
+	wg.Wait()
+
+	// Verify logs were written successfully
+	output := buf.String()
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+
+	expectedLogCount := numLoggers * logsPerGoroutine
+	if len(lines) < expectedLogCount {
+		t.Errorf("Expected at least %d log lines, got %d", expectedLogCount, len(lines))
+	}
+
+	// Verify logs are valid JSON
+	var validJsonCount int
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		var entry map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &entry); err != nil {
+			t.Errorf("Failed to parse log line as JSON: %s, error: %v", line, err)
+		} else {
+			validJsonCount++
+		}
+	}
+
+	if validJsonCount < expectedLogCount {
+		t.Errorf("Expected at least %d valid JSON log entries, got %d", expectedLogCount, validJsonCount)
+	}
+
+	// Reset to stdout
+	logger.SetOutput(os.Stdout)
+}
+
+func TestGlobalConcurrentConfigurationChanges(t *testing.T) {
+	// Test that concurrent configuration changes don't cause panics or data races
+	var wg sync.WaitGroup
+	var buf bytes.Buffer
+
+	logger.SetOutput(&buf)
+	logger.SetLogLevel("info")
+
+	numGoroutines := 20
+	wg.Add(numGoroutines)
+
+	for i := 0; i < numGoroutines; i++ {
+		go func(id int) {
+			defer wg.Done()
+
+			// Alternately change log level and log
+			levels := []string{"debug", "info", "warn", "error"}
+			for j := 0; j < 25; j++ {
+				level := levels[j%len(levels)]
+				logger.SetLogLevel(level)
+				logger.Infof("log from goroutine %d, iteration %d, level %s", id, j, level)
+			}
+		}(i)
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+
+	// Verify no panics occurred and some logs were written
+	output := buf.String()
+	if output == "" {
+		t.Error("Expected some log output from concurrent configuration changes")
+	}
+
+	// Reset to stdout
 	logger.SetOutput(os.Stdout)
 }

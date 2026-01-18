@@ -166,6 +166,20 @@ func TestNumberValidator_Int(t *testing.T) {
 	if err := v.ValidateBetween(8, 3, 7); err == nil {
 		t.Error("ValidateBetween(8, 3, 7) should fail")
 	}
+
+	// Test ValidateConsecutive
+	if err := v.ValidateConsecutive(5, 6); err != nil {
+		t.Errorf("ValidateConsecutive(5, 6) should pass, got error: %v", err)
+	}
+	if err := v.ValidateConsecutive(5, 7); err == nil {
+		t.Error("ValidateConsecutive(5, 7) should fail")
+	}
+	if err := v.ValidateConsecutive(5, 5); err == nil {
+		t.Error("ValidateConsecutive(5, 5) should fail")
+	}
+	if err := v.ValidateConsecutive(-1, 0); err != nil {
+		t.Errorf("ValidateConsecutive(-1, 0) should pass, got error: %v", err)
+	}
 }
 
 func TestNumberValidator_Float(t *testing.T) {
@@ -188,5 +202,148 @@ func TestNumberValidator_Float(t *testing.T) {
 	}
 	if err := v.ValidatePositive(-1.5); err == nil {
 		t.Error("ValidatePositive(-1.5) should fail")
+	}
+
+	// Test ValidateConsecutive
+	if err := v.ValidateConsecutive(5.0, 6.0); err != nil {
+		t.Errorf("ValidateConsecutive(5.0, 6.0) should pass, got error: %v", err)
+	}
+	if err := v.ValidateConsecutive(5.0, 7.0); err == nil {
+		t.Error("ValidateConsecutive(5.0, 7.0) should fail")
+	}
+}
+
+func TestNumberValidator_Even(t *testing.T) {
+	v := validator.Numbers[int]()
+
+	// Test ValidateEven
+	if err := v.ValidateEven(4); err != nil {
+		t.Errorf("ValidateEven(4) should pass, got error: %v", err)
+	}
+	if err := v.ValidateEven(0); err != nil {
+		t.Errorf("ValidateEven(0) should pass, got error: %v", err)
+	}
+	if err := v.ValidateEven(-2); err != nil {
+		t.Errorf("ValidateEven(-2) should pass, got error: %v", err)
+	}
+	if err := v.ValidateEven(3); err == nil {
+		t.Error("ValidateEven(3) should fail")
+	}
+	if err := v.ValidateEven(-1); err == nil {
+		t.Error("ValidateEven(-1) should fail")
+	}
+}
+
+func TestNumberValidator_Odd(t *testing.T) {
+	v := validator.Numbers[int]()
+
+	// Test ValidateOdd
+	if err := v.ValidateOdd(3); err != nil {
+		t.Errorf("ValidateOdd(3) should pass, got error: %v", err)
+	}
+	if err := v.ValidateOdd(-1); err != nil {
+		t.Errorf("ValidateOdd(-1) should pass, got error: %v", err)
+	}
+	if err := v.ValidateOdd(1); err != nil {
+		t.Errorf("ValidateOdd(1) should pass, got error: %v", err)
+	}
+	if err := v.ValidateOdd(4); err == nil {
+		t.Error("ValidateOdd(4) should fail")
+	}
+	if err := v.ValidateOdd(0); err == nil {
+		t.Error("ValidateOdd(0) should fail")
+	}
+}
+
+// Test that float types throw an error
+func TestNumberValidator_EvenOdd_FloatError(t *testing.T) {
+	v := validator.Numbers[float64]()
+
+	if err := v.ValidateEven(4.0); err == nil {
+		t.Error("ValidateEven(4.0) should fail with float type")
+	}
+	if err := v.ValidateOdd(3.0); err == nil {
+		t.Error("ValidateOdd(3.0) should fail with float type")
+	}
+}
+
+func TestValidateDivisibleBy(t *testing.T) {
+	v := validator.Numbers[int]()
+
+	// Test ValidateDivisibleBy
+	if err := v.ValidateDivisibleBy(10, 2); err != nil {
+		t.Errorf("ValidateDivisibleBy(10, 2) should pass, got error: %v", err)
+	}
+	if err := v.ValidateDivisibleBy(10, 3); err == nil {
+		t.Error("ValidateDivisibleBy(10, 3) should fail")
+	}
+	if err := v.ValidateDivisibleBy(10, 0); err == nil {
+		t.Error("ValidateDivisibleBy(10, 0) should fail due to division by zero")
+	}
+}
+
+func TestValidatePowerOf(t *testing.T) {
+	v := validator.Numbers[int]()
+
+	// Test ValidatePowerOf
+	if err := v.ValidatePowerOf(8, 2); err != nil {
+		t.Errorf("ValidatePowerOf(8, 2) should pass, got error: %v", err)
+	}
+	if err := v.ValidatePowerOf(9, 3); err != nil {
+		t.Errorf("ValidatePowerOf(9, 3) should pass, got error: %v", err)
+	}
+	if err := v.ValidatePowerOf(10, 2); err == nil {
+		t.Error("ValidatePowerOf(10, 2) should fail")
+	}
+	if err := v.ValidatePowerOf(27, 3); err != nil {
+		t.Errorf("ValidatePowerOf(27, 3) should pass, got error: %v", err)
+	}
+	if err := v.ValidatePowerOf(16, 4); err != nil {
+		t.Errorf("ValidatePowerOf(16, 4) should pass, got error: %v", err)
+	}
+	if err := v.ValidatePowerOf(20, 4); err == nil {
+		t.Error("ValidatePowerOf(20, 4) should fail")
+	}
+	if err := v.ValidatePowerOf(8, 1); err == nil {
+		t.Error("ValidatePowerOf(8, 1) should fail due to invalid base")
+	}
+	if err := v.ValidatePowerOf(8, 0); err == nil {
+		t.Error("ValidatePowerOf(8, 0) should fail due to invalid base")
+	}
+}
+
+// Test that float types throw an error
+func TestNumberValidator_DivisibleBy_PowerOf_FloatError(t *testing.T) {
+	v := validator.Numbers[float64]()
+
+	if err := v.ValidateDivisibleBy(10.0, 2.0); err == nil {
+		t.Error("ValidateDivisibleBy(10.0, 2.0) should fail with float type")
+	}
+	if err := v.ValidatePowerOf(8.0, 2.0); err == nil {
+		t.Error("ValidatePowerOf(8.0, 2.0) should fail with float type")
+	}
+}
+
+func TestValidateFibonacci(t *testing.T) {
+	v := validator.Numbers[int]()
+
+	// Test ValidateFibonacci
+	if err := v.ValidateFibonacci(8); err != nil {
+		t.Errorf("ValidateFibonacci(8) should pass, got error: %v", err)
+	}
+	if err := v.ValidateFibonacci(13); err != nil {
+		t.Errorf("ValidateFibonacci(13) should pass, got error: %v", err)
+	}
+	if err := v.ValidateFibonacci(10); err == nil {
+		t.Error("ValidateFibonacci(10) should fail")
+	}
+}
+
+// Test that float types throw an error
+func TestNumberValidator_Fibonacci_FloatError(t *testing.T) {
+	v := validator.Numbers[float64]()
+
+	if err := v.ValidateFibonacci(8.0); err == nil {
+		t.Error("ValidateFibonacci(8.0) should fail with float type")
 	}
 }

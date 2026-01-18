@@ -5,8 +5,10 @@ import (
 	"net"
 	"net/mail"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -198,6 +200,43 @@ func (pv *ParseValidator) ValidateIPv6(input string) error {
 	ip := net.ParseIP(input)
 	if ip == nil || ip.To4() != nil {
 		return pv.Errorf("invalid IPv6 address format", "valid IPv6 address", input, ErrInvalidIPv6)
+	}
+	return nil
+}
+
+// ValidateDate validates that input can be parsed as a date in the specified format
+func (pv *ParseValidator) ValidateDate(input string, format string) error {
+	if err := ValidateNonEmpty(input); err != nil {
+		return pv.Errorf("input cannot be empty", "non-empty string", input, ErrEmptyInput)
+	}
+	_, err := time.Parse(format, input)
+	if err != nil {
+		return pv.Errorf("invalid date format", format, input, fmt.Errorf("%w: %v", ErrInvalidDate, err))
+	}
+	return nil
+}
+
+// ValidateDuration validates that input can be parsed as a duration (e.g., "5m", "2h", "1s")
+func (pv *ParseValidator) ValidateDuration(input string) error {
+	if err := ValidateNonEmpty(input); err != nil {
+		return pv.Errorf("input cannot be empty", "non-empty string", input, ErrEmptyInput)
+	}
+	_, err := time.ParseDuration(input)
+	if err != nil {
+		return pv.Errorf("invalid duration format", "valid duration (e.g., 5m, 2h, 1s)", input, fmt.Errorf("%w: %v", ErrInvalidDuration, err))
+	}
+	return nil
+}
+
+// ValidatePhoneNumber validates that input is a valid phone number (basic format: digits, spaces, hyphens, +)
+func (pv *ParseValidator) ValidatePhoneNumber(input string) error {
+	if err := ValidateNonEmpty(input); err != nil {
+		return pv.Errorf("input cannot be empty", "non-empty string", input, ErrEmptyInput)
+	}
+	// Simple regex allowing digits, spaces, hyphens, parentheses, and +
+	reg := regexp.MustCompile(`^\+?[0-9\s\-\(\)]+$`)
+	if !reg.MatchString(input) {
+		return pv.Errorf("invalid phone number format", "valid phone number", input, ErrInvalidPhone)
 	}
 	return nil
 }

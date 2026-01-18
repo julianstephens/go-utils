@@ -25,6 +25,21 @@ var (
 	ErrMissingDigit       = fmt.Errorf("missing digit")
 	ErrMissingSpecialChar = fmt.Errorf("missing special character")
 
+	ErrStringTooShort         = fmt.Errorf("string is too short")
+	ErrStringTooLong          = fmt.Errorf("string is too long")
+	ErrStringLengthOutOfRange = fmt.Errorf("string length out of range")
+	ErrInvalidPattern         = fmt.Errorf("string does not match pattern")
+	ErrNotAlphanumeric        = fmt.Errorf("string contains non-alphanumeric characters")
+	ErrNotAlpha               = fmt.Errorf("string contains non-alphabetic characters")
+	ErrNotNumeric             = fmt.Errorf("string contains non-numeric characters")
+	ErrInvalidSlug            = fmt.Errorf("string is not a valid slug")
+	ErrNotLowercase           = fmt.Errorf("string contains uppercase characters")
+	ErrNotUppercase           = fmt.Errorf("string contains lowercase characters")
+	ErrNotContains            = fmt.Errorf("string does not contain substring")
+	ErrContains               = fmt.Errorf("string contains substring")
+	ErrInvalidPrefix          = fmt.Errorf("string does not have expected prefix")
+	ErrInvalidSuffix          = fmt.Errorf("string does not have expected suffix")
+
 	ErrInvalidInteger   = fmt.Errorf("invalid integer")
 	ErrInvalidFloat     = fmt.Errorf("invalid float")
 	ErrInvalidBoolean   = fmt.Errorf("invalid boolean")
@@ -34,6 +49,13 @@ var (
 	ErrInvalidIPAddress = fmt.Errorf("invalid IP address")
 	ErrInvalidIPv4      = fmt.Errorf("invalid IPv4 address")
 	ErrInvalidIPv6      = fmt.Errorf("invalid IPv6 address")
+	ErrInvalidDate      = fmt.Errorf("invalid date")
+	ErrInvalidDuration  = fmt.Errorf("invalid duration")
+	ErrInvalidPhone     = fmt.Errorf("invalid phone number")
+	ErrNotInSet         = fmt.Errorf("value not in allowed set")
+	ErrSliceTooShort    = fmt.Errorf("slice is too short")
+	ErrSliceTooLong     = fmt.Errorf("slice is too long")
+	ErrFieldMismatch    = fmt.Errorf("field values do not match")
 
 	ErrNumberTooSmall   = fmt.Errorf("number is too small")
 	ErrNumberTooLarge   = fmt.Errorf("number is too large")
@@ -47,12 +69,8 @@ var (
 	ErrNumberNegative   = fmt.Errorf("number is negative")
 	ErrNotGreaterThan   = fmt.Errorf("number not greater than threshold")
 	ErrNotLessThan      = fmt.Errorf("number not less than threshold")
-)
 
-var (
-	ErrStringTooShort         = fmt.Errorf("string is too short")
-	ErrStringTooLong          = fmt.Errorf("string is too long")
-	ErrStringLengthOutOfRange = fmt.Errorf("string length out of range")
+	ErrUnsupportedType = fmt.Errorf("unsupported type")
 )
 
 type ValidationError struct {

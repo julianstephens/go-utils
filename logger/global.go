@@ -2,6 +2,7 @@ package logger
 
 import (
 	"io"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 )
@@ -9,23 +10,35 @@ import (
 // defaultLogger is the package-level logger instance used by the global functions.
 var defaultLogger *Logger
 
+// configMutex protects concurrent configuration changes to the default logger
+var configMutex sync.RWMutex
+
 func init() {
 	defaultLogger = New()
 }
 
 // SetOutput sets the output destination for the default logger.
+// This operation is thread-safe and can be called concurrently with logging operations.
 func SetOutput(output io.Writer) {
+	configMutex.Lock()
+	defer configMutex.Unlock()
 	defaultLogger.entry.Logger.SetOutput(output)
 }
 
 // SetFormatter sets the formatter for the default logger.
+// This operation is thread-safe and can be called concurrently with logging operations.
 func SetFormatter(formatter logrus.Formatter) {
+	configMutex.Lock()
+	defer configMutex.Unlock()
 	defaultLogger.entry.Logger.SetFormatter(formatter)
 }
 
 // SetLogLevel sets the logging level for the default logger.
 // Valid levels are: panic, fatal, error, warn, info, debug, trace
+// This operation is thread-safe and can be called concurrently with logging operations.
 func SetLogLevel(level string) error {
+	configMutex.Lock()
+	defer configMutex.Unlock()
 	return defaultLogger.SetLogLevel(level)
 }
 

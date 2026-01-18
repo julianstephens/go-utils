@@ -5,44 +5,52 @@ A comprehensive, type-safe validation library for Go applications with both simp
 ## Features
 
 - **Type-safe generic validators** for numbers, strings, and parsing
-- **Simple validation functions** for common checks
-- **Composable validation chains** with detailed error messages
-- **Support for multiple types** (int, uint, float, string, []byte, etc.)
-- **Comprehensive test coverage** (92.1%)
+- **Composite validators** with AND/OR logic and field matching
+- **Collection validators** for slices and maps
+- **Integer-specific validators** (even/odd, divisibility, powers, Fibonacci)
+- **String validators** (regex, character types, substring matching)
+- **Date and duration parsing** with custom formats
+- **Custom validator builder** for fluent chaining
+- **Comprehensive test coverage**
 
 ## Quick Start
-
-### Simple Validation
 
 ```go
 import "github.com/julianstephens/go-utils/validator"
 
-// Basic validation
-if err := validator.ValidateNonEmpty("input"); err != nil {
-    // handle empty input
-}
-```
+// Simple validation
+validator.ValidateNonEmpty("input")
+validator.OneOf("active", "active", "inactive", "pending")
 
-### Advanced Generic Validators
-
-```go
-// Number validation with type safety
+// Number validation
 numValidator := validator.Numbers[int]()
-if err := numValidator.ValidateRange(42, 1, 100); err != nil {
-    // handle number out of range
-}
+numValidator.ValidateRange(42, 1, 100)
 
 // String validation
 strValidator := validator.Strings[string]()
-if err := strValidator.ValidateMinLength("hello", 3); err != nil {
-    // handle string too short
+strValidator.ValidateMinLength("hello", 3)
+strValidator.Parse.ValidateEmail("user@example.com")
+
+// Composite validation (AND/OR logic)
+validator.All(
+    func() error { return numValidator.ValidateRange(age, 18, 65) },
+    func() error { return strValidator.ValidateMinLength(email, 5) },
+)
+
+// Field matching validation
+validator.ValidateMatchesField(password, confirmPassword, "password")
+
+// Custom validator builder
+customVal := validator.NewCustomValidator().
+    Add(func() error { return numValidator.ValidateRange(age, 18, 65) }).
+    Add(func() error { return strValidator.ValidateMinLength(email, 5) })
+if err := customVal.Validate(); err != nil {
+    // handle error
 }
 
-// Parsing validation (accessed through string validator)
-strValidator := validator.Strings[string]()
-if err := strValidator.Parse.ValidateURL("https://example.com"); err != nil {
-    // handle invalid URL
-}
+// Collection validation
+validator.ValidateSliceLength(items, 5)
+validator.ValidateMapHasKey(config, "api_key")
 ```
 
 ## API Reference
@@ -58,57 +66,81 @@ if err := strValidator.Parse.ValidateURL("https://example.com"); err != nil {
 All number validators work with `Number` types: `int`, `uint`, `float32`, `float64` and their variants.
 
 #### Range Validation
-- `ValidateMin(input T, min T) error` - Input must be ≥ minimum
-- `ValidateMax(input T, max T) error` - Input must be ≤ maximum
-- `ValidateRange(input T, min, max T) error` - Input must be within range
+- `ValidateMin(input T, min T) error` - Value ≥ minimum
+- `ValidateMax(input T, max T) error` - Value ≤ maximum
+- `ValidateRange(input T, min, max T) error` - Value within range
 
 #### Sign Validation
-- `ValidatePositive(input T) error` - Input must be > 0
-- `ValidateNegative(input T) error` - Input must be < 0
-- `ValidateNonNegative(input T) error` - Input must be ≥ 0
-- `ValidateNonPositive(input T) error` - Input must be ≤ 0
+- `ValidatePositive(input T) error` - Value > 0
+- `ValidateNegative(input T) error` - Value < 0
+- `ValidateNonNegative(input T) error` - Value ≥ 0
+- `ValidateNonPositive(input T) error` - Value ≤ 0
 
 #### Equality Validation
-- `ValidateZero(input T) error` - Input must be exactly 0
-- `ValidateNonZero(input T) error` - Input must not be 0
-- `ValidateEqual(input T, expected T) error` - Input must equal expected value
-- `ValidateNotEqual(input T, notExpected T) error` - Input must not equal value
+- `ValidateZero(input T) error` - Value == 0
+- `ValidateNonZero(input T) error` - Value != 0
+- `ValidateEqual(input T, expected T) error` - Value equals expected
+- `ValidateNotEqual(input T, notExpected T) error` - Value not equal
 
 #### Comparison Validation
-- `ValidateGreaterThan(input T, threshold T) error` - Input must be > threshold
-- `ValidateGreaterThanOrEqual(input T, threshold T) error` - Input must be ≥ threshold
-- `ValidateLessThan(input T, threshold T) error` - Input must be < threshold
-- `ValidateLessThanOrEqual(input T, threshold T) error` - Input must be ≤ threshold
-- `ValidateBetween(input T, lower, upper T) error` - Input must be between bounds
+- `ValidateGreaterThan(input T, threshold T) error` - Value > threshold
+- `ValidateGreaterThanOrEqual(input T, threshold T) error` - Value ≥ threshold
+- `ValidateLessThan(input T, threshold T) error` - Value < threshold
+- `ValidateLessThanOrEqual(input T, threshold T) error` - Value ≤ threshold
+- `ValidateBetween(input T, lower, upper T) error` - Value between bounds
+- `ValidateConsecutive(input1, input2 T) error` - input2 == input1 + 1
+
+#### Integer-Only Validation
+- `ValidateEven(input T) error` - Value is even
+- `ValidateOdd(input T) error` - Value is odd
+- `ValidateDivisibleBy(input T, divisor T) error` - Evenly divisible
+- `ValidatePowerOf(input T, base T) error` - Power of base
+- `ValidateFibonacci(input T) error` - Is Fibonacci number
 
 ### String Validators
 
 String validators work with `StringLike` types: `string`, `[]byte`, `[]rune`.
 
 #### Length Validation
-- `ValidateMinLength(input T, min int) error` - String length must be ≥ minimum
-- `ValidateMaxLength(input T, max int) error` - String length must be ≤ maximum
-- `ValidateLengthRange(input T, min, max int) error` - String length must be within range
+- `ValidateMinLength(input T, min int) error` - Length ≥ minimum
+- `ValidateMaxLength(input T, max int) error` - Length ≤ maximum
+- `ValidateLengthRange(input T, min, max int) error` - Length within range
+
+#### Character Validation
+- `ValidatePattern(input T, pattern string) error` - Matches regex pattern
+- `ValidateAlphanumeric(input T) error` - Only alphanumeric
+- `ValidateAlpha(input T) error` - Only alphabetic
+- `ValidateNumeric(input T) error` - Only numeric
+- `ValidateSlug(input T) error` - Valid URL slug
+- `ValidateLowercase(input T) error` - Only lowercase
+- `ValidateUppercase(input T) error` - Only uppercase
+
+#### Substring Validation
+- `ValidateContains(input T, substring string) error` - Contains substring
+- `ValidateNotContains(input T, substring string) error` - Doesn't contain substring
+- `ValidatePrefix(input T, prefix string) error` - Starts with prefix
+- `ValidateSuffix(input T, suffix string) error` - Ends with suffix
 
 ### Parse Validators
 
 Parsing validators for string format validation.
 
 #### Format Validation
-- `ValidateEmail(input string) error` - Valid email address format
-- `ValidatePassword(input string) error` - Password with complexity requirements (8+ chars, mixed case, digits)
+- `ValidateEmail(input string) error` - Valid email format
+- `ValidatePassword(input string) error` - 8+ chars, mixed case, digits
 - `ValidateUUID(input string) error` - Valid UUID format
 - `ValidateURL(input string) error` - Valid URL format
+- `ValidateDate(input string, format string) error` - Valid date
+- `ValidateDuration(input string) error` - Valid duration (e.g., "5m", "2h")
+- `ValidatePhoneNumber(input string) error` - Valid phone format
 
 #### Type Parsing
-- `ValidateBool(input string) error` - Parseable as boolean (true/false/1/0)
+- `ValidateBool(input string) error` - Parseable as bool
 - `ValidateInt(input string) error` - Parseable as int64
 - `ValidateUint(input string) error` - Parseable as uint64
 - `ValidateFloat(input string) error` - Parseable as float64
-
-#### Constrained Parsing
-- `ValidatePositiveInt(input string) error` - Parseable positive integer
-- `ValidateNonNegativeInt(input string) error` - Parseable non-negative integer
+- `ValidatePositiveInt(input string) error` - Parseable positive int
+- `ValidateNonNegativeInt(input string) error` - Parseable non-negative int
 - `ValidatePositiveFloat(input string) error` - Parseable positive float
 
 #### Network Validation
@@ -116,11 +148,54 @@ Parsing validators for string format validation.
 - `ValidateIPv4(input string) error` - Valid IPv4 address
 - `ValidateIPv6(input string) error` - Valid IPv6 address
 
+### Composite Validators
+
+Composite validators allow combining and chaining multiple validation functions.
+
+#### Generic Validators
+- `OneOf[T comparable](input T, allowed ...T) error` - Value in allowed set
+- `All(validators ...func() error) error` - All pass (AND logic)
+- `Any(validators ...func() error) error` - At least one passes (OR logic)
+- `ValidateMatchesField[T comparable](value1, value2 T, fieldName string) error` - Two values match (e.g., password confirmation)
+
+### Collection Validators
+
+Validators for slices, arrays, and maps.
+
+#### Slice Validators
+- `ValidateSliceLength[T any](input []T, length int) error` - Length equals specified value
+- `ValidateSliceMinLength[T any](input []T, min int) error` - Length ≥ minimum
+- `ValidateSliceMaxLength[T any](input []T, max int) error` - Length ≤ maximum
+- `ValidateSliceLengthRange[T any](input []T, min, max int) error` - Length within range
+- `ValidateSliceContains[T comparable](input []T, element T) error` - Contains element
+- `ValidateSliceNotContains[T comparable](input []T, element T) error` - Doesn't contain element
+- `ValidateSliceUnique[T comparable](input []T) error` - All elements unique
+
+#### Map Validators
+- `ValidateMapHasKey[K comparable, V any](input map[K]V, key K) error` - Contains key
+- `ValidateMapNotHasKey[K comparable, V any](input map[K]V, key K) error` - Doesn't contain key
+- `ValidateMapMinLength[K comparable, V any](input map[K]V, min int) error` - Entries ≥ minimum
+- `ValidateMapMaxLength[K comparable, V any](input map[K]V, max int) error` - Entries ≤ maximum
+
 ### Utility Functions
 
 - `ValidateNonEmpty[T](input T) error` - Generic emptiness check for strings, bytes, runes, maps, and slices
-- `New() *Validator` - Create a new validator instance (legacy)
+- `NewCustomValidator() *CustomValidator` - Create a custom validator with fluent chaining
 - `Parse() *ParseValidator` - Standalone parsing validator (typically accessed via StringValidator.Parse)
+
+### Custom Validator Builder
+
+The `CustomValidator` type provides a fluent interface for composing validators:
+
+```go
+cv := validator.NewCustomValidator().
+    Add(func() error { return numVal.ValidateRange(age, 18, 65) }).
+    Add(func() error { return strVal.ValidateMinLength(email, 5) }).
+    Add(func() error { return strVal.ValidatePattern(phone, `^\+?[0-9\s\-\(\)]+$`) })
+
+if err := cv.Validate(); err != nil {
+    // All validators passed if no error
+}
 
 ## Type Constraints
 
@@ -204,15 +279,7 @@ func validateConfig(port int, host string, timeout float64) error {
 
 ## Testing
 
-The package includes comprehensive tests with 92.1% coverage:
-
 ```bash
 go test -v ./validator
 go test -cover ./validator
 ```
-
-Tests are organized by validator type:
-- `validator_test.go` - General utility functions
-- `number_test.go` - Number validator tests
-- `string_test.go` - String validator tests
-- `parse_test.go` - Parse validator tests

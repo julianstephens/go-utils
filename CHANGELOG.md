@@ -1,3 +1,23 @@
+## v0.3.1
+
+- validator:
+    - **BREAKING**: removes legacy `Validator` type and `New()` function (superceded by factory functions)
+    - adds `ValidateMatchesField[T comparable]` for comparing two values (password confirmation)
+    - adds `CustomValidator` with fluent builder pattern for composing validators
+        - adds `NewCustomValidator()` factory function
+        - adds `Add()` method for appending validators with chaining support
+        - adds `Validate()` method for executing all validators with AND logic
+    - adds `ErrFieldMismatch` error constant
+- logger: improves thread-safety for concurrent applications
+    - adds `sync.RWMutex` protection for global logger configuration changes
+    - `SetLogLevel()`, `SetOutput()`, and `SetFormatter()` now thread-safe during concurrent logging
+    - adds comprehensive concurrency tests for multi-threaded scenarios
+    - verified with Go race detector for data race detection
+- cliutil: fixes race condition in Spinner
+    - adds `sync.RWMutex` protection for concurrent access to spinner state
+    - `Start()`, `Stop()`, and `UpdateMessage()` now thread-safe
+    - verified with Go race detector
+
 ## v0.3.0
 
 - **BREAKING**: redesigns `validator` package with generic validators

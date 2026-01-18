@@ -6,8 +6,12 @@ import (
 )
 
 // Type constraints
+type Integer interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
+}
+
 type Number interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~float32 | ~float64
+	Integer | ~float32 | ~float64
 }
 
 type StringLike interface {
@@ -16,14 +20,6 @@ type StringLike interface {
 
 type Emptyable interface {
 	~string | ~[]byte | ~[]rune | ~map[string]interface{} | ~[]interface{}
-}
-
-// Validator is the main validator that provides access to specialized validators.
-type Validator struct{}
-
-// New creates a new Validator instance.
-func New() *Validator {
-	return &Validator{}
 }
 
 // Numbers returns a NumberValidator for the specified numeric type.
@@ -68,6 +64,42 @@ func ValidateNonEmpty[T Emptyable](input T) error {
 		}
 	default:
 		return fmt.Errorf("unsupported type for emptiness check")
+	}
+	return nil
+}
+
+// ValidateMatchesField validates that two comparable values are equal (useful for password confirmation)
+func ValidateMatchesField[T comparable](value1 T, value2 T, fieldName string) error {
+	if value1 != value2 {
+		return fmt.Errorf("%w: %s does not match confirmation", ErrFieldMismatch, fieldName)
+	}
+	return nil
+}
+
+// CustomValidator provides a builder pattern for composing multiple validators
+type CustomValidator struct {
+	validators []func() error
+}
+
+// NewCustomValidator creates a new CustomValidator instance
+func NewCustomValidator() *CustomValidator {
+	return &CustomValidator{
+		validators: []func() error{},
+	}
+}
+
+// Add appends a validator function to the custom validator
+func (cv *CustomValidator) Add(validator func() error) *CustomValidator {
+	cv.validators = append(cv.validators, validator)
+	return cv
+}
+
+// Validate runs all accumulated validators in sequence (AND logic)
+func (cv *CustomValidator) Validate() error {
+	for _, validator := range cv.validators {
+		if err := validator(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
