@@ -1,4 +1,19 @@
-# Slices Package
+# Slices Package (Deprecated)
+
+⚠️ **This package is deprecated.** Use the [generic](../generic) package instead, which provides all functionality from slices plus comprehensive functional programming utilities, advanced slice operations, and map utilities.
+
+## Migration Guide
+
+| slices Function | generic Equivalent |
+|---|---|
+| `If[T any]` | `generic.If[T any]` |
+| `Difference` | `generic.Difference` |
+| `DeleteElement` | `generic.DeleteElement` |
+| `ContainsAll` | `generic.ContainsAll` |
+
+See the [generic package](../generic) README for comprehensive documentation and advanced usage patterns.
+
+---
 
 The `slices` package provides generic slice utility functions for conditional selection, set operations, and element manipulation that are commonly needed across Go projects.
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 )
 
 // MarshalOptions holds configuration options for JSON marshaling.
@@ -203,4 +204,67 @@ func Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
 // HTMLEscape appends to dst the JSON-encoded src with HTML metacharacters escaped.
 func HTMLEscape(dst *bytes.Buffer, src []byte) {
 	json.HTMLEscape(dst, src)
+}
+
+// ReadFile reads a JSON file and unmarshals it into the given value.
+func ReadFile(filename string, v any) error {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return fmt.Errorf("jsonutil: read file failed: %w", err)
+	}
+	return Unmarshal(data, v)
+}
+
+// ReadFileStrict reads a JSON file and unmarshals it with strict field matching.
+func ReadFileStrict(filename string, v any) error {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return fmt.Errorf("jsonutil: read file failed: %w", err)
+	}
+	return UnmarshalStrict(data, v)
+}
+
+// ReadFileWithOptions reads a JSON file with the given options.
+func ReadFileWithOptions(filename string, v any, opts *UnmarshalOptions) error {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return fmt.Errorf("jsonutil: read file failed: %w", err)
+	}
+	return UnmarshalWithOptions(data, v, opts)
+}
+
+// WriteFile marshals the given value and writes it to a JSON file.
+func WriteFile(filename string, v any) error {
+	data, err := Marshal(v)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filename, data, 0666); err != nil {
+		return fmt.Errorf("jsonutil: write file failed: %w", err)
+	}
+	return nil
+}
+
+// WriteFileIndent marshals the given value with indentation and writes it to a JSON file.
+func WriteFileIndent(filename string, v any, prefix, indent string) error {
+	data, err := MarshalIndent(v, prefix, indent)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filename, data, 0666); err != nil {
+		return fmt.Errorf("jsonutil: write file failed: %w", err)
+	}
+	return nil
+}
+
+// WriteFileWithOptions marshals the given value with options and writes it to a JSON file.
+func WriteFileWithOptions(filename string, v any, opts *MarshalOptions) error {
+	data, err := MarshalWithOptions(v, opts)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filename, data, 0666); err != nil {
+		return fmt.Errorf("jsonutil: write file failed: %w", err)
+	}
+	return nil
 }

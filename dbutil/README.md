@@ -4,13 +4,13 @@ The `dbutil` package provides database utility functions and helpers for safe da
 
 ## Features
 
-- **Connection Management**: Configuration helpers for database connections
+- **Connection Management**: Configuration and connection pooling
 - **Query Execution**: Safe query execution with struct scanning
 - **Transaction Management**: Automatic transaction handling with rollback
-- **Context Support**: All operations are context-aware for cancellation and timeouts
+- **Context Support**: Cancellation and timeout support
 - **Error Handling**: Enhanced error detection and classification
-- **Struct Scanning**: Automatic scanning of query results into structs
-- **Field Mapping**: Customizable mapping between struct fields and database columns
+- **Struct Scanning**: Automatic scanning into structs
+- **Field Mapping**: Customizable struct-to-column mapping
 
 ## Installation
 
@@ -32,18 +32,16 @@ import (
     "time"
     
     "github.com/julianstephens/go-utils/dbutil"
-    _ "github.com/lib/pq" // postgres driver
+    _ "github.com/lib/pq"
 )
 
 func main() {
-    // Connect to database
-    db, err := sql.Open("postgres", "postgres://user:pass@localhost/mydb?sslmode=disable")
+    db, err := sql.Open("postgres", "postgres://user:pass@localhost/mydb")
     if err != nil {
         log.Fatal(err)
     }
     defer db.Close()
 
-    // Configure database connection
     opts := dbutil.DefaultConnectionOptions()
     opts.MaxOpenConns = 25
     opts.MaxIdleConns = 5
@@ -53,13 +51,10 @@ func main() {
         log.Fatal(err)
     }
 
-    // Test connection
     ctx := context.Background()
     if err := dbutil.PingWithContext(ctx, db, 5*time.Second); err != nil {
         log.Fatal("Database ping failed:", err)
     }
-
-    log.Println("Database connected successfully")
 }
 ```
 
@@ -85,10 +80,9 @@ type User struct {
 }
 
 func main() {
-    db := setupDatabase() // your database setup
+    db := setupDatabase()
     ctx := context.Background()
 
-    // Query single row into struct
     var user User
     err := dbutil.QueryRowScan(ctx, db, &user, 
         "SELECT id, name, email, created_at FROM users WHERE id = $1", 1)
@@ -101,20 +95,15 @@ func main() {
         return
     }
 
-    log.Printf("User: %+v", user)
-
-    // Query multiple rows into slice
     var users []User
     err = dbutil.QuerySlice(ctx, db, &users,
         "SELECT id, name, email, created_at FROM users WHERE active = $1", true)
     if err != nil {
-        log.Printf("Query failed: %v", err)
-        return
+        log.Fatal(err)
     }
-
-    log.Printf("Found %d users", len(users))
+    
     for _, u := range users {
-        log.Printf("User: %s (%s)", u.Name, u.Email)
+        log.Printf("%s (%s)", u.Name, u.Email)
     }
 }
 ```
@@ -136,9 +125,7 @@ func main() {
     db := setupDatabase()
     ctx := context.Background()
 
-    // Execute within transaction with automatic rollback on error
     err := dbutil.WithTransaction(ctx, db, func(tx *sql.Tx) error {
-        // Insert user
         result, err := dbutil.ExecTx(ctx, tx, 
             "INSERT INTO users (name, email) VALUES ($1, $2)", 
             "John Doe", "john@example.com")
@@ -151,22 +138,14 @@ func main() {
             return err
         }
 
-        // Insert audit log
         _, err = dbutil.ExecTx(ctx, tx,
             "INSERT INTO audit_log (action, user_id) VALUES ($1, $2)",
             "user_created", userID)
-        if err != nil {
-            return err
-        }
-
-        log.Printf("User created with ID: %d", userID)
-        return nil
+        return err
     })
 
     if err != nil {
         log.Printf("Transaction failed: %v", err)
-    } else {
-        log.Println("Transaction completed successfully")
     }
 }
 ```
@@ -189,7 +168,6 @@ func main() {
     db := setupDatabase()
     ctx := context.Background()
 
-    // Transaction with custom options
     txOpts := dbutil.TransactionOptions{
         Isolation: sql.LevelReadCommitted,
         ReadOnly:  false,
@@ -197,7 +175,6 @@ func main() {
     }
 
     err := dbutil.WithTransactionOptions(ctx, db, txOpts, func(tx *sql.Tx) error {
-        // Perform read operations
         var count int
         err := dbutil.QueryRowScanTx(ctx, tx, &count,
             "SELECT COUNT(*) FROM users WHERE active = $1", true)
@@ -205,17 +182,12 @@ func main() {
             return err
         }
 
-        log.Printf("Active users: %d", count)
-
-        // Perform write operations if needed
         if count < 100 {
             _, err = dbutil.ExecTx(ctx, tx,
                 "INSERT INTO users (name, email) VALUES ($1, $2)",
                 "New User", "newuser@example.com")
-            return err
         }
-
-        return nil
+        return err
     })
 
     if err != nil {
@@ -241,33 +213,19 @@ func main() {
     db := setupDatabase()
     ctx := context.Background()
 
-    // Check if record exists
     exists, err := dbutil.Exists(ctx, db, 
         "SELECT 1 FROM users WHERE email = $1", "john@example.com")
     if err != nil {
-        log.Printf("Exists check failed: %v", err)
-        return
+        log.Fatal(err)
     }
     log.Printf("User exists: %t", exists)
 
-    // Count records
     count, err := dbutil.Count(ctx, db, 
         "SELECT COUNT(*) FROM users WHERE active = $1", true)
     if err != nil {
-        log.Printf("Count failed: %v", err)
-        return
+        log.Fatal(err)
     }
     log.Printf("Active users: %d", count)
-
-    // Get single value
-    var maxID int64
-    err = dbutil.QueryRowScan(ctx, db, &maxID,
-        "SELECT MAX(id) FROM users")
-    if err != nil && !dbutil.IsNoRowsError(err) {
-        log.Printf("Max ID query failed: %v", err)
-        return
-    }
-    log.Printf("Max user ID: %d", maxID)
 }
 ```
 
@@ -302,21 +260,7 @@ func getUserByID(ctx context.Context, db *sql.DB, userID int64) (*User, error) {
         }
         return nil, err
     }
-
     return &user, nil
-}
-
-func main() {
-    db := setupDatabase()
-    ctx := context.Background()
-
-    user, err := getUserByID(ctx, db, 123)
-    if err != nil {
-        log.Printf("Error getting user: %v", err)
-        return
-    }
-
-    log.Printf("Found user: %+v", user)
 }
 ```
 
@@ -329,7 +273,7 @@ import (
     "context"
     "database/sql"
     "log"
-    "strings"
+    "time"
     
     "github.com/julianstephens/go-utils/dbutil"
 )
@@ -338,121 +282,88 @@ type UserProfile struct {
     UserID    int64  `db:"user_id"`
     FirstName string `db:"first_name"`
     LastName  string `db:"last_name"`
-    XMLData   string `db:"xml_data"`
 }
 
 func main() {
     db := setupDatabase()
     ctx := context.Background()
 
-    // Use custom field mapper for struct fields to database columns
     queryOpts := dbutil.QueryOptions{
         Timeout: 30 * time.Second,
         MaxRows: 100,
-        FieldMapper: func(fieldName string) string {
-            // Convert CamelCase to snake_case
-            return dbutil.DefaultFieldMapper(fieldName)
-        },
     }
 
     var profiles []UserProfile
     err := dbutil.QuerySliceWithOptions(ctx, db, &profiles, queryOpts,
-        "SELECT user_id, first_name, last_name, xml_data FROM user_profiles")
+        "SELECT user_id, first_name, last_name FROM user_profiles")
     if err != nil {
-        log.Printf("Query failed: %v", err)
-        return
+        log.Fatal(err)
     }
-
-    log.Printf("Found %d profiles", len(profiles))
 }
 ```
 
 ## Configuration Options
 
 ### ConnectionOptions
-
-```go
-type ConnectionOptions struct {
-    MaxOpenConns    int           // Maximum open connections
-    MaxIdleConns    int           // Maximum idle connections  
-    ConnMaxLifetime time.Duration // Connection lifetime
-    ConnMaxIdleTime time.Duration // Connection idle time
-    PingTimeout     time.Duration // Ping timeout
-    RetryAttempts   int           // Retry attempts
-    RetryDelay      time.Duration // Retry delay
-}
-
-// Get default options
-opts := dbutil.DefaultConnectionOptions()
-```
+- `MaxOpenConns` - Maximum open connections
+- `MaxIdleConns` - Maximum idle connections  
+- `ConnMaxLifetime` - Connection lifetime
+- `ConnMaxIdleTime` - Connection idle time
+- `PingTimeout` - Ping timeout
+- `RetryAttempts` - Retry attempts
+- `RetryDelay` - Retry delay
 
 ### QueryOptions
-
-```go
-type QueryOptions struct {
-    Timeout     time.Duration           // Query timeout
-    MaxRows     int                     // Maximum rows (0 = no limit)
-    FieldMapper func(string) string     // Field name mapper
-}
-
-// Get default options
-opts := dbutil.DefaultQueryOptions()
-```
+- `Timeout` - Query timeout
+- `MaxRows` - Maximum rows (0 = no limit)
+- `FieldMapper` - Field name mapper function
 
 ### TransactionOptions
-
-```go
-type TransactionOptions struct {
-    Isolation sql.IsolationLevel // Transaction isolation level
-    ReadOnly  bool               // Read-only transaction
-    Timeout   time.Duration      // Transaction timeout
-}
-
-// Get default options
-opts := dbutil.DefaultTransactionOptions()
-```
+- `Isolation` - Transaction isolation level
+- `ReadOnly` - Read-only transaction flag
+- `Timeout` - Transaction timeout
 
 ## API Reference
 
 ### Connection Management
-- `ConfigureDB(db *sql.DB, opts ConnectionOptions) error` - Configure database connection
+- `ConfigureDB(db *sql.DB, opts ConnectionOptions) error` - Configure database
 - `PingWithContext(ctx context.Context, db *sql.DB, timeout time.Duration) error` - Ping with timeout
-- `PingWithRetry(ctx context.Context, db *sql.DB, attempts int, delay time.Duration) error` - Ping with retry logic
-- `DefaultConnectionOptions() ConnectionOptions` - Get default connection options
+- `PingWithRetry(ctx context.Context, db *sql.DB, attempts int, delay time.Duration) error` - Ping with retry
 
 ### Query Execution
-- `QueryRowScan(ctx context.Context, db *sql.DB, dest interface{}, query string, args ...interface{}) error` - Query single row into struct
-- `QuerySlice(ctx context.Context, db *sql.DB, dest interface{}, query string, args ...interface{}) error` - Query multiple rows into slice
-- `QuerySliceWithOptions(ctx context.Context, db *sql.DB, dest interface{}, query string, opts *QueryOptions, args ...interface{}) error` - Query with options
-- `QueryMap(ctx context.Context, db *sql.DB, query string, args ...interface{}) (map[string]any, error)` - Query single row into map
-- `QueryMaps(ctx context.Context, db *sql.DB, query string, args ...interface{}) ([]map[string]any, error)` - Query multiple rows into maps
-- `QueryRow(ctx context.Context, db *sql.DB, query string, args ...interface{}) *sql.Row` - Query single row (raw)
-- `QueryRows(ctx context.Context, db *sql.DB, query string, args ...interface{}) (*sql.Rows, error)` - Query multiple rows (raw)
-- `Exec(ctx context.Context, db *sql.DB, query string, args ...interface{}) (sql.Result, error)` - Execute query
+- `QueryRowScan(ctx, db, dest, query, args...) error` - Query single row into struct
+- `QuerySlice(ctx, db, dest, query, args...) error` - Query multiple rows into slice
+- `QuerySliceWithOptions(ctx, db, dest, opts, query, args...) error` - Query with options
+- `QueryMap(ctx, db, query, args...) (map[string]any, error)` - Query row into map
+- `QueryMaps(ctx, db, query, args...) ([]map[string]any, error)` - Query rows into maps
+- `QueryRow(ctx, db, query, args...) *sql.Row` - Raw single row
+- `QueryRows(ctx, db, query, args...) (*sql.Rows, error)` - Raw multiple rows
+- `Exec(ctx, db, query, args...) (sql.Result, error)` - Execute query
 
 ### Transaction Management
-- `WithTransaction(ctx context.Context, db *sql.DB, fn func(*sql.Tx) error) error` - Execute in transaction
-- `WithTransactionOptions(ctx context.Context, db *sql.DB, opts *TransactionOptions, fn func(*sql.Tx) error) error` - Execute with options
-- `QueryRowScanTx(ctx context.Context, tx *sql.Tx, dest interface{}, query string, args ...interface{}) error` - Query single row in transaction
-- `QuerySliceTx(ctx context.Context, tx *sql.Tx, dest interface{}, query string, args ...interface{}) error` - Query slice in transaction
-- `QueryMapTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (map[string]any, error)` - Query map in transaction
-- `QueryMapsTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) ([]map[string]any, error)` - Query maps in transaction
-- `QueryRowTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) *sql.Row` - Query raw row in transaction
-- `QueryRowsTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (*sql.Rows, error)` - Query raw rows in transaction
-- `ExecTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (sql.Result, error)` - Execute in transaction
+- `WithTransaction(ctx, db, fn) error` - Execute in transaction
+- `WithTransactionOptions(ctx, db, opts, fn) error` - Execute with options
+- `QueryRowScanTx(ctx, tx, dest, query, args...) error` - Query single row in tx
+- `QuerySliceTx(ctx, tx, dest, query, args...) error` - Query slice in tx
+- `QueryMapTx(ctx, tx, query, args...) (map[string]any, error)` - Query map in tx
+- `QueryMapsTx(ctx, tx, query, args...) ([]map[string]any, error)` - Query maps in tx
+- `QueryRowTx(ctx, tx, query, args...) *sql.Row` - Raw row in tx
+- `QueryRowsTx(ctx, tx, query, args...) (*sql.Rows, error)` - Raw rows in tx
+- `ExecTx(ctx, tx, query, args...) (sql.Result, error)` - Execute in tx
 
 ### Utility Functions
-- `Exists(ctx context.Context, db *sql.DB, query string, args ...interface{}) (bool, error)` - Check if record exists
-- `ExistsTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (bool, error)` - Check existence in transaction
-- `Count(ctx context.Context, db *sql.DB, query string, args ...interface{}) (int64, error)` - Count records
-- `CountTx(ctx context.Context, tx *sql.Tx, query string, args ...interface{}) (int64, error)` - Count records in transaction
+- `Exists(ctx, db, query, args...) (bool, error)` - Check if record exists
+- `ExistsTx(ctx, tx, query, args...) (bool, error)` - Check existence in tx
+- `Count(ctx, db, query, args...) (int64, error)` - Count records
+- `CountTx(ctx, tx, query, args...) (int64, error)` - Count in tx
 
 ### Error Detection
-- `IsNoRowsError(err error) bool` - Check if error is sql.ErrNoRows
-- `IsConnectionError(err error) bool` - Check if error is connection-related
+- `IsNoRowsError(err) bool` - Check for sql.ErrNoRows
+- `IsConnectionError(err) bool` - Check for connection errors
+- `IsContextError(err) bool` - Check for context timeout/cancel
 
 ### Field Mapping
-- `DefaultFieldMapper(fieldName string) string` - Default CamelCase to snake_case mapper
+- `DefaultFieldMapper(fieldName) string` - CamelCase to snake_case mapper
 
 ## Supported Struct Tags
 
@@ -473,17 +384,16 @@ All functions in the dbutil package are thread-safe and can be called concurrent
 ## Best Practices
 
 1. **Always use context** for cancellation and timeouts
-2. **Use transactions** for operations that need atomicity
-3. **Handle specific error types** using the provided error detection functions
+2. **Use transactions** for operations requiring atomicity
+3. **Handle specific error types** using provided detection functions
 4. **Configure connection pooling** appropriately for your workload
-5. **Use struct tags** to clearly map between Go fields and database columns
-6. **Set appropriate timeouts** for different types of operations
-7. **Consider using read-only transactions** for complex read operations
+5. **Use struct tags** to map Go fields to database columns
+6. **Set appropriate timeouts** for different operation types
+7. **Consider read-only transactions** for complex read operations
 
 ## Database Driver Compatibility
 
-The dbutil package works with any database driver that implements Go's `database/sql` interface, including:
-
+Works with any database driver implementing Go's `database/sql` interface:
 - PostgreSQL (`github.com/lib/pq`)
 - MySQL (`github.com/go-sql-driver/mysql`)
 - SQLite (`github.com/mattn/go-sqlite3`)
@@ -492,12 +402,5 @@ The dbutil package works with any database driver that implements Go's `database
 ## Integration
 
 Works well with other go-utils packages:
-
-```go
-// Use with logger for database operation logging
-logger.WithField("query", "SELECT * FROM users").Debug("Executing query")
-
-// Use with config for database configuration
-dbURL := cfg.Database.URL
-db, err := sql.Open("postgres", dbURL)
-```
+- **logger**: Log database operations
+- **config**: Manage database configuration

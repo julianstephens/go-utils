@@ -7,6 +7,7 @@ The `jsonutil` package provides enhanced JSON marshaling and unmarshaling with e
 - **Enhanced Marshaling**: Pretty-printing, HTML escaping control, and custom formatting
 - **Strict Unmarshaling**: Disallow unknown fields and number type control
 - **Stream Processing**: Encoder and decoder with custom options
+- **File I/O**: Read and write JSON files with custom options
 - **Error Context**: Better error messages with additional context
 - **Type Safety**: Strict type validation and conversion controls
 
@@ -269,6 +270,69 @@ func main() {
 }
 ```
 
+### File I/O
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "github.com/julianstephens/go-utils/jsonutil"
+)
+
+type User struct {
+    ID    int    `json:"id"`
+    Name  string `json:"name"`
+    Email string `json:"email"`
+}
+
+func main() {
+    user := User{ID: 1, Name: "John", Email: "john@example.com"}
+
+    // Write to file with default formatting
+    if err := jsonutil.WriteFile("user.json", user); err != nil {
+        log.Fatalf("Write failed: %v", err)
+    }
+
+    // Write with indentation (pretty-print)
+    if err := jsonutil.WriteFileIndent("user_pretty.json", user, "", "  "); err != nil {
+        log.Fatalf("Write failed: %v", err)
+    }
+
+    // Write with custom options
+    opts := &jsonutil.MarshalOptions{
+        Indent:     "    ",
+        EscapeHTML: false,
+    }
+    if err := jsonutil.WriteFileWithOptions("user_custom.json", user, opts); err != nil {
+        log.Fatalf("Write failed: %v", err)
+    }
+
+    // Read from file
+    var loaded User
+    if err := jsonutil.ReadFile("user.json", &loaded); err != nil {
+        log.Fatalf("Read failed: %v", err)
+    }
+    fmt.Printf("Loaded: %+v\n", loaded)
+
+    // Read with strict validation (fail on unknown fields)
+    if err := jsonutil.ReadFileStrict("user.json", &loaded); err != nil {
+        log.Fatalf("Strict read failed: %v", err)
+    }
+
+    // Read with custom options
+    readOpts := &jsonutil.UnmarshalOptions{
+        DisallowUnknownFields: true,
+        UseNumber:            false,
+    }
+    if err := jsonutil.ReadFileWithOptions("user.json", &loaded, readOpts); err != nil {
+        log.Fatalf("Read failed: %v", err)
+    }
+    fmt.Printf("Loaded with options: %+v\n", loaded)
+}
+```
+
 ### Configuration and Settings
 
 ```go
@@ -451,6 +515,14 @@ type EncoderOptions struct {
 - `EncodeWriter(w io.Writer, v interface{}, opts *EncoderOptions) error` - Encode directly to writer
 - `DecodeReader(r io.Reader, v interface{}, opts *DecoderOptions) error` - Decode directly from reader
 - `DecodeReaderStrict(r io.Reader, v interface{}) error` - Strict decode from reader
+
+### File I/O
+- `ReadFile(filename string, v interface{}) error` - Read JSON file and unmarshal
+- `ReadFileStrict(filename string, v interface{}) error` - Read with strict field validation
+- `ReadFileWithOptions(filename string, v interface{}, opts *UnmarshalOptions) error` - Read with custom options
+- `WriteFile(filename string, v interface{}) error` - Marshal and write to JSON file
+- `WriteFileIndent(filename string, v interface{}, prefix, indent string) error` - Write with custom indentation
+- `WriteFileWithOptions(filename string, v interface{}, opts *MarshalOptions) error` - Write with custom options
 
 ### Utility Functions
 - `Valid(data []byte) bool` - Check if JSON is valid

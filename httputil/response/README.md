@@ -22,456 +22,124 @@ go get github.com/julianstephens/go-utils/httputil/response
 ### Basic JSON Response Handling
 
 ```go
-package main
-
-import (
-    "encoding/json"
-    "fmt"
-    "log"
-    "net/http"
-    "time"
-    
-    "github.com/julianstephens/go-utils/httputil/response"
-)
-
 type User struct {
-    ID        int       `json:"id"`
-    Name      string    `json:"name"`
-    Email     string    `json:"email"`
-    CreatedAt time.Time `json:"created_at"`
+    ID    int    `json:"id"`
+    Name  string `json:"name"`
+    Email string `json:"email"`
 }
 
-func main() {
-    // Create a responder with JSON encoder
-    responder := &response.Responder{
-        Encoder: &response.JSONEncoder{},
-    }
-    
-    http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
-        user := User{
-            ID:        1,
-            Name:      "John Doe",
-            Email:     "john@example.com",
-            CreatedAt: time.Now(),
-        }
-        
-        // Send JSON response with 200 OK
-        responder.OK(w, r, user)
-    })
-    
-    http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
-        users := []User{
-            {ID: 1, Name: "Alice", Email: "alice@example.com", CreatedAt: time.Now()},
-            {ID: 2, Name: "Bob", Email: "bob@example.com", CreatedAt: time.Now()},
-        }
-        
-        // Send JSON response with 200 OK
-        responder.OK(w, r, users)
-    })
-    
-    log.Println("Server starting on :8080")
-    http.ListenAndServe(":8080", nil)
-}
+responder := &response.Responder{Encoder: &response.JSONEncoder{}}
+
+http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
+    user := User{ID: 1, Name: "John Doe", Email: "john@example.com"}
+    responder.OK(w, r, user)
+})
 ```
 
 ### Response with Status Codes
 
 ```go
-package main
+responder := &response.Responder{Encoder: &response.JSONEncoder{}}
 
-import (
-    "net/http"
-    "time"
-    
-    "github.com/julianstephens/go-utils/httputil/response"
-)
+http.HandleFunc("/create", func(w http.ResponseWriter, r *http.Request) {
+    data := map[string]interface{}{"id": 123, "name": "New Item"}
+    responder.Created(w, r, data)
+})
 
-type APIResponse struct {
-    Success bool        `json:"success"`
-    Message string      `json:"message"`
-    Data    interface{} `json:"data,omitempty"`
-    Error   string      `json:"error,omitempty"`
-}
+http.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {
+    responder.NoContent(w, r)
+})
 
-func main() {
-    responder := &response.Responder{
-        Encoder: &response.JSONEncoder{},
-    }
-    
-    // Success responses
-    http.HandleFunc("/create", func(w http.ResponseWriter, r *http.Request) {
-        newUser := map[string]interface{}{
-            "id":   123,
-            "name": "New User",
-        }
-        
-        apiResp := APIResponse{
-            Success: true,
-            Message: "User created successfully",
-            Data:    newUser,
-        }
-        
-        responder.Created(w, r, apiResp)
-    })
-    
-    // No content response
-    http.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {
-        // Simulate deletion
-        responder.NoContent(w, r)
-    })
-    
-    // Error responses
-    http.HandleFunc("/error", func(w http.ResponseWriter, r *http.Request) {
-        apiResp := APIResponse{
-            Success: false,
-            Error:   "Something went wrong",
-        }
-        
-        responder.InternalServerError(w, r, apiResp)
-    })
-    
-    // Not found
-    http.HandleFunc("/notfound", func(w http.ResponseWriter, r *http.Request) {
-        apiResp := APIResponse{
-            Success: false,
-            Error:   "Resource not found",
-        }
-        
-        responder.NotFound(w, r, apiResp)
-    })
-    
-    http.ListenAndServe(":8080", nil)
-}
+http.HandleFunc("/error", func(w http.ResponseWriter, r *http.Request) {
+    responder.InternalServerError(w, r, map[string]string{"error": "Server error"})
+})
 ```
 
 ### Response Hooks for Logging and Metrics
 
 ```go
-package main
-
-import (
-    "fmt"
-    "log"
-    "net/http"
-    "time"
-    
-    "github.com/julianstephens/go-utils/httputil/response"
-)
-
-func main() {
-    responder := &response.Responder{
-        Encoder: &response.JSONEncoder{},
-        
-        // Before hook - called before encoding response
-        Before: func(w http.ResponseWriter, r *http.Request, data interface{}) {
-            log.Printf("Sending response for %s %s", r.Method, r.URL.Path)
-            
-            // Add custom headers
-            w.Header().Set("X-API-Version", "v1.0")
-            w.Header().Set("X-Response-Time", time.Now().Format(time.RFC3339))
-        },
-        
-        // After hook - called after successful encoding
-        After: func(w http.ResponseWriter, r *http.Request, data interface{}) {
-            log.Printf("Successfully sent response for %s %s", r.Method, r.URL.Path)
-            
-            // Could collect metrics here
-            // metrics.IncrementResponseCounter(r.Method, r.URL.Path, "success")
-        },
-        
-        // Error hook - called when encoding fails
-        OnError: func(w http.ResponseWriter, r *http.Request, err error) {
-            log.Printf("Failed to encode response for %s %s: %v", r.Method, r.URL.Path, err)
-            
-            // Send fallback error response
-            w.Header().Set("Content-Type", "application/json")
-            w.WriteHeader(http.StatusInternalServerError)
-            w.Write([]byte(`{"error": "Internal server error"}`))
-            
-            // Could collect error metrics here
-            // metrics.IncrementResponseCounter(r.Method, r.URL.Path, "error")
-        },
-    }
-    
-    http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
-        data := map[string]interface{}{
-            "message": "Hello, World!",
-            "time":    time.Now(),
-        }
-        
-        responder.OK(w, r, data)
-    })
-    
-    http.HandleFunc("/api/broken", func(w http.ResponseWriter, r *http.Request) {
-        // This will cause encoding to fail (channels can't be JSON encoded)
-        data := make(chan int)
-        responder.OK(w, r, data)
-    })
-    
-    log.Println("Server with hooks starting on :8080")
-    http.ListenAndServe(":8080", nil)
+responder := &response.Responder{
+    Encoder: &response.JSONEncoder{},
+    Before: func(w http.ResponseWriter, r *http.Request, data interface{}) {
+        w.Header().Set("X-API-Version", "v1.0")
+    },
+    After: func(w http.ResponseWriter, r *http.Request, data interface{}) {
+        log.Printf("Sent response for %s %s", r.Method, r.URL.Path)
+    },
+    OnError: func(w http.ResponseWriter, r *http.Request, err error) {
+        log.Printf("Response error: %v", err)
+        w.WriteHeader(http.StatusInternalServerError)
+    },
 }
+
+http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
+    responder.OK(w, r, map[string]string{"message": "Hello"})
+})
 ```
 
 ### Custom Encoder
 
 ```go
-package main
-
-import (
-    "encoding/xml"
-    "fmt"
-    "net/http"
-    
-    "github.com/julianstephens/go-utils/httputil/response"
-)
-
-// XMLEncoder implements custom XML encoding
 type XMLEncoder struct{}
 
 func (e *XMLEncoder) Encode(w http.ResponseWriter, v interface{}) error {
     w.Header().Set("Content-Type", "application/xml")
-    
     encoder := xml.NewEncoder(w)
-    encoder.Indent("", "  ")
-    
-    // Write XML declaration
     w.Write([]byte(xml.Header))
-    
     return encoder.Encode(v)
 }
 
-type Product struct {
-    XMLName     xml.Name `xml:"product"`
-    ID          int      `xml:"id,attr"`
-    Name        string   `xml:"name"`
-    Description string   `xml:"description"`
-    Price       float64  `xml:"price"`
-}
+xmlResponder := &response.Responder{Encoder: &XMLEncoder{}}
+jsonResponder := &response.Responder{Encoder: &response.JSONEncoder{}}
 
-func main() {
-    // Create responder with XML encoder
-    xmlResponder := &response.Responder{
-        Encoder: &XMLEncoder{},
-    }
-    
-    // Create responder with JSON encoder for comparison
-    jsonResponder := &response.Responder{
-        Encoder: &response.JSONEncoder{},
-    }
-    
-    http.HandleFunc("/product.xml", func(w http.ResponseWriter, r *http.Request) {
-        product := Product{
-            ID:          1,
-            Name:        "Laptop",
-            Description: "High-performance laptop",
-            Price:       999.99,
-        }
-        
-        xmlResponder.OK(w, r, product)
-    })
-    
-    http.HandleFunc("/product.json", func(w http.ResponseWriter, r *http.Request) {
-        product := Product{
-            ID:          1,
-            Name:        "Laptop",
-            Description: "High-performance laptop",
-            Price:       999.99,
-        }
-        
-        jsonResponder.OK(w, r, product)
-    })
-    
-    fmt.Println("Server starting on :8080")
-    fmt.Println("Try:")
-    fmt.Println("  http://localhost:8080/product.xml")
-    fmt.Println("  http://localhost:8080/product.json")
-    
-    http.ListenAndServe(":8080", nil)
-}
+http.HandleFunc("/data.xml", func(w http.ResponseWriter, r *http.Request) {
+    xmlResponder.OK(w, r, data)
+})
+http.HandleFunc("/data.json", func(w http.ResponseWriter, r *http.Request) {
+    jsonResponder.OK(w, r, data)
+})
 ```
 
 ### Complete API with Structured Responses
 
 ```go
-package main
-
-import (
-    "encoding/json"
-    "fmt"
-    "log"
-    "net/http"
-    "strconv"
-    "time"
-    
-    "github.com/gorilla/mux"
-    "github.com/julianstephens/go-utils/httputil/response"
-)
-
 type APIResponse struct {
     Success   bool        `json:"success"`
     Data      interface{} `json:"data,omitempty"`
     Error     string      `json:"error,omitempty"`
-    Message   string      `json:"message,omitempty"`
-    RequestID string      `json:"request_id,omitempty"`
     Timestamp time.Time   `json:"timestamp"`
 }
 
 type User struct {
-    ID        int       `json:"id"`
-    Name      string    `json:"name"`
-    Email     string    `json:"email"`
-    CreatedAt time.Time `json:"created_at"`
+    ID   int    `json:"id"`
+    Name string `json:"name"`
 }
 
-// Mock database
-var users = map[int]User{
-    1: {ID: 1, Name: "Alice", Email: "alice@example.com", CreatedAt: time.Now()},
-    2: {ID: 2, Name: "Bob", Email: "bob@example.com", CreatedAt: time.Now()},
-}
-var nextID = 3
+var users = map[int]User{1: {ID: 1, Name: "Alice"}}
+var nextID = 2
 
-func createAPIResponse(success bool, data interface{}, message, error string) APIResponse {
-    return APIResponse{
-        Success:   success,
-        Data:      data,
-        Message:   message,
-        Error:     error,
-        Timestamp: time.Now(),
-    }
-}
+responder := &response.Responder{Encoder: &response.JSONEncoder{}}
 
-func main() {
-    responder := &response.Responder{
-        Encoder: &response.JSONEncoder{},
-        
-        Before: func(w http.ResponseWriter, r *http.Request, data interface{}) {
-            // Add CORS headers
-            w.Header().Set("Access-Control-Allow-Origin", "*")
-            w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-            w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        },
-        
-        OnError: func(w http.ResponseWriter, r *http.Request, err error) {
-            log.Printf("Response encoding error: %v", err)
-            
-            errorResp := createAPIResponse(false, nil, "", "Internal server error")
-            w.Header().Set("Content-Type", "application/json")
-            w.WriteHeader(http.StatusInternalServerError)
-            json.NewEncoder(w).Encode(errorResp)
-        },
-    }
-    
-    router := mux.NewRouter()
-    api := router.PathPrefix("/api/v1").Subrouter()
-    
-    // List users
-    api.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
+http.HandleFunc("/api/users", func(w http.ResponseWriter, r *http.Request) {
+    if r.Method == "GET" {
         userList := make([]User, 0, len(users))
-        for _, user := range users {
-            userList = append(userList, user)
+        for _, u := range users {
+            userList = append(userList, u)
         }
-        
-        apiResp := createAPIResponse(true, userList, "Users retrieved successfully", "")
-        responder.OK(w, r, apiResp)
-    }).Methods("GET")
-    
-    // Get user by ID
-    api.HandleFunc("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
-        vars := mux.Vars(r)
-        id, err := strconv.Atoi(vars["id"])
-        if err != nil {
-            apiResp := createAPIResponse(false, nil, "", "Invalid user ID")
-            responder.BadRequest(w, r, apiResp)
-            return
-        }
-        
-        user, exists := users[id]
-        if !exists {
-            apiResp := createAPIResponse(false, nil, "", "User not found")
-            responder.NotFound(w, r, apiResp)
-            return
-        }
-        
-        apiResp := createAPIResponse(true, user, "User retrieved successfully", "")
-        responder.OK(w, r, apiResp)
-    }).Methods("GET")
-    
-    // Create user
-    api.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
-        var userData struct {
-            Name  string `json:"name"`
-            Email string `json:"email"`
-        }
-        
-        if err := json.NewDecoder(r.Body).Decode(&userData); err != nil {
-            apiResp := createAPIResponse(false, nil, "", "Invalid JSON")
-            responder.BadRequest(w, r, apiResp)
-            return
-        }
-        
-        if userData.Name == "" || userData.Email == "" {
-            apiResp := createAPIResponse(false, nil, "", "Name and email are required")
-            responder.BadRequest(w, r, apiResp)
-            return
-        }
-        
-        user := User{
-            ID:        nextID,
-            Name:      userData.Name,
-            Email:     userData.Email,
-            CreatedAt: time.Now(),
-        }
+        responder.OK(w, r, APIResponse{Success: true, Data: userList, Timestamp: time.Now()})
+    } else if r.Method == "POST" {
+        var u User
+        json.NewDecoder(r.Body).Decode(&u)
+        u.ID = nextID
         nextID++
-        
-        users[user.ID] = user
-        
-        apiResp := createAPIResponse(true, user, "User created successfully", "")
-        responder.Created(w, r, apiResp)
-    }).Methods("POST")
-    
-    // Delete user
-    api.HandleFunc("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
-        vars := mux.Vars(r)
-        id, err := strconv.Atoi(vars["id"])
-        if err != nil {
-            apiResp := createAPIResponse(false, nil, "", "Invalid user ID")
-            responder.BadRequest(w, r, apiResp)
-            return
-        }
-        
-        if _, exists := users[id]; !exists {
-            apiResp := createAPIResponse(false, nil, "", "User not found")
-            responder.NotFound(w, r, apiResp)
-            return
-        }
-        
-        delete(users, id)
-        responder.NoContent(w, r)
-    }).Methods("DELETE")
-    
-    // Health check
-    api.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-        health := map[string]interface{}{
-            "status":    "healthy",
-            "timestamp": time.Now(),
-            "version":   "1.0.0",
-        }
-        
-        apiResp := createAPIResponse(true, health, "Service is healthy", "")
-        responder.OK(w, r, apiResp)
-    }).Methods("GET")
-    
-    log.Println("API server starting on :8080")
-    log.Println("Endpoints:")
-    log.Println("  GET    /api/v1/health")
-    log.Println("  GET    /api/v1/users")
-    log.Println("  GET    /api/v1/users/{id}")
-    log.Println("  POST   /api/v1/users")
-    log.Println("  DELETE /api/v1/users/{id}")
-    
-    http.ListenAndServe(":8080", router)
-}
+        users[u.ID] = u
+        responder.Created(w, r, APIResponse{Success: true, Data: u, Timestamp: time.Now()})
+    }
+})
+
+http.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
+    responder.OK(w, r, APIResponse{Success: true, Data: map[string]string{"status": "healthy"}, Timestamp: time.Now()})
+})
 ```
 
 ## API Reference

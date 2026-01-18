@@ -1,3 +1,44 @@
+## v0.4.0
+
+- checksum: adds fast cryptographic checksum utilities
+    - adds `CRC32C()` for Castagnoli checksums optimized for storage
+    - adds `CRC32()` for IEEE and Koopman variants
+    - adds `Verify()` and `VerifyWithAlgorithm()` for data integrity checks
+    - adds `AppendCRC32C()` and `StripCRC32C()` for self-checksumming
+    - adds streaming support via `hash.Hash32` interface
+- filelock: adds cross-platform file locking utilities
+    - adds `Lock()` for exclusive file locks across processes
+    - adds `TryLock()` for non-blocking lock attempts
+    - adds `Unlock()` for releasing locks
+    - supports Linux, macOS, and Windows with unified API
+- health: adds health check and diagnostic utilities
+    - adds `Checker` interface for custom health checks
+    - adds `Repairer` interface for automated repair operations
+    - adds standardized exit codes (0=OK, 1=Warning, 2=Error)
+    - adds `Report` type with aggregated check results and timestamps
+    - adds `RunChecks()` to execute multiple checkers
+    - adds `RepairAll()` to attempt repairs on failed components
+- helpers: removes deprecated slice functions and consolidates with generic package
+    - **BREAKING**: removes `ContainsAll[T comparable]` - use `generic.ContainsAll` instead
+    - **BREAKING**: removes `Difference` - use `generic.Difference` instead  
+    - **BREAKING**: removes `DeleteElement` - use `generic.DeleteElement` instead
+    - adds atomic file operations for crash-safe writes
+        - adds `AtomicFileWrite()` for atomic file writes with fsync and rename
+        - adds `AtomicFileWriteWithPerm()` for atomic writes with custom permissions
+        - adds `SafeFileSync()` for syncing file data to disk
+        - adds `SafeDirSync()` for syncing directory to ensure durability
+    - removes unused `encoding/json` import
+- jsonutil: adds file I/O operations for JSON marshaling/unmarshaling
+    - adds `ReadFile()` for reading and unmarshaling JSON files
+    - adds `ReadFileStrict()` for strict field matching when reading files
+    - adds `ReadFileWithOptions()` for custom unmarshal options
+    - adds `WriteFile()` for marshaling and writing JSON files
+    - adds `WriteFileIndent()` for indented JSON file writes
+    - adds `WriteFileWithOptions()` for custom marshal options
+- slices: marks package as deprecated in favor of generic package
+    - **DEPRECATED**: Package will be removed in v0.6.0, migrate to `generic` package
+    - updates package documentation with deprecation notice and migration guide
+
 ## v0.3.1
 
 - validator:

@@ -4,10 +4,10 @@ The `generic` package provides comprehensive generic utilities leveraging Go's t
 
 ## Features
 
-- **Functional Programming**: Map, filter, reduce, find, and other functional operations
+- **Functional Programming**: Map, filter, reduce, find, and other operations
 - **Slice Utilities**: Unique, reverse, chunk, set operations (union, intersection, difference)
-- **Map Operations**: Keys, values, filtering, and transformation functions
-- **General Utilities**: Conditional helpers, pointer utilities, and type-safe operations
+- **Map Operations**: Keys, values, filtering, and transformation
+- **General Utilities**: Conditional helpers and pointer utilities
 
 ## Installation
 
@@ -24,48 +24,36 @@ package main
 
 import (
     "fmt"
-    "strconv"
     "github.com/julianstephens/go-utils/generic"
 )
 
 func main() {
     numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
-    // Map: Convert integers to strings
-    stringNumbers := generic.Map(numbers, func(x int) string {
-        return strconv.Itoa(x)
+    // Map: Convert to strings
+    strings := generic.Map(numbers, func(x int) string {
+        return fmt.Sprintf("%d", x)
     })
-    fmt.Printf("Map (int -> string): %v\n", stringNumbers)
+    _ = strings
 
     // Filter: Get even numbers
     evens := generic.Filter(numbers, func(x int) bool {
         return x%2 == 0
     })
-    fmt.Printf("Filter (evens): %v\n", evens)
+    _ = evens
 
     // Reduce: Sum all numbers
     sum := generic.Reduce(numbers, 0, func(acc, x int) int {
         return acc + x
     })
-    fmt.Printf("Reduce (sum): %d\n", sum)
+    _ = sum
 
     // Find: First number greater than 5
     first, found := generic.Find(numbers, func(x int) bool {
         return x > 5
     })
-    fmt.Printf("Find (first > 5): %d (found: %t)\n", first, found)
-
-    // Any: Check if any number is greater than 8
-    hasLarge := generic.Any(numbers, func(x int) bool {
-        return x > 8
-    })
-    fmt.Printf("Any (> 8): %t\n", hasLarge)
-
-    // All: Check if all numbers are positive
-    allPositive := generic.All(numbers, func(x int) bool {
-        return x > 0
-    })
-    fmt.Printf("All (positive): %t\n", allPositive)
+    _ = first
+    _ = found
 }
 ```
 
@@ -80,26 +68,14 @@ import (
 )
 
 func main() {
-    duplicates := []string{"apple", "banana", "apple", "cherry", "banana", "date"}
-
-    // Unique: Remove duplicates
+    duplicates := []string{"apple", "banana", "apple", "cherry", "banana"}
     unique := generic.Unique(duplicates)
-    fmt.Printf("Unique: %v\n", unique)
+    _ = unique
 
-    // Contains: Check membership
-    hasApple := generic.Contains(duplicates, "apple")
-    fmt.Printf("Contains 'apple': %t\n", hasApple)
-
-    // Reverse: Reverse order
-    reversed := generic.Reverse(unique)
-    fmt.Printf("Reverse: %v\n", reversed)
-
-    // Chunk: Split into chunks
     numbers := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
     chunks := generic.Chunk(numbers, 3)
-    fmt.Printf("Chunk (size 3): %v\n", chunks)
+    _ = chunks
 
-    // Set operations
     set1 := []int{1, 2, 3, 4, 5}
     set2 := []int{4, 5, 6, 7, 8}
 
@@ -107,9 +83,9 @@ func main() {
     intersection := generic.Intersection(set1, set2)
     union := generic.Union(set1, set2)
 
-    fmt.Printf("Difference (set1 - set2): %v\n", difference)
-    fmt.Printf("Intersection: %v\n", intersection)
-    fmt.Printf("Union: %v\n", union)
+    _ = difference
+    _ = intersection
+    _ = union
 }
 ```
 
@@ -119,8 +95,6 @@ func main() {
 package main
 
 import (
-    "fmt"
-    "strings"
     "github.com/julianstephens/go-utils/generic"
 )
 
@@ -132,29 +106,22 @@ func main() {
         "orange": "orange",
     }
 
-    // Keys and Values
-    fruits := generic.Keys(fruitColors)
-    colors := generic.Values(fruitColors)
-    fmt.Printf("Keys: %v\n", fruits)
-    fmt.Printf("Values: %v\n", colors)
+    keys := generic.Keys(fruitColors)
+    values := generic.Values(fruitColors)
+    _ = keys
+    _ = values
 
-    // Filter map: Only fruits with colors longer than 3 characters
-    filtered := generic.FilterMap(fruitColors, func(fruit, color string) bool {
+    // Filter: Colors longer than 3 characters
+    filtered := generic.FilterMap(fruitColors, func(_, color string) bool {
         return len(color) > 3
     })
-    fmt.Printf("Filtered (color len > 3): %v\n", filtered)
+    _ = filtered
 
-    // Map transformation: Uppercase fruit names
-    uppercased := generic.MapMap(fruitColors, func(fruit, color string) (string, string) {
-        return strings.ToUpper(fruit), color
-    })
-    fmt.Printf("Transformed (uppercase keys): %v\n", uppercased)
-
-    // Convert to slice of key-value pairs
+    // Convert to slice of pairs
     pairs := generic.MapToSlice(fruitColors, func(fruit, color string) string {
         return fruit + ":" + color
     })
-    fmt.Printf("Map to slice: %v\n", pairs)
+    _ = pairs
 }
 ```
 
@@ -164,39 +131,26 @@ func main() {
 package main
 
 import (
-    "fmt"
     "github.com/julianstephens/go-utils/generic"
 )
 
 func main() {
-    // If: Ternary operator
-    condition := true
-    result := generic.If(condition, "success", "failure")
-    fmt.Printf("If (ternary): %s\n", result)
-
-    // Default: Provide fallback for zero values
+    // Provide fallback for zero values
     emptyString := ""
-    defaulted := generic.Default(emptyString, "default value")
-    fmt.Printf("Default: '%s'\n", defaulted)
+    defaulted := generic.Default(emptyString, "default")
+    _ = defaulted
 
-    // Ptr: Create pointer
+    // Create and dereference pointers
     value := 42
     ptr := generic.Ptr(value)
-    fmt.Printf("Ptr: *%d = %d\n", ptr, *ptr)
-
-    // Deref: Dereference pointer safely
     dereferenced := generic.Deref(ptr)
-    fmt.Printf("Deref: %d\n", dereferenced)
+    _ = dereferenced
 
-    // Deref with nil pointer (returns zero value)
-    var nilPtr *int
-    safeDeref := generic.Deref(nilPtr)
-    fmt.Printf("Deref (nil): %d\n", safeDeref)
-
-    // Zero: Get zero value
+    // Get zero value for type
     zeroInt := generic.Zero[int]()
     zeroString := generic.Zero[string]()
-    fmt.Printf("Zero values: int=%d, string='%s'\n", zeroInt, zeroString)
+    _ = zeroInt
+    _ = zeroString
 }
 ```
 
@@ -206,7 +160,6 @@ func main() {
 package main
 
 import (
-    "fmt"
     "github.com/julianstephens/go-utils/generic"
 )
 
@@ -229,25 +182,19 @@ func main() {
     adults := generic.Filter(people, func(p Person) bool {
         return p.Age > 30
     })
-    fmt.Printf("Adults over 30: %v\n", adults)
+    _ = adults
 
     // Map: Extract names
     names := generic.Map(people, func(p Person) string {
         return p.Name
     })
-    fmt.Printf("Names: %v\n", names)
+    _ = names
 
-    // Group by city using SliceToMapBy
+    // Group by city
     cityMap := generic.SliceToMapBy(people, func(p Person) string {
         return p.City
     })
-    fmt.Printf("Last person by city: %v\n", cityMap)
-
-    // Check if anyone is from Chicago
-    hasChicago := generic.Any(people, func(p Person) bool {
-        return p.City == "Chicago"
-    })
-    fmt.Printf("Anyone from Chicago: %t\n", hasChicago)
+    _ = cityMap
 }
 ```
 
@@ -255,49 +202,49 @@ func main() {
 
 ### Functional Programming
 - `Map[T, U any](slice []T, f func(T) U) []U` - Apply function to each element
-- `Filter[T any](slice []T, predicate func(T) bool) []T` - Filter elements by predicate
-- `Reduce[T, U any](slice []T, initial U, f func(U, T) U) U` - Reduce slice to single value
-- `Find[T any](slice []T, predicate func(T) bool) (T, bool)` - Find first matching element
-- `Any[T any](slice []T, predicate func(T) bool) bool` - Check if any element matches
-- `All[T any](slice []T, predicate func(T) bool) bool` - Check if all elements match
-- `ForEach[T any](slice []T, f func(T))` - Execute function for each element
+- `Filter[T any](slice []T, predicate func(T) bool) []T` - Filter by predicate
+- `Reduce[T, U any](slice []T, initial U, f func(U, T) U) U` - Reduce to single value
+- `Find[T any](slice []T, predicate func(T) bool) (T, bool)` - Find first match
+- `Any[T any](slice []T, predicate func(T) bool) bool` - Check if any matches
+- `All[T any](slice []T, predicate func(T) bool) bool` - Check if all match
+- `ForEach[T any](slice []T, f func(T))` - Execute for each element
 
 ### Slice Operations
-- `Contains[T comparable](slice []T, value T) bool` - Check if slice contains value
-- `ContainsAll[T comparable](mainSlice, subset []T) bool` - Check if all elements in subset are in mainSlice
-- `IndexOf[T comparable](slice []T, value T) int` - Find index of value in slice (-1 if not found)
-- `Unique[T comparable](slice []T) []T` - Remove duplicate elements
-- `Reverse[T any](slice []T) []T` - Reverse slice order
+- `Contains[T comparable](slice []T, value T) bool` - Check if contains value
+- `ContainsAll[T comparable](mainSlice, subset []T) bool` - Check if all subset elements present
+- `IndexOf[T comparable](slice []T, value T) int` - Find index (-1 if not found)
+- `Unique[T comparable](slice []T) []T` - Remove duplicates
+- `Reverse[T any](slice []T) []T` - Reverse order
 - `DeleteElement[T any](slice []T, index int) []T` - Remove element at index
 - `InsertElement[T any](slice []T, index int, element T) []T` - Insert element at index
-- `Chunk[T any](slice []T, size int) [][]T` - Split slice into chunks
-- `Union[T comparable](slice1, slice2 []T) []T` - Union of two slices
-- `Intersection[T comparable](slice1, slice2 []T) []T` - Intersection of two slices
-- `Difference[T comparable](slice1, slice2 []T) []T` - Elements in slice1 but not slice2
+- `Chunk[T any](slice []T, size int) [][]T` - Split into chunks
+- `Union[T comparable](slice1, slice2 []T) []T` - Union of slices
+- `Intersection[T comparable](slice1, slice2 []T) []T` - Intersection of slices
+- `Difference[T comparable](slice1, slice2 []T) []T` - Elements in first but not second
 
 ### Map Operations
 - `Keys[K comparable, V any](m map[K]V) []K` - Extract all keys
 - `Values[K comparable, V any](m map[K]V) []V` - Extract all values
-- `HasKey[K comparable, V any](m map[K]V, key K) bool` - Check if map has key
-- `HasValue[K comparable, V comparable](m map[K]V, value V) bool` - Check if map has value
-- `FilterMap[K comparable, V any](m map[K]V, predicate func(K, V) bool) map[K]V` - Filter map entries
+- `HasKey[K comparable, V any](m map[K]V, key K) bool` - Check if key exists
+- `HasValue[K comparable, V comparable](m map[K]V, value V) bool` - Check if value exists
+- `FilterMap[K comparable, V any](m map[K]V, predicate func(K, V) bool) map[K]V` - Filter entries
 - `MapMap[K1 comparable, V1, K2 comparable, V2 any](m map[K1]V1, f func(K1, V1) (K2, V2)) map[K2]V2` - Transform map
-- `MapToSlice[K comparable, V, T any](m map[K]V, f func(K, V) T) []T` - Convert map to slice
-- `SliceToMap[T any, K comparable, V any](slice []T, keyFunc func(T) K, valueFunc func(T) V) map[K]V` - Convert slice to map
-- `SliceToMapBy[T any, K comparable](slice []T, keyFunc func(T) K) map[K]T` - Convert slice to map using elements as values
+- `MapToSlice[K comparable, V, T any](m map[K]V, f func(K, V) T) []T` - Convert to slice
+- `SliceToMap[T any, K comparable, V any](slice []T, keyFunc func(T) K, valueFunc func(T) V) map[K]V` - Convert to map
+- `SliceToMapBy[T any, K comparable](slice []T, keyFunc func(T) K) map[K]T` - Convert to map with elements as values
 - `MergeMap[K comparable, V any](mergeMaps ...map[K]V) map[K]V` - Merge multiple maps
-- `CopyMap[K comparable, V any](m map[K]V) map[K]V` - Create shallow copy of map
+- `CopyMap[K comparable, V any](m map[K]V) map[K]V` - Shallow copy
 
 ### General Utilities
-- `If[T any](cond bool, vtrue T, vfalse T) T` - Ternary operator
 - `Default[T any](val T, defaultVal T) T` - Return default if zero value
 - `Zero[T any]() T` - Get zero value for type
-- `Ptr[T any](v T) *T` - Create pointer to value
-- `Deref[T any](ptr *T) T` - Safely dereference pointer
+- `Ptr[T any](v T) *T` - Create pointer
+- `Deref[T any](ptr *T) T` - Safely dereference
 
 ## Notes
 
 - All functions are type-safe using Go generics
 - Nil slices and maps are handled gracefully
+- For ternary-like operations, use `helpers.If[T any]()` from the helpers package
 - Functions follow idiomatic Go conventions
 - No external dependencies except Go standard library

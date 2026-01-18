@@ -22,132 +22,35 @@ go get github.com/julianstephens/go-utils/httputil/request
 ### JSON Request Handling
 
 ```go
-package main
-
-import (
-    "fmt"
-    "log"
-    "net/http"
-    
-    "github.com/julianstephens/go-utils/httputil/request"
-)
-
 type CreateUserRequest struct {
-    Name     string   `json:"name"`
-    Email    string   `json:"email"`
-    Age      int      `json:"age"`
-    Roles    []string `json:"roles"`
-    Active   bool     `json:"active"`
+    Name   string `json:"name"`
+    Email  string `json:"email"`
+    Age    int    `json:"age"`
 }
 
 func createUserHandler(w http.ResponseWriter, r *http.Request) {
     var req CreateUserRequest
-    
-    // Decode JSON request body
     if err := request.DecodeJSON(r, &req); err != nil {
-        if err == request.ErrInvalidContentType {
-            http.Error(w, "Content-Type must be application/json", http.StatusBadRequest)
-            return
-        }
-        http.Error(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
+        http.Error(w, "Invalid JSON", http.StatusBadRequest)
         return
     }
-    
-    // Validate required fields
     if req.Name == "" || req.Email == "" {
-        http.Error(w, "Name and email are required", http.StatusBadRequest)
+        http.Error(w, "Name and email required", http.StatusBadRequest)
         return
     }
-    
-    // Process the request
-    fmt.Printf("Creating user: %+v\n", req)
-    
-    // Send response
-    w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(http.StatusCreated)
-    w.Write([]byte(`{"message": "User created successfully"}`))
-}
-
-func main() {
-    http.HandleFunc("/users", createUserHandler)
-    
-    log.Println("Server starting on :8080")
-    log.Println("POST to /users with JSON body to test")
-    log.Fatal(http.ListenAndServe(":8080", nil))
 }
 ```
 
 ### Form Data Processing
 
 ```go
-package main
-
-import (
-    "fmt"
-    "net/http"
-    
-    "github.com/julianstephens/go-utils/httputil/request"
-)
-
 func contactFormHandler(w http.ResponseWriter, r *http.Request) {
-    // Parse form data
-    if err := request.ParseForm(r); err != nil {
-        http.Error(w, "Invalid form data", http.StatusBadRequest)
-        return
-    }
-    
-    // Extract form values
-    name, hasName := request.FormValue(r, "name")
-    email, hasEmail := request.FormValue(r, "email")
-    message, hasMessage := request.FormValue(r, "message")
-    
-    // Validate required fields
-    if !hasName || !hasEmail || !hasMessage {
-        http.Error(w, "Name, email, and message are required", http.StatusBadRequest)
-        return
-    }
-    
-    // Convert optional fields
+    _ = request.ParseForm(r)
+    name, _ := request.FormValue(r, "name")
+    email, _ := request.FormValue(r, "email")
     newsletter, _ := request.FormBool(r, "newsletter")
-    priority, _ := request.FormInt(r, "priority", 1) // default priority = 1
-    
-    fmt.Printf("Contact form submission:\n")
-    fmt.Printf("  Name: %s\n", name)
-    fmt.Printf("  Email: %s\n", email)
-    fmt.Printf("  Message: %s\n", message)
-    fmt.Printf("  Newsletter: %t\n", newsletter)
-    fmt.Printf("  Priority: %d\n", priority)
-    
-    w.WriteHeader(http.StatusOK)
     w.Write([]byte("Thank you for your message!"))
-}
-
-func main() {
-    http.HandleFunc("/contact", contactFormHandler)
-    
-    // Serve HTML form for testing
-    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        html := `
-        <html>
-        <body>
-            <form method="POST" action="/contact">
-                <label>Name: <input type="text" name="name" required></label><br>
-                <label>Email: <input type="email" name="email" required></label><br>
-                <label>Message: <textarea name="message" required></textarea></label><br>
-                <label>Newsletter: <input type="checkbox" name="newsletter" value="true"></label><br>
-                <label>Priority: <input type="number" name="priority" min="1" max="5" value="1"></label><br>
-                <button type="submit">Send Message</button>
-            </form>
-        </body>
-        </html>
-        `
-        w.Header().Set("Content-Type", "text/html")
-        w.Write([]byte(html))
-    })
-    
-    fmt.Println("Server starting on :8080")
-    fmt.Println("Visit http://localhost:8080 for contact form")
-    http.ListenAndServe(":8080", nil)
 }
 ```
 

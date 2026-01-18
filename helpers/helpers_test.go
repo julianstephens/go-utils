@@ -1,7 +1,6 @@
 package helpers_test
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,71 +8,6 @@ import (
 	"github.com/julianstephens/go-utils/helpers"
 	tst "github.com/julianstephens/go-utils/tests"
 )
-
-func TestContainsAll(t *testing.T) {
-	tests := []struct {
-		name      string
-		mainSlice []int
-		subset    []int
-		expected  bool
-	}{
-		{
-			name:      "empty subset should return true",
-			mainSlice: []int{1, 2, 3},
-			subset:    []int{},
-			expected:  true,
-		},
-		{
-			name:      "subset fully contained",
-			mainSlice: []int{1, 2, 3, 4, 5},
-			subset:    []int{2, 4},
-			expected:  true,
-		},
-		{
-			name:      "subset not fully contained",
-			mainSlice: []int{1, 2, 3},
-			subset:    []int{2, 4},
-			expected:  false,
-		},
-		{
-			name:      "identical slices",
-			mainSlice: []int{1, 2, 3},
-			subset:    []int{1, 2, 3},
-			expected:  true,
-		},
-		{
-			name:      "empty main slice with non-empty subset",
-			mainSlice: []int{},
-			subset:    []int{1},
-			expected:  false,
-		},
-		{
-			name:      "both slices empty",
-			mainSlice: []int{},
-			subset:    []int{},
-			expected:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := helpers.ContainsAll(tt.mainSlice, tt.subset)
-			tst.AssertDeepEqual(t, result, tt.expected)
-		})
-	}
-}
-
-func TestContainsAllString(t *testing.T) {
-	mainSlice := []string{"apple", "banana", "cherry"}
-	subset := []string{"apple", "cherry"}
-
-	result := helpers.ContainsAll(mainSlice, subset)
-	tst.AssertTrue(t, result, "ContainsAll with strings should be true for existing subset")
-
-	subset = []string{"apple", "grape"}
-	result = helpers.ContainsAll(mainSlice, subset)
-	tst.AssertFalse(t, result, "ContainsAll with strings should be false for missing element")
-}
 
 func TestIf(t *testing.T) {
 	// Test with integers
@@ -127,112 +61,6 @@ func TestDefault(t *testing.T) {
 
 	nilResult := helpers.Default(nil, []int{1, 2, 3})
 	tst.AssertDeepEqual(t, nilResult, []int{1, 2, 3})
-}
-
-func TestDifference(t *testing.T) {
-	tests := []struct {
-		name     string
-		a        []string
-		b        []string
-		expected []string
-	}{
-		{
-			name:     "basic difference",
-			a:        []string{"a", "b", "c", "d"},
-			b:        []string{"b", "d"},
-			expected: []string{"a", "c"},
-		},
-		{
-			name:     "no common elements",
-			a:        []string{"a", "b", "c"},
-			b:        []string{"x", "y", "z"},
-			expected: []string{"a", "b", "c"},
-		},
-		{
-			name:     "all elements in b",
-			a:        []string{"a", "b", "c"},
-			b:        []string{"a", "b", "c"},
-			expected: []string{},
-		},
-		{
-			name:     "empty a slice",
-			a:        []string{},
-			b:        []string{"a", "b"},
-			expected: []string{},
-		},
-		{
-			name:     "empty b slice",
-			a:        []string{"a", "b", "c"},
-			b:        []string{},
-			expected: []string{"a", "b", "c"},
-		},
-		{
-			name:     "both empty",
-			a:        []string{},
-			b:        []string{},
-			expected: []string{},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := helpers.Difference(tt.a, tt.b)
-			// Treat nil and empty slices as equal for this test suite
-			if len(result) == 0 && len(tt.expected) == 0 {
-				return
-			}
-			tst.AssertDeepEqual(t, result, tt.expected)
-		})
-	}
-}
-
-func TestDeleteElement(t *testing.T) {
-	tests := []struct {
-		name     string
-		slice    []int
-		index    int
-		expected []int
-	}{
-		{
-			name:     "delete first element",
-			slice:    []int{1, 2, 3, 4},
-			index:    0,
-			expected: []int{2, 3, 4},
-		},
-		{
-			name:     "delete middle element",
-			slice:    []int{1, 2, 3, 4},
-			index:    2,
-			expected: []int{1, 2, 4},
-		},
-		{
-			name:     "delete last element",
-			slice:    []int{1, 2, 3, 4},
-			index:    3,
-			expected: []int{1, 2, 3},
-		},
-		{
-			name:     "single element slice",
-			slice:    []int{42},
-			index:    0,
-			expected: []int{},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := helpers.DeleteElement(tt.slice, tt.index)
-			tst.AssertDeepEqual(t, result, tt.expected)
-		})
-	}
-}
-
-func TestDeleteElementString(t *testing.T) {
-	slice := []string{"apple", "banana", "cherry"}
-	result := helpers.DeleteElement(slice, 1)
-	expected := []string{"apple", "cherry"}
-
-	tst.AssertDeepEqual(t, result, expected)
 }
 
 func TestExists(t *testing.T) {
@@ -368,45 +196,6 @@ func TestStringPtr(t *testing.T) {
 	if ptr == ptr2 {
 		t.Error("StringPtr should return different pointers for different calls")
 	}
-}
-
-func TestMustMarshalJson(t *testing.T) {
-	// Test successful marshaling
-	t.Run("successful marshal", func(t *testing.T) {
-		data := map[string]interface{}{
-			"name": "test",
-			"age":  30,
-		}
-
-		result := helpers.MustMarshalJson(data)
-		if len(result) == 0 {
-			t.Error("MustMarshalJson returned empty result")
-		}
-
-		// Verify it's valid JSON by unmarshaling
-		var unmarshaled map[string]interface{}
-		err := json.Unmarshal(result, &unmarshaled)
-		if err != nil {
-			t.Errorf("MustMarshalJson produced invalid JSON: %v", err)
-		}
-
-		if unmarshaled["name"] != "test" || unmarshaled["age"] != float64(30) {
-			t.Errorf("MustMarshalJson produced incorrect JSON: %v", unmarshaled)
-		}
-	})
-
-	// Test panic with unmarshalable data
-	t.Run("panic on unmarshalable data", func(t *testing.T) {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("MustMarshalJson should panic on unmarshalable data")
-			}
-		}()
-
-		// Channel cannot be marshaled to JSON
-		unmarshalable := make(chan int)
-		helpers.MustMarshalJson(unmarshalable)
-	})
 }
 
 func TestStructToMap(t *testing.T) {

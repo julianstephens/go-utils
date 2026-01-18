@@ -10,14 +10,17 @@ A collection of reusable Go utilities and helper functions designed to simplify 
 | `config`              | Reusable and idiomatic configuration management with support for environment variables, YAML/JSON files, validation, and default values                      |
 | `logger`              | Unified structured logger wrapping logrus with log level control, custom formatting, and contextual logging support                                          |
 | `security`            | Security utilities for hashing, encryption, secure random generation, and cryptographic operations with best-practice defaults                               |
-| `slices`              | Generic slice utility functions for conditional selection, set operations, and element manipulation                                                          |
-| `helpers`             | General utility functions including slice operations, conditional helpers, file system utilities, and struct manipulation                                    |
+| `helpers`             | General utility functions including conditional helpers, file system utilities, atomic writes, and struct manipulation                                      |
 | `jsonutil`            | Enhanced JSON marshaling and unmarshaling with error context, formatting options, stream processing, and strict decoding support                             |
 | `dbutil`              | Database utility functions and helpers for safe database interactions with connection management, query execution, transaction handling, and context support |
 | `cliutil`             | Helpers and utilities for building command-line interfaces with argument parsing, interactive prompts, progress indicators, and colored output               |
+| `checksum`            | Fast cryptographic checksum utilities for data integrity verification including CRC32 variants optimized for storage and WAL records                        |
+| `filelock`            | Cross-platform file locking utilities for coordinating single-writer access between processes on Linux, macOS, and Windows                                   |
+| `health`              | Health check and diagnostic utilities for building monitoring and repair systems with standardized exit codes and status reporting                          |
 | `httputil/auth`       | JWT token creation, validation, and management with role-based access control and custom claims support                                                      |
 | `httputil/middleware` | Common, reusable HTTP middleware for logging, recovery, CORS, and request ID injection                                                                       |
 | `httputil/request`    | HTTP request parsing utilities for JSON, form data, query parameters, and URL values                                                                         |
 | `httputil/response`   | Structured HTTP response handling with extensible encoders, hooks, and status code helpers                                                                   |
 | `validator`           | Shared input validators (non-empty checks, basic email validation, and other common validators)                                                             |
 | `tests`               | Shared test helpers and assertion utilities used by package tests across the repository (assertions, HTTP test helpers, and miscellaneous helpers)           |
+| `slices` (Deprecated) | ~~Generic slice utility functions~~ Use [generic](generic) package instead                                                                                  |

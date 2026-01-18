@@ -4,12 +4,12 @@ The `cliutil` package provides helpers and utilities for building command-line i
 
 ## Features
 
-- **Argument Parsing**: Structured parsing of command-line arguments and flags
-- **Colored Output**: Success, error, warning, and info message formatting
-- **Progress Indicators**: Progress bars and spinners for long-running operations
+- **Argument Parsing**: Parse command-line arguments and flags
+- **Colored Output**: Success, error, warning, and info formatting
+- **Progress Indicators**: Progress bars and spinners
 - **Interactive Prompts**: User input with validation
 - **Table Output**: Formatted table display
-- **Flag Utilities**: Convenient flag handling functions
+- **Flag Utilities**: Convenient flag handling
 - **Email Validation**: Built-in email validation
 
 ## Installation
@@ -26,18 +26,15 @@ go get github.com/julianstephens/go-utils/cliutil
 package main
 
 import (
-    "fmt"
     "github.com/julianstephens/go-utils/cliutil"
 )
 
 func main() {
-    testArgs := []string{"--config", "app.yaml", "--verbose", "--output", "result.txt", "input1.txt", "input2.txt"}
-    args := cliutil.ParseArgs(testArgs)
+    args := cliutil.ParseArgs([]string{"--config", "app.yaml", "--verbose", "input.txt"})
     
-    fmt.Printf("Config file: %s\n", args.GetFlagWithDefault("config", "default.yaml"))
-    fmt.Printf("Verbose mode: %t\n", args.HasFlag("verbose"))
-    fmt.Printf("Output file: %s\n", args.GetFlag("output"))
-    fmt.Printf("Input files: %v\n", args.Positional)
+    config := args.GetFlagWithDefault("config", "default.yaml")
+    verbose := args.HasFlag("verbose")
+    _ = args.Positional
 }
 ```
 
@@ -49,11 +46,11 @@ package main
 import "github.com/julianstephens/go-utils/cliutil"
 
 func main() {
-    cliutil.PrintSuccess("Operation completed successfully!")
-    cliutil.PrintError("Something went wrong")
-    cliutil.PrintWarning("This is a warning message")
-    cliutil.PrintInfo("Here's some information")
-    cliutil.PrintColored("Custom blue message", cliutil.ColorBlue)
+    cliutil.PrintSuccess("Success!")
+    cliutil.PrintError("Error occurred")
+    cliutil.PrintWarning("Warning message")
+    cliutil.PrintInfo("Information")
+    cliutil.PrintColored("Custom message", cliutil.ColorBlue)
 }
 ```
 
@@ -65,13 +62,12 @@ package main
 import "github.com/julianstephens/go-utils/cliutil"
 
 func main() {
-    tableData := [][]string{
-        {"Name", "Age", "Role", "Department"},
-        {"Alice", "30", "Engineer", "Development"},
-        {"Bob", "28", "Designer", "UX/UI"},
-        {"Charlie", "35", "Manager", "Operations"},
+    data := [][]string{
+        {"Name", "Age", "Role"},
+        {"Alice", "30", "Engineer"},
+        {"Bob", "28", "Designer"},
     }
-    cliutil.PrintTable(tableData)
+    cliutil.PrintTable(data)
 }
 ```
 
@@ -86,10 +82,8 @@ import (
 )
 
 func main() {
-    total := 100
-    pb := cliutil.NewProgressBarWithOptions(total, 40, "Processing files")
-    
-    for i := 0; i <= total; i++ {
+    pb := cliutil.NewProgressBarWithOptions(100, 40, "Processing")
+    for i := 0; i <= 100; i++ {
         pb.Update(i)
         time.Sleep(50 * time.Millisecond)
     }
@@ -111,15 +105,11 @@ func main() {
     spinner := cliutil.NewSpinner("Loading...")
     spinner.Start()
     
-    // Simulate work
     time.Sleep(2 * time.Second)
-    spinner.UpdateMessage("Connecting to database...")
-    time.Sleep(1 * time.Second)
-    spinner.UpdateMessage("Finalizing...")
+    spinner.UpdateMessage("Finishing...")
     time.Sleep(1 * time.Second)
     
     spinner.Stop()
-    cliutil.PrintSuccess("Operation completed!")
 }
 ```
 
@@ -129,38 +119,23 @@ func main() {
 package main
 
 import (
-    "fmt"
     "github.com/julianstephens/go-utils/cliutil"
 )
 
 func main() {
-    // Simple string prompt
     name := cliutil.PromptString("Enter your name: ")
-    fmt.Printf("Hello, %s!\n", name)
     
-    // Boolean prompt
-    proceed := cliutil.PromptBool("Do you want to continue? (y/n): ")
-    if proceed {
-        cliutil.PrintSuccess("Continuing...")
-    } else {
-        cliutil.PrintWarning("Operation cancelled")
-    }
+    proceed := cliutil.PromptBool("Continue? (y/n): ")
     
-    // String prompt with validation (uses the shared validator package)
-    // Import the validator package: github.com/julianstephens/go-utils/validator
-    email := cliutil.PromptStringWithValidation("Enter your email: ", validator.ValidateEmail)
-    cliutil.PrintSuccess(fmt.Sprintf("Email %s is valid!", email))
-    
-    // Choice prompt
-    options := []string{"Create new project", "Open existing project", "Exit"}
-    choice := cliutil.PromptChoice("What would you like to do?", options)
-    fmt.Printf("You selected: %s\n", options[choice])
+    options := []string{"Create", "Open", "Exit"}
+    choice := cliutil.PromptChoice("What to do?", options)
+    _ = choice
 }
 ```
 
-### Secure / Password Prompts
+### Secure Password Prompts
 
-The package provides secure password input helpers that disable terminal echo when possible and fall back to a safe line-read when not running in a TTY. Use these for passphrases, API keys, and other sensitive input.
+Prompt for sensitive input with secure echo-disabled input.
 
 ```go
 package main
@@ -171,50 +146,17 @@ import (
 )
 
 func main() {
-    // Simple secure prompt (no validation)
     pass := cliutil.PromptPassword("Enter passphrase: ")
     fmt.Printf("Received %d characters\n", len(pass))
 
-    // Secure prompt with validation: repeat until validator returns nil
-    validate := func(p string) error {
-        if len(p) < 8 {
-            return fmt.Errorf("passphrase must be at least 8 characters")
-        }
-        return nil
-    }
-
-    confirmed := cliutil.PromptPasswordWithValidation("Choose a passphrase: ", validate)
-    fmt.Printf("Received %d characters for confirmed passphrase\n", len(confirmed))
-}
-```
-
-#### Password + confirmation
-
-A common pattern is to ask the user to enter a passphrase and then confirm it. The validator passed to `PromptPasswordWithValidation` can call `PromptPassword` again to request confirmation and return an error if the two entries don't match. The outer prompt will repeat until the validator returns nil.
-
-```go
-package main
-
-import (
-    "fmt"
-    "github.com/julianstephens/go-utils/cliutil"
-)
-
-func main() {
     validator := func(p string) error {
-        // Ask for confirmation (secure, no-echo)
-        confirm := cliutil.PromptPassword("Confirm passphrase: ")
-        if p != confirm {
-            return fmt.Errorf("passphrases do not match")
-        }
         if len(p) < 8 {
-            return fmt.Errorf("passphrase must be at least 8 characters")
+            return fmt.Errorf("must be at least 8 characters")
         }
         return nil
     }
-
-    pass := cliutil.PromptPasswordWithValidation("Enter a new passphrase: ", validator)
-    fmt.Printf("Passphrase set (%d characters)\n", len(pass))
+    confirmed := cliutil.PromptPasswordWithValidation("Choose passphrase: ", validator)
+    _ = confirmed
 }
 ```
 
@@ -224,18 +166,18 @@ func main() {
 package main
 
 import (
-    "fmt"
     "github.com/julianstephens/go-utils/cliutil"
+    "github.com/julianstephens/go-utils/validator"
 )
 
 func main() {
-    testEmails := []string{"valid@example.com", "invalid-email", "@example.com", "user@domain.org"}
+    emails := []string{"valid@example.com", "invalid-email"}
     
-    for _, email := range testEmails {
+    for _, email := range emails {
         if err := validator.ValidateEmail(email); err != nil {
-            cliutil.PrintError(fmt.Sprintf("Invalid email '%s': %v", email, err))
+            cliutil.PrintError("Invalid email: " + email)
         } else {
-            cliutil.PrintSuccess(fmt.Sprintf("Valid email: %s", email))
+            cliutil.PrintSuccess("Valid email: " + email)
         }
     }
 }
@@ -247,88 +189,64 @@ func main() {
 package main
 
 import (
-    "fmt"
     "github.com/julianstephens/go-utils/cliutil"
 )
 
 func main() {
-    sampleArgs := []string{"myapp", "--debug", "--port=8080", "--config", "prod.yaml", "serve"}
+    args := []string{"myapp", "--debug", "--port=8080", "--config", "prod.yaml"}
     
-    if cliutil.HasFlag(sampleArgs, "--debug") {
-        cliutil.PrintInfo("Debug mode is enabled")
+    if cliutil.HasFlag(args, "--debug") {
+        cliutil.PrintInfo("Debug enabled")
     }
     
-    port := cliutil.GetFlagValue(sampleArgs, "--port", "3000")
-    cliutil.PrintInfo(fmt.Sprintf("Server will run on port: %s", port))
-    
-    configFile := cliutil.GetFlagValue(sampleArgs, "--config", "config.yaml")
-    cliutil.PrintInfo(fmt.Sprintf("Using configuration file: %s", configFile))
+    port := cliutil.GetFlagValue(args, "--port", "3000")
+    _ = port
 }
 ```
 
 ## API Reference
 
-### Types
-
-#### Args
-Represents parsed command-line arguments:
+### Args Type
 ```go
 type Args struct {
-    Flags      map[string]string // Named flags with values
-    BoolFlags  map[string]bool   // Boolean flags
-    Positional []string          // Positional arguments
+    Flags      map[string]string
+    BoolFlags  map[string]bool
+    Positional []string
 }
 ```
 
-Methods:
-- `HasFlag(name string) bool` - Check if flag exists
-- `GetFlag(name string) string` - Get flag value
-- `GetFlagWithDefault(name, defaultValue string) string` - Get flag with default
+### Argument Parsing
+- `ParseArgs(args []string) *Args` - Parse command-line arguments
+- `HasFlag(args []string, flag string) bool` - Check if flag exists
+- `GetFlagValue(args []string, flag, defaultValue string) string` - Get flag value
 
-### Functions
+### Output Functions
+- `PrintSuccess(message string)` - Print success (green)
+- `PrintError(message string)` - Print error (red)
+- `PrintWarning(message string)` - Print warning (yellow)
+- `PrintInfo(message string)` - Print info (blue)
+- `PrintColored(message string, color Color)` - Print with color
+- `PrintTable(data [][]string)` - Print table
 
-#### Argument Parsing
-- `ParseArgs(args []string) *Args` - Parse command line arguments
+### Progress
+- `NewProgressBar(total int) *ProgressBar` - Create progress bar
+- `NewProgressBarWithOptions(total, width int, message string) *ProgressBar` - With options
+- `NewSpinner(message string) *Spinner` - Create spinner
 
-#### Output Functions
-- `PrintSuccess(message string)` - Print success message in green
-- `PrintError(message string)` - Print error message in red
-- `PrintWarning(message string)` - Print warning message in yellow
-- `PrintInfo(message string)` - Print info message in blue
-- `PrintColored(message string, color Color)` - Print message in specified color
-- `PrintTable(data [][]string)` - Print formatted table
+### Interactive Input
+- `PromptString(message string) string` - String input
+- `PromptBool(message string) bool` - Yes/no input
+- `PromptStringWithValidation(message string, validator func(string) error) string` - With validation
+- `PromptChoice(message string, options []string) int` - Choice selection
+- `PromptPassword(prompt string) string` - Secure password input
+- `PromptPasswordWithValidation(prompt string, validator func(string) error) string` - Password with validation
 
-#### Progress Indicators
-- `NewProgressBar(total int) *ProgressBar` - Create new progress bar
-- `NewProgressBarWithOptions(total, width int, message string) *ProgressBar` - Create progress bar with options
-- `NewSpinner(message string) *Spinner` - Create new spinner
-
-#### Interactive Prompts
-- `PromptString(message string) string` - Prompt for string input
-- `PromptBool(message string) bool` - Prompt for yes/no input
-- `PromptStringWithValidation(message string, validator func(string) error) string` - Prompt with validation
-- `PromptChoice(message string, options []string) int` - Prompt for choice selection
-- `PromptPassword(prompt string) string` - Prompt for a secure string (no-echo when running in a TTY)
-- `PromptPasswordWithValidation(prompt string, validator func(string) error) string` - Prompt for a secure string and repeat until validator succeeds
-
-#### Validation
+### Validation
 - `ValidateEmail(email string) error` - Validate email format
 
-#### Flag Utilities
-- `HasFlag(args []string, flag string) bool` - Check if flag exists in args
-- `GetFlagValue(args []string, flag, defaultValue string) string` - Get flag value with default
+## Colors
 
-## Color Constants
-
-Available colors for `PrintColored`:
-- `ColorRed`
-- `ColorGreen`
-- `ColorYellow`
-- `ColorBlue`
-- `ColorMagenta`
-- `ColorCyan`
-- `ColorWhite`
-- `ColorReset`
+Available colors: `ColorRed`, `ColorGreen`, `ColorYellow`, `ColorBlue`, `ColorMagenta`, `ColorCyan`, `ColorWhite`, `ColorReset`
 
 ## Thread Safety
 
@@ -336,16 +254,7 @@ Progress indicators and interactive prompts are designed to be thread-safe for c
 
 ## Integration
 
-This package integrates well with other go-utils packages like logger and config:
-
-```go
-// Use with logger for structured CLI logging
-if cliutil.HasFlag(os.Args, "--verbose") {
-    logger.SetLogLevel("debug")
-}
-
-// Use with config for CLI configuration
-var cfg AppConfig
-configFile := cliutil.GetFlagValue(os.Args, "--config", "config.yaml")
-config.LoadFromFile(configFile, &cfg)
-```
+Works well with other go-utils packages:
+- **logger**: Set log level from CLI flags
+- **config**: Load config file from CLI arguments
+- **validator**: Validate user input from prompts
