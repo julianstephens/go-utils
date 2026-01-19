@@ -122,7 +122,7 @@ Why atomic writes? All-or-nothing guarantee: process crash yields either old or 
 
 ## Best Practices
 
-- **Use atomic writes** for critical files (configs, WAL records, manifests)
+- **Use atomic writes** for critical files (configs, manifests)
 - **Temp + rename > truncate + write** for durability guarantees
 - **Check sync errors** (disk full, permissions)
 - **Use custom permissions** for sensitive files (0600 for secrets)

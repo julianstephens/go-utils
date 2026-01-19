@@ -7,7 +7,7 @@ import (
 
 // CRC32C computes the CRC32-C (Castagnoli) checksum of data.
 // CRC32-C uses the polynomial 0x1EDC6F41 and is commonly used for
-// WAL records, storage systems, and network protocols.
+// Storage systems and network protocols.
 func CRC32C(data []byte) uint32 {
 	return crc32.Checksum(data, crc32.MakeTable(crc32.Castagnoli))
 }

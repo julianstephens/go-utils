@@ -14,7 +14,7 @@ A collection of reusable Go utilities and helper functions designed to simplify 
 | `jsonutil`            | Enhanced JSON marshaling and unmarshaling with error context, formatting options, stream processing, and strict decoding support                             |
 | `dbutil`              | Database utility functions and helpers for safe database interactions with connection management, query execution, transaction handling, and context support |
 | `cliutil`             | Helpers and utilities for building command-line interfaces with argument parsing, interactive prompts, progress indicators, and colored output               |
-| `checksum`            | Fast cryptographic checksum utilities for data integrity verification including CRC32 variants optimized for storage and WAL records                        |
+| `checksum`            | Fast cryptographic checksum utilities for data integrity verification including CRC32 variants optimized for storage systems                        |
 | `filelock`            | Cross-platform file locking utilities for coordinating single-writer access between processes on Linux, macOS, and Windows                                   |
 | `health`              | Health check and diagnostic utilities for building monitoring and repair systems with standardized exit codes and status reporting                          |
 | `httputil/auth`       | JWT token creation, validation, and management with role-based access control and custom claims support                                                      |

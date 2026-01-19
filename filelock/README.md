@@ -102,7 +102,7 @@ fmt.Println(lock.String()) // Print lock status
 
 ## Use Cases
 
-- **Single-Writer Databases**: Enforce one writer at a time (e.g., waldb)
+- **Single-Writer Databases**: Enforce one writer at a time
 - **PID Files**: Prevent multiple application instances
 - **Resource Coordination**: Serialize cross-process access
 - **Config Protection**: Prevent concurrent file updates

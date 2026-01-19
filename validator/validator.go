@@ -2,6 +2,7 @@ package validator
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -96,6 +97,26 @@ func (cv *CustomValidator) Add(validator func() error) *CustomValidator {
 
 // Validate runs all accumulated validators in sequence (AND logic)
 func (cv *CustomValidator) Validate() error {
+	for _, validator := range cv.validators {
+		if err := validator(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SafeValidate runs all accumulated validators in sequence with panic recovery.
+// If any validator panics, the panic is recovered and logged to stderr.
+// This prevents validation errors from crashing the application.
+// Use in critical paths where you want validation to fail gracefully.
+func (cv *CustomValidator) SafeValidate() (returnErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "panic recovered in validator: %v\n", r)
+			returnErr = fmt.Errorf("validation panicked: %v", r)
+		}
+	}()
+
 	for _, validator := range cv.validators {
 		if err := validator(); err != nil {
 			return err

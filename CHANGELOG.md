@@ -1,3 +1,31 @@
+## v0.4.2
+
+- logger: improves rotating file output robustness and adds context integration
+    - makes `MaxBackups` and `MaxAge` optional constraints - clients can use one, both, or neither
+    - adds `Close()` method for proper resource cleanup on both Logger instances and global logger
+    - closes previous file output when `SetFileOutput()` or `SetFileOutputWithConfig()` is called again (prevents file handle leaks)
+    - moves default rotation values to package-level constants for clarity and reusability
+    - comprehensive test coverage for file rotation with various constraint combinations
+    - adds `SetOutput(io.Writer)` method that automatically closes previous file output to prevent leaks
+    - adds `Sync()` method to flush pending logs to disk during graceful shutdown
+    - adds `WithContext(ctx context.Context)` for structured logging with request/trace IDs
+        - automatically extracts trace ID, request ID, user ID from context with multiple key format support
+        - compatible with common context patterns (trace-id, traceId, traceID, etc.)
+    - improves `Close()` to call `Sync()` before closing to ensure all logs are written
+    - adds comprehensive initialization patterns and context integration documentation
+    - wraps errors with context in `SetLogLevel()`, `SetFileOutput()`, and `SetFileOutputWithConfig()` for better debugging
+    - validates configuration parameters (non-empty filepath, positive MaxSize and MaxAge values, non-negative MaxBackups)
+    - adds `SafeLog()` method to recover from panics in logging operations for critical code paths
+    - adds comprehensive graceful shutdown patterns in documentation with HTTP server examples
+    - improved error handling throughout configuration methods
+- validator: adds production-ready improvements for reliability and performance
+    - adds `SafeValidate()` method to `CustomValidator` to recover from panics in validation chains
+    - prevents validation errors from crashing the application in critical code paths
+    - adds comprehensive performance documentation with benchmarks and optimization tips
+    - includes performance tips for validator ordering and reuse patterns
+    - documents efficiency characteristics (zero allocations for most validators, lazy validation)
+    - adds safe validation example in documentation showing panic recovery usage
+
 ## v0.4.1
 
 - logger: adds rotating file output support

@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"os"
 
@@ -8,19 +10,30 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+const (
+	defaultMaxSize = 100 // megabytes
+)
+
+var (
+	defaultMaxBackups = 3
+	defaultMaxAge     = 28 // days
+)
+
 // FileRotationConfig configures rotating file output for the logger.
+// MaxBackups and MaxAge are optional - set to nil to disable that constraint.
 type FileRotationConfig struct {
 	Filename   string // Path to log file
 	MaxSize    int    // Max file size in megabytes (default: 100)
-	MaxBackups int    // Max backup files to retain (default: 3)
-	MaxAge     int    // Max age in days before deletion (default: 28)
+	MaxBackups *int   // Max backup files to retain (optional, nil to disable)
+	MaxAge     *int   // Max age in days before deletion (optional, nil to disable)
 	Compress   bool   // Compress old logs (default: true)
 }
 
 // Logger wraps logrus to provide a unified logging interface for all julianstephens Go projects.
 // It offers structured logging with configurable levels, custom formatting, and contextual logging support.
 type Logger struct {
-	entry *logrus.Entry
+	entry      *logrus.Entry
+	fileCloser io.Closer
 }
 
 // New creates a new Logger instance with default configuration.
@@ -55,18 +68,30 @@ func NewWithOptions(output io.Writer, level logrus.Level, formatter logrus.Forma
 func (l *Logger) SetLogLevel(level string) error {
 	logLevel, err := logrus.ParseLevel(level)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to set log level to '%s': %w", level, err)
 	}
 
 	l.entry.Logger.SetLevel(logLevel)
 	return nil
 }
 
+// SetOutput sets the output destination for the logger.
+// If a previous file output was configured, it will be closed before setting the new output.
+func (l *Logger) SetOutput(output io.Writer) {
+	// Close previous file output if one was configured
+	if l.fileCloser != nil {
+		_ = l.fileCloser.Close()
+		l.fileCloser = nil
+	}
+	l.entry.Logger.SetOutput(output)
+}
+
 // WithField adds a single field to the logger context and returns a new logger instance.
 // This is useful for structured logging where you want to include contextual information.
 func (l *Logger) WithField(key string, value interface{}) *Logger {
 	return &Logger{
-		entry: l.entry.WithField(key, value),
+		entry:      l.entry.WithField(key, value),
+		fileCloser: l.fileCloser,
 	}
 }
 
@@ -74,8 +99,52 @@ func (l *Logger) WithField(key string, value interface{}) *Logger {
 // This is useful for structured logging where you want to include multiple pieces of contextual information.
 func (l *Logger) WithFields(fields map[string]interface{}) *Logger {
 	return &Logger{
-		entry: l.entry.WithFields(logrus.Fields(fields)),
+		entry:      l.entry.WithFields(logrus.Fields(fields)),
+		fileCloser: l.fileCloser,
 	}
+}
+
+// WithContext extracts common context values (trace ID, request ID, user ID) and adds them as fields.
+// Looks for these standard context keys:
+// - "trace-id" or "traceId" or "traceID"
+// - "request-id" or "requestId" or "requestID"
+// - "user-id" or "userId" or "userID"
+func (l *Logger) WithContext(ctx context.Context) *Logger {
+	if ctx == nil {
+		return l
+	}
+
+	fields := make(map[string]interface{})
+
+	// Check for trace ID with multiple key variants
+	for _, key := range []string{"trace-id", "traceId", "traceID"} {
+		if val := ctx.Value(key); val != nil {
+			fields["trace_id"] = val
+			break
+		}
+	}
+
+	// Check for request ID with multiple key variants
+	for _, key := range []string{"request-id", "requestId", "requestID"} {
+		if val := ctx.Value(key); val != nil {
+			fields["request_id"] = val
+			break
+		}
+	}
+
+	// Check for user ID with multiple key variants
+	for _, key := range []string{"user-id", "userId", "userID"} {
+		if val := ctx.Value(key); val != nil {
+			fields["user_id"] = val
+			break
+		}
+	}
+
+	if len(fields) == 0 {
+		return l
+	}
+
+	return l.WithFields(fields)
 }
 
 // Debugf logs a message at debug level with printf-style formatting.
@@ -158,25 +227,97 @@ func (l *Logger) GetLevel() string {
 // SetFileOutput configures the logger to write to a rotating file with sensible defaults.
 // The file will rotate when it reaches 100MB, keeping 3 backups for 28 days with compression enabled.
 func (l *Logger) SetFileOutput(filepath string) error {
+	if filepath == "" {
+		return fmt.Errorf("failed to set file output: empty filepath")
+	}
 	config := FileRotationConfig{
 		Filename:   filepath,
-		MaxSize:    100,
-		MaxBackups: 3,
-		MaxAge:     28,
+		MaxSize:    defaultMaxSize,
+		MaxBackups: &defaultMaxBackups,
+		MaxAge:     &defaultMaxAge,
 		Compress:   true,
 	}
 	return l.SetFileOutputWithConfig(config)
 }
 
 // SetFileOutputWithConfig configures rotating file output with custom settings.
+// If a previous file output was configured, it will be closed before opening the new one.
 func (l *Logger) SetFileOutputWithConfig(config FileRotationConfig) error {
+	if config.Filename == "" {
+		return fmt.Errorf("failed to set file output: empty filename in config")
+	}
+	if config.MaxSize <= 0 {
+		return fmt.Errorf("failed to set file output: MaxSize must be greater than 0, got %d", config.MaxSize)
+	}
+
+	// Close previous file output if one was configured
+	if l.fileCloser != nil {
+		if err := l.fileCloser.Close(); err != nil {
+			_ = fmt.Errorf("warning: failed to close previous file output: %w", err)
+		}
+	}
+
 	rotatingFile := &lumberjack.Logger{
-		Filename:   config.Filename,
-		MaxSize:    config.MaxSize,
-		MaxBackups: config.MaxBackups,
-		MaxAge:     config.MaxAge,
-		Compress:   config.Compress,
+		Filename: config.Filename,
+		MaxSize:  config.MaxSize,
+		Compress: config.Compress,
+	}
+	if config.MaxBackups != nil {
+		if *config.MaxBackups < 0 {
+			return fmt.Errorf("failed to set file output: MaxBackups cannot be negative, got %d", *config.MaxBackups)
+		}
+		rotatingFile.MaxBackups = *config.MaxBackups
+	}
+	if config.MaxAge != nil {
+		if *config.MaxAge <= 0 {
+			return fmt.Errorf("failed to set file output: MaxAge must be greater than 0, got %d", *config.MaxAge)
+		}
+		rotatingFile.MaxAge = *config.MaxAge
 	}
 	l.entry.Logger.SetOutput(rotatingFile)
+	l.fileCloser = rotatingFile
 	return nil
+}
+
+// Close closes the underlying file if rotating file output is configured.
+// This should be called during application shutdown to ensure logs are flushed and files are properly closed.
+// For file-based output, this calls Sync() first to ensure all logs are flushed.
+func (l *Logger) Close() error {
+	// Sync any pending logs first
+	_ = l.Sync()
+	if l.fileCloser != nil {
+		return l.fileCloser.Close()
+	}
+	return nil
+}
+
+// Sync flushes any pending logs to the underlying output.
+// For file-based output, this ensures all logs are written to disk.
+// This is useful to call before Close() or during graceful shutdown.
+// Returns nil for outputs that don't support flushing or don't need it (like stdout/stderr).
+func (l *Logger) Sync() error {
+	if syncer, ok := l.entry.Logger.Out.(interface{ Sync() error }); ok {
+		err := syncer.Sync()
+		// Ignore "invalid argument" errors from flushing non-regular files (stdout, stderr, etc.)
+		if err != nil && err.Error() == "sync /dev/stdout: invalid argument" {
+			return nil
+		}
+		if err != nil && err.Error() == "sync /dev/stderr: invalid argument" {
+			return nil
+		}
+		return err
+	}
+	// Output doesn't support syncing, return nil
+	return nil
+}
+
+// SafeLog recovers from panics that may occur during logging operations.
+// This prevents logging errors from crashing the application.
+// Use in critical paths where you want logging to fail gracefully.
+// Example usage: defer logger.SafeLog()
+func (l *Logger) SafeLog() {
+	if r := recover(); r != nil {
+		// Try to log the panic, but don't panic if this fails
+		fmt.Fprintf(os.Stderr, "panic recovered in logger: %v\n", r)
+	}
 }

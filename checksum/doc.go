@@ -2,7 +2,7 @@
 //
 // It includes:
 //
-// - CRC32-C (Castagnoli): Fast polynomial-based checksum for WAL records
+// - CRC32-C (Castagnoli): Fast polynomial-based checksum for storage systems
 // - CRC32 (standard): IEEE 802.3 polynomial for general use
 // - Verification helpers: Quick data integrity checks
 //

@@ -378,3 +378,39 @@ func TestGlobalConcurrentConfigurationChanges(t *testing.T) {
 	// Reset to stdout
 	logger.SetOutput(os.Stdout)
 }
+
+func TestGlobalClose(t *testing.T) {
+	t.Run("close global logger without file output", func(t *testing.T) {
+		err := logger.Close()
+		tst.AssertNil(t, err, "Close() should return nil when no file output is configured")
+	})
+
+	t.Run("close global logger with file output", func(t *testing.T) {
+		tmpFile := t.TempDir() + "/global_test.log"
+		err := logger.SetFileOutput(tmpFile)
+		tst.AssertNil(t, err, "SetFileOutput should not return an error")
+
+		err = logger.Close()
+		tst.AssertNil(t, err, "Close() should successfully close the file output")
+	})
+
+	t.Run("close global logger with custom config", func(t *testing.T) {
+		tmpFile := t.TempDir() + "/global_custom_test.log"
+		maxBackups := 2
+		maxAge := 7
+
+		config := logger.FileRotationConfig{
+			Filename:   tmpFile,
+			MaxSize:    50,
+			MaxBackups: &maxBackups,
+			MaxAge:     &maxAge,
+			Compress:   true,
+		}
+
+		err := logger.SetFileOutputWithConfig(config)
+		tst.AssertNil(t, err, "SetFileOutputWithConfig should not return an error")
+
+		err = logger.Close()
+		tst.AssertNil(t, err, "Close() should successfully close the file output")
+	})
+}

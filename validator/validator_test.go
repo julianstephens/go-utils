@@ -2,6 +2,7 @@ package validator
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -344,5 +345,76 @@ func TestCustomValidator_Chaining(t *testing.T) {
 
 	if result != cv {
 		t.Fatal("CustomValidator.Add() should return receiver for chaining")
+	}
+}
+func TestCustomValidator_SafeValidate_AllPass(t *testing.T) {
+	cv := NewCustomValidator().
+		Add(func() error { return nil }).
+		Add(func() error { return nil })
+
+	err := cv.SafeValidate()
+	if err != nil {
+		t.Fatalf("SafeValidate with all passing validators expected nil, got %v", err)
+	}
+}
+
+func TestCustomValidator_SafeValidate_FirstFails(t *testing.T) {
+	cv := NewCustomValidator().
+		Add(func() error { return fmt.Errorf("first failed") }).
+		Add(func() error { return nil })
+
+	err := cv.SafeValidate()
+	if err == nil {
+		t.Fatal("SafeValidate with failing validator expected error, got nil")
+	}
+	if err.Error() != "first failed" {
+		t.Fatalf("Expected 'first failed', got %q", err.Error())
+	}
+}
+
+func TestCustomValidator_SafeValidate_PanicRecovery(t *testing.T) {
+	cv := NewCustomValidator().
+		Add(func() error {
+			panic("test panic")
+		}).
+		Add(func() error { return nil })
+
+	err := cv.SafeValidate()
+	if err == nil {
+		t.Fatal("SafeValidate with panic expected error, got nil")
+	}
+	// Error should indicate panic recovery occurred
+	if !strings.Contains(err.Error(), "panic") {
+		t.Fatalf("Expected panic in error message, got %q", err.Error())
+	}
+}
+
+func TestCustomValidator_SafeValidate_StopsOnFirstError(t *testing.T) {
+	callOrder := []int{}
+	cv := NewCustomValidator().
+		Add(func() error {
+			callOrder = append(callOrder, 1)
+			return nil
+		}).
+		Add(func() error {
+			callOrder = append(callOrder, 2)
+			return fmt.Errorf("error at 2")
+		}).
+		Add(func() error {
+			callOrder = append(callOrder, 3)
+			return nil
+		})
+
+	err := cv.SafeValidate()
+	if err == nil {
+		t.Fatal("SafeValidate with error expected error, got nil")
+	}
+
+	// Verify stopped at first error
+	if len(callOrder) != 2 {
+		t.Fatalf("Expected 2 validators called, got %d", len(callOrder))
+	}
+	if callOrder[0] != 1 || callOrder[1] != 2 {
+		t.Fatalf("Expected call order [1, 2], got %v", callOrder)
 	}
 }

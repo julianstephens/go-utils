@@ -145,3 +145,18 @@ func SetFileOutputWithConfig(config FileRotationConfig) error {
 	defer configMutex.Unlock()
 	return defaultLogger.SetFileOutputWithConfig(config)
 }
+
+// Sync flushes any pending logs to the underlying output on the default logger.
+func Sync() error {
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	return defaultLogger.Sync()
+}
+
+// Close closes the underlying file if rotating file output is configured on the default logger.
+// This should be called during application shutdown to ensure logs are flushed and files are properly closed.
+func Close() error {
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	return defaultLogger.Close()
+}

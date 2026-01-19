@@ -4,7 +4,7 @@ The `checksum` package provides fast cryptographic checksum utilities for data i
 
 ## Features
 
-- **CRC32-C (Castagnoli)**: Fast checksums for WAL records and storage
+- **CRC32-C (Castagnoli)**: Fast checksums for storage systems
 - **CRC32 (IEEE)**: Standard IEEE 802.3 checksums
 - **CRC32 (Koopman)**: Alternative polynomial variant
 - **Verification**: Data integrity checks with multiple approaches
@@ -41,7 +41,7 @@ original, verified := checksum.StripAndVerifyCRC32C(dataWithCRC)
 ## API Reference
 
 **Direct Checksums:**
-- `CRC32C(data []byte) uint32` - CRC32-C (Castagnoli) - recommended for WAL records
+- `CRC32C(data []byte) uint32` - CRC32-C (Castagnoli) - recommended for storage systems
 - `CRC32IEEE(data []byte) uint32` - Standard IEEE 802.3 CRC32
 - `CRC32Koopman(data []byte) uint32` - Koopman polynomial variant
 
@@ -62,9 +62,9 @@ original, verified := checksum.StripAndVerifyCRC32C(dataWithCRC)
 
 ## Use Cases
 
-**WAL Record Integrity:**
+**Data Integrity with Append:**
 ```go
-// Append checksum to WAL record and later verify
+// Append checksum to data and later verify
 record := []byte{/* record data */}
 recordWithChecksum := checksum.AppendCRC32C(record)
 
@@ -102,7 +102,7 @@ if !checksum.VerifyCRC32C(storedData, storedCRC) {
 
 | Variant | Polynomial | Use Case | Speed |
 |---------|-----------|----------|-------|
-| **CRC32-C** | 0x1EDC6F41 | WAL records, storage systems | Very Fast |
+| **CRC32-C** | 0x1EDC6F41 | Storage systems | Very Fast |
 | **CRC32 (IEEE)** | 0x04C11DB7 | General purpose, ZIP/Ethernet | Fast |
 | **Koopman** | 0x741B8CD7 | Network protocols, error detection | Fast |
 
