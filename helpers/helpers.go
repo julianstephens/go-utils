@@ -22,10 +22,26 @@ func Default[T any](val T, defaultVal T) T {
 	return val
 }
 
+// ExistsWithInfo checks if the given file or directory path exists
+// and returns its os.FileInfo if it does.
+func ExistsWithInfo(path string) (bool, os.FileInfo, error) {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false, nil, nil
+	}
+	if err != nil {
+		return false, nil, err
+	}
+	return true, info, nil
+}
+
 // Exists checks if the given file or directory path exists
 func Exists(path string) bool {
-	_, err := os.Stat(path)
-	return !os.IsNotExist(err)
+	exists, _, err := ExistsWithInfo(path)
+	if err != nil {
+		return false
+	}
+	return exists
 }
 
 // Ensure checks if the given path exists and creates it if not
@@ -48,6 +64,7 @@ func Ensure(path string, isDir bool) error {
 	return nil
 }
 
+// Deprecated: Use github.com/julianstephens/go-utils/generic.Ptr instead.
 // StringPtr returns a pointer to the given string.
 func StringPtr(s string) *string {
 	return &s

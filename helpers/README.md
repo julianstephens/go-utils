@@ -37,6 +37,12 @@ intResult := helpers.Default(zeroInt, 42)  // 42
 // Check existence
 exists := helpers.Exists("config.json")  // true/false
 
+// Check existence with file info
+exists, info, err := helpers.ExistsWithInfo("config.json")
+if err == nil && exists && !info.IsDir() {
+    fmt.Println("File size:", info.Size())
+}
+
 // Create file or directory if it doesn't exist
 if err := helpers.Ensure("data.json", false); err != nil {  // file
     log.Fatal(err)
@@ -68,23 +74,28 @@ defaultPerson := helpers.Default(p, Person{Name: "Unknown", Age: 0})
 ## API Reference
 
 ### Conditional Helpers
+
 - `If[T any](cond bool, vtrue T, vfalse T) T` - Ternary operator: returns vtrue if cond is true, otherwise vfalse
 - `Default[T any](val T, defaultVal T) T` - Returns defaultVal if val is the zero value for its type, otherwise returns val
 
 ### File Operations
+
 - `Exists(path string) bool` - Check if a file or directory exists at the given path
+- `ExistsWithInfo(path string) (bool, os.FileInfo, error)` - Check existence and return file info if it exists
 - `Ensure(path string, isDir bool) error` - Create a file or directory if it doesn't exist
 - `ReadJSONFile(filename string, v interface{}) error` - Read JSON file and unmarshal into provided struct
 - `WriteJSONFile(filename string, v interface{}) error` - Marshal struct to JSON and write to file
 
 ### Atomic File Operations
-- `AtomicFileWrite(path string, data []byte) error` - Write data to file atomically with default permissions (0666)
-- `AtomicFileWriteWithPerm(path string, data []byte, perm os.FileMode) error` - Atomic write with custom permissions
+
+- `AtomicFileWrite(path string, data []byte) error` - Write data to file atomically, preserving existing file permissions. Handles short writes correctly using io.Copy. Unix/Linux only.
+- `AtomicFileWriteWithPerm(path string, data []byte, perm os.FileMode) error` - Atomic write with explicit custom permissions, overriding any existing permissions. Unix/Linux only.
 - `SafeFileSync(f *os.File) error` - Sync file data to disk
-- `SafeDirSync(dir string) error` - Sync directory to ensure durability
+- `SafeDirSync(dir string) error` - Sync directory to ensure durability of rename operations
 
 ### Type Utilities
-- `StringPtr(s string) *string` - Return a pointer to the given string
+
+- `StringPtr(s string) *string` - **Deprecated**: Use [generic.Ptr](../generic#ptr) instead. Returns a pointer to the given string
 - `StructToMap(obj any) map[string]any` - Convert struct to map using reflection
 
 ## Zero Values
@@ -96,14 +107,14 @@ The `Default` function recognizes zero values for all Go types: numbers (`0`, `0
 Crash-safe file writes using temp file + rename pattern:
 
 ```go
-// Atomic write (crash-safe)
+// Atomic write - preserves existing file permissions
 data := []byte("critical data")
 if err := helpers.AtomicFileWrite("record.json", data); err != nil {
     log.Fatal(err)
 }
 
-// With custom permissions
-if err := helpers.AtomicFileWriteWithPerm("config.json", data, 0600); err != nil {
+// With explicit permissions (overrides any existing)
+if err := helpers.AtomicFileWriteWithPerm("secrets.json", data, 0600); err != nil {
     log.Fatal(err)
 }
 
@@ -112,7 +123,13 @@ helpers.SafeFileSync(f)     // Sync file data
 helpers.SafeDirSync(".")    // Sync directory (ensures durability)
 ```
 
-Why atomic writes? All-or-nothing guarantee: process crash yields either old or new file, never partial writes.
+**Features:**
+
+- Handles short writes correctly (uses io.Copy internally)
+- Preserves existing file permissions (AtomicFileWrite) or sets explicit permissions (AtomicFileWriteWithPerm)
+- Sync to disk ensures durability on crash
+- All-or-nothing guarantee: process crash yields either old or new file, never partial writes
+- **Unix/Linux only** - os.Rename behavior differs on Windows
 
 ## Thread Safety
 

@@ -63,6 +63,94 @@ func TestDefault(t *testing.T) {
 	tst.AssertDeepEqual(t, nilResult, []int{1, 2, 3})
 }
 
+func TestExistsWithInfo(t *testing.T) {
+	// Test with existing file
+	t.Run("existing file", func(t *testing.T) {
+		tempFile := filepath.Join(os.TempDir(), "test_exists_file.txt")
+		defer func() { _ = os.Remove(tempFile) }()
+
+		// Create the file
+		file, err := os.Create(tempFile)
+		if err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+		_ = file.Close()
+
+		// Test that it exists and returns FileInfo
+		exists, info, err := helpers.ExistsWithInfo(tempFile)
+		if err != nil {
+			t.Errorf("ExistsWithInfo returned error: %v", err)
+		}
+		if !exists {
+			t.Error("ExistsWithInfo should return true for existing file")
+		}
+		if info == nil {
+			t.Error("ExistsWithInfo should return non-nil FileInfo for existing file")
+		}
+		if info != nil && info.IsDir() {
+			t.Error("ExistsWithInfo should indicate this is a file, not directory")
+		}
+	})
+
+	// Test with existing directory
+	t.Run("existing directory", func(t *testing.T) {
+		tempDir := filepath.Join(os.TempDir(), "test_exists_dir")
+		defer func() { _ = os.RemoveAll(tempDir) }()
+
+		// Create the directory
+		err := os.MkdirAll(tempDir, 0755)
+		if err != nil {
+			t.Fatalf("Failed to create test directory: %v", err)
+		}
+
+		// Test that it exists and returns FileInfo
+		exists, info, err := helpers.ExistsWithInfo(tempDir)
+		if err != nil {
+			t.Errorf("ExistsWithInfo returned error: %v", err)
+		}
+		if !exists {
+			t.Error("ExistsWithInfo should return true for existing directory")
+		}
+		if info == nil {
+			t.Error("ExistsWithInfo should return non-nil FileInfo for existing directory")
+		}
+		if info != nil && !info.IsDir() {
+			t.Error("ExistsWithInfo should indicate this is a directory")
+		}
+	})
+
+	// Test with non-existing path
+	t.Run("non-existing path", func(t *testing.T) {
+		nonExistentPath := filepath.Join(os.TempDir(), "non_existent_path_12345")
+
+		// Test that it doesn't exist
+		exists, info, err := helpers.ExistsWithInfo(nonExistentPath)
+		if err != nil {
+			t.Errorf("ExistsWithInfo returned error for non-existent path: %v", err)
+		}
+		if exists {
+			t.Error("ExistsWithInfo should return false for non-existing path")
+		}
+		if info != nil {
+			t.Error("ExistsWithInfo should return nil FileInfo for non-existing path")
+		}
+	})
+
+	// Test with empty string
+	t.Run("empty string", func(t *testing.T) {
+		exists, info, err := helpers.ExistsWithInfo("")
+		if err != nil {
+			t.Errorf("ExistsWithInfo returned error for empty string: %v", err)
+		}
+		if exists {
+			t.Error("ExistsWithInfo should return false for empty string")
+		}
+		if info != nil {
+			t.Error("ExistsWithInfo should return nil FileInfo for empty string")
+		}
+	})
+}
+
 func TestExists(t *testing.T) {
 	// Test with existing file
 	t.Run("existing file", func(t *testing.T) {
@@ -179,6 +267,8 @@ func TestEnsure(t *testing.T) {
 	})
 }
 
+// TestStringPtr tests the deprecated StringPtr function.
+// Deprecated: New code should use generic.Ptr instead.
 func TestStringPtr(t *testing.T) {
 	testString := "hello world"
 	ptr := helpers.StringPtr(testString)
