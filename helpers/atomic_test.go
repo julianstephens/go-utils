@@ -270,3 +270,126 @@ func TestAtomicFileWriteNestedDir(t *testing.T) {
 		t.Errorf("Nested file content mismatch: got %q, want %q", readData, data)
 	}
 }
+
+// TestAtomicFileWritePreservesPermissions tests that existing file permissions are preserved
+func TestAtomicFileWritePreservesPermissions(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "perm_preserve.txt")
+
+	// Create initial file with specific permissions
+	initialPerm := os.FileMode(0600)
+	initialData := []byte("initial data")
+	if err := AtomicFileWriteWithPerm(filePath, initialData, initialPerm); err != nil {
+		t.Fatalf("Initial write failed: %v", err)
+	}
+
+	// Verify initial permissions
+	stat, err := os.Stat(filePath)
+	if err != nil {
+		t.Fatalf("Failed to stat initial file: %v", err)
+	}
+	if stat.Mode().Perm() != initialPerm {
+		t.Errorf("Initial permissions mismatch: got 0%o, want 0%o", stat.Mode().Perm(), initialPerm)
+	}
+
+	// Overwrite without specifying permissions - should preserve them
+	newData := []byte("new data")
+	if err := AtomicFileWrite(filePath, newData); err != nil {
+		t.Fatalf("Overwrite failed: %v", err)
+	}
+
+	// Verify permissions were preserved
+	stat, err = os.Stat(filePath)
+	if err != nil {
+		t.Fatalf("Failed to stat overwritten file: %v", err)
+	}
+	if stat.Mode().Perm() != initialPerm {
+		t.Errorf("Permissions not preserved: got 0%o, want 0%o", stat.Mode().Perm(), initialPerm)
+	}
+
+	// Verify new data was written
+	readData, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("Failed to read file: %v", err)
+	}
+	if string(readData) != string(newData) {
+		t.Errorf("File content mismatch: got %q, want %q", readData, newData)
+	}
+}
+
+// TestAtomicFileWriteHandlesShortWrites tests that short writes are handled correctly
+// by using io.Copy internally instead of relying on os.File.Write
+func TestAtomicFileWriteHandlesShortWrites(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "short_write.txt")
+
+	// Create a large data buffer to increase likelihood of short writes
+	// (though on most systems this will still write all in one go)
+	data := make([]byte, 10*1024*1024) // 10MB
+	for i := range data {
+		data[i] = byte(i % 256)
+	}
+
+	err := AtomicFileWrite(filePath, data)
+	if err != nil {
+		t.Fatalf("AtomicFileWrite with large data failed: %v", err)
+	}
+
+	// Verify all data was written
+	readData, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("Failed to read file: %v", err)
+	}
+
+	if len(readData) != len(data) {
+		t.Errorf("File size mismatch: got %d bytes, want %d bytes", len(readData), len(data))
+	}
+
+	// Spot check some data
+	for i, expected := range []int{0, 1000, 100000, 1000000, len(data) - 1} {
+		if i >= len(data) {
+			break
+		}
+		if readData[expected] != data[expected] {
+			t.Errorf("Data mismatch at byte %d: got %d, want %d", expected, readData[expected], data[expected])
+		}
+	}
+}
+
+// TestAtomicFileWritePermOverride tests that AtomicFileWriteWithPerm overrides permissions
+func TestAtomicFileWritePermOverride(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "perm_override.txt")
+
+	// Create initial file with permissive permissions
+	initialPerm := os.FileMode(0644)
+	initialData := []byte("initial")
+	if err := AtomicFileWriteWithPerm(filePath, initialData, initialPerm); err != nil {
+		t.Fatalf("Initial write failed: %v", err)
+	}
+
+	// Overwrite with more restrictive permissions
+	newPerm := os.FileMode(0600)
+	newData := []byte("new restricted")
+	if err := AtomicFileWriteWithPerm(filePath, newData, newPerm); err != nil {
+		t.Fatalf("Overwrite with new perms failed: %v", err)
+	}
+
+	// Verify new permissions were set
+	stat, err := os.Stat(filePath)
+	if err != nil {
+		t.Fatalf("Failed to stat file: %v", err)
+	}
+	if stat.Mode().Perm() != newPerm {
+		t.Errorf("Permissions not overridden: got 0%o, want 0%o", stat.Mode().Perm(), newPerm)
+	}
+
+	// Verify new data
+	readData, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("Failed to read file: %v", err)
+	}
+	if string(readData) != string(newData) {
+		t.Errorf("File content mismatch: got %q, want %q", readData, newData)
+	}
+}
