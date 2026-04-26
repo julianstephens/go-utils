@@ -290,87 +290,63 @@ const (
 	ColorBold    Color = "\033[1m"
 )
 
-// PrintColored prints text in the specified color
+// PrintColored prints text styled with the given Color using the default Console.
 func PrintColored(text string, color Color) {
-	fmt.Printf("%s%s%s\n", color, text, ColorReset)
+	_ = DefaultConsole().PrintColored(text, color)
 }
 
-// PrintSuccess prints a success message in green
+// PrintSuccess prints a success message using the default Console.
 func PrintSuccess(message string) {
-	PrintColored("✓ "+message, ColorGreen)
+	_ = DefaultConsole().Success(message)
 }
 
-// PrintError prints an error message in red
+// PrintError prints an error message using the default Console.
 func PrintError(message string) {
-	PrintColored("✗ "+message, ColorRed)
+	_ = DefaultConsole().Error(message)
 }
 
-// PrintWarning prints a warning message in yellow
+// PrintWarning prints a warning message using the default Console.
 func PrintWarning(message string) {
-	PrintColored("! "+message, ColorYellow)
+	_ = DefaultConsole().Warning(message)
 }
 
-// PrintInfo prints an info message in blue
+// PrintInfo prints an info message using the default Console.
 func PrintInfo(message string) {
-	PrintColored("ℹ "+message, ColorBlue)
+	_ = DefaultConsole().Info(message)
 }
 
-// PrintTable prints data in a simple table format
+// PrintTable prints data as a formatted table using the default Console.
 func PrintTable(data [][]string) {
-	if len(data) == 0 {
-		return
-	}
-
-	// Calculate column widths
-	colWidths := make([]int, len(data[0]))
-	for _, row := range data {
-		for i, cell := range row {
-			if len(cell) > colWidths[i] {
-				colWidths[i] = len(cell)
-			}
-		}
-	}
-
-	// Print rows
-	for i, row := range data {
-		for j, cell := range row {
-			fmt.Printf("%-*s", colWidths[j]+2, cell)
-		}
-		fmt.Println()
-
-		// Print separator after header
-		if i == 0 {
-			for j := range row {
-				fmt.Print(strings.Repeat("-", colWidths[j]+2))
-			}
-			fmt.Println()
-		}
-	}
+	_ = DefaultConsole().PrintTable(data)
 }
 
 // ProgressBar represents a console progress bar
 type ProgressBar struct {
+	console *Console
 	total   int
 	current int
 	width   int
 	prefix  string
 }
 
-// NewProgressBar creates a new progress bar
+// NewProgressBar creates a new progress bar that writes to the default Console.
 func NewProgressBar(total int) *ProgressBar {
-	return &ProgressBar{
-		total:  total,
-		width:  50,
-		prefix: "Progress",
-	}
+	return NewProgressBarWithConsole(DefaultConsole(), total, 50, "Progress")
 }
 
-// NewProgressBarWithOptions creates a progress bar with custom options
+// NewProgressBarWithOptions creates a progress bar with custom options that
+// writes to the default Console.
 func NewProgressBarWithOptions(total int, width int, prefix string) *ProgressBar {
+	return NewProgressBarWithConsole(DefaultConsole(), total, width, prefix)
+}
+
+// NewProgressBarWithConsole creates a progress bar that writes through c.
+func NewProgressBarWithConsole(c *Console, total int, width int, prefix string) *ProgressBar {
 	return &ProgressBar{
-		total:  total,
-		width:  width,
-		prefix: prefix,
+		console: c,
+		total:   total,
+		width:   width,
+		prefix:  prefix,
 	}
 }
 
@@ -384,7 +360,9 @@ func (pb *ProgressBar) Update(current int) {
 func (pb *ProgressBar) Finish() {
 	pb.current = pb.total
 	pb.render()
-	fmt.Println()
+	if pb.console.formatter.ProgressCharFilled() != "" {
+		_ = pb.console.writeTo(pb.console.out, "\n")
+	}
 }
 
 // render renders the progress bar
@@ -393,21 +371,16 @@ func (pb *ProgressBar) render() {
 		return
 	}
 
-	// Ensure current is within bounds
 	current := pb.current
-
 	if current < 0 {
 		current = 0
 	}
-
 	if current > pb.total {
 		current = pb.total
 	}
 
 	percentage := float64(current) / float64(pb.total)
 	filled := int(percentage * float64(pb.width))
-
-	// Ensure filled is within bounds
 	if filled < 0 {
 		filled = 0
 	}
@@ -415,14 +388,23 @@ func (pb *ProgressBar) render() {
 		filled = pb.width
 	}
 
-	bar := strings.Repeat("█", filled) + strings.Repeat("░", pb.width-filled)
+	f := pb.console.formatter
+	filledChar := f.ProgressCharFilled()
+	emptyChar := f.ProgressCharEmpty()
+	if filledChar == "" {
+		// Formatter suppresses animations (e.g. JSONFormatter)
+		return
+	}
 
-	fmt.Printf("\r%s: [%s] %.1f%% (%d/%d)",
+	bar := strings.Repeat(filledChar, filled) + strings.Repeat(emptyChar, pb.width-filled)
+	line := fmt.Sprintf("\r%s: [%s] %.1f%% (%d/%d)",
 		pb.prefix, bar, percentage*100, current, pb.total)
+	_ = pb.console.writeTo(pb.console.out, line)
 }
 
 // Spinner represents a console spinner
 type Spinner struct {
+	console  *Console
 	message  string
 	frames   []string
 	active   bool
@@ -430,11 +412,21 @@ type Spinner struct {
 	mu       sync.RWMutex
 }
 
-// NewSpinner creates a new spinner
+// NewSpinner creates a new spinner that writes to the default Console.
 func NewSpinner(message string) *Spinner {
+	return NewSpinnerWithConsole(DefaultConsole(), message)
+}
+
+// NewSpinnerWithConsole creates a spinner that writes through c.
+func NewSpinnerWithConsole(c *Console, message string) *Spinner {
+	frames := c.formatter.SpinnerFrames()
+	if len(frames) == 0 {
+		frames = []string{"|"} // Sentinel; Start() will treat empty frames as suppressed
+	}
 	return &Spinner{
+		console:  c,
 		message:  message,
-		frames:   []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
+		frames:   frames,
 		stopChan: make(chan bool),
 		mu:       sync.RWMutex{},
 	}
@@ -442,12 +434,16 @@ func NewSpinner(message string) *Spinner {
 
 // Start starts the spinner animation
 func (s *Spinner) Start() {
+	// If the formatter suppresses animations, do nothing.
+	if len(s.console.formatter.SpinnerFrames()) == 0 {
+		return
+	}
+
 	s.mu.Lock()
 	if s.active {
 		s.mu.Unlock()
 		return
 	}
-
 	s.active = true
 	s.mu.Unlock()
 
@@ -461,7 +457,8 @@ func (s *Spinner) Start() {
 				s.mu.RLock()
 				message := s.message
 				s.mu.RUnlock()
-				fmt.Printf("\r%s %s", s.frames[i%len(s.frames)], message)
+				_ = s.console.writeTo(s.console.out,
+					fmt.Sprintf("\r%s %s", s.frames[i%len(s.frames)], message))
 				i++
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -471,21 +468,27 @@ func (s *Spinner) Start() {
 
 // Stop stops the spinner animation
 func (s *Spinner) Stop() {
+	if len(s.console.formatter.SpinnerFrames()) == 0 {
+		return
+	}
+
 	s.mu.Lock()
 	if !s.active {
 		s.mu.Unlock()
 		return
 	}
-
 	s.active = false
 	s.mu.Unlock()
 
 	select {
 	case s.stopChan <- true:
 	default:
-		// spinner goroutine already exited, do nothing
+		// spinner goroutine already exited
 	}
-	fmt.Print("\r" + strings.Repeat(" ", len(s.message)+2) + "\r")
+	s.mu.RLock()
+	msgLen := len(s.message)
+	s.mu.RUnlock()
+	_ = s.console.writeTo(s.console.out, "\r"+strings.Repeat(" ", msgLen+2)+"\r")
 }
 
 // UpdateMessage updates the spinner message

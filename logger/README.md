@@ -48,6 +48,18 @@ func main() {
     customLog.SetLogLevel("warn")
     customLog.Warnf("Warning: %s", "deprecated feature")
     defer customLog.Close()
+    
+    // Multi-output logger (console and file)
+    dualLog, err := logger.NewWithFileAndConsole("logs/app.log")
+    if err != nil {
+        logger.Errorf("Failed to create dual logger: %v", err)
+    }
+    defer dualLog.Close()
+    dualLog.Info("Logging to console and file")
+    
+    // No-op logger for testing or conditional logging
+    testLog := logger.NewNoop()
+    testLog.Info("This message is silently discarded")
 }
 ```
 
@@ -71,8 +83,9 @@ func main() {
 
 ### Logger Instances
 
-- `New() *Logger` - Create logger with default settings
+- `New() *Logger` - Create logger with default settings (stdout, INFO level, JSON format)
 - `NewWithOptions(output io.Writer, level logrus.Level, formatter logrus.Formatter) *Logger` - Create with custom options
+- `NewNoop() *Logger` - Create a no-op logger that discards all output (useful for testing and temporary disabling)
 - `SetOutput(io.Writer)` - Change output destination (closes previous file if needed)
 - `SetFileOutput(filepath string) error` - Set rotating file output with sensible defaults
 - `SetFileOutputWithConfig(config FileRotationConfig) error` - Set rotating file output with custom settings
@@ -83,6 +96,73 @@ func main() {
 - `WithFields(fields map[string]interface{}) *Logger` - Add multiple fields
 - `WithContext(ctx context.Context) *Logger` - Extract context values (trace ID, request ID, user ID) and add as fields
 - Instance methods mirror global functions (Infof, SetLogLevel, etc.)
+
+## Multi-Output (File and Console) Logger
+
+The `NewWithFileAndConsole()` constructor creates a logger that writes simultaneously to both stdout and a rotating file. This is useful for:
+
+- Development environments where you want logs visible immediately and persisted to disk
+- Keeping a complete audit trail while monitoring live output
+- Easy troubleshooting with both real-time and persistent logging
+
+```go
+package main
+
+import (
+ "log"
+ "github.com/julianstephens/go-utils/logger"
+)
+
+func main() {
+    // Create a logger that writes to both stdout and file
+    log, err := logger.NewWithFileAndConsole("logs/app.log")
+    if err != nil {
+        log.Fatal("Failed to create logger", err)
+    }
+    defer log.Close()
+    
+    // All logs go to both console and file
+    log.Infof("Server starting on port %d", 8080)
+    
+    // Structured logging works too
+    log.WithFields(map[string]interface{}{
+        "version": "1.0.0",
+        "env":     "development",
+    }).Info("Application initialized")
+}
+```
+
+The multi-output logger uses the same file rotation settings as `SetFileOutput()` by default: 100MB file size, 3 backups, 28-day retention, and compression enabled.
+
+## No-op Logger
+
+The `NewNoop()` constructor creates a logger that silently discards all output without side effects. This is useful for:
+
+- Testing components that accept a logger interface
+- Conditional logging without code branches
+- Temporarily disabling logging in specific components
+
+```go
+package main
+
+import "github.com/julianstephens/go-utils/logger"
+
+func main() {
+    // Create a no-op logger that discards all output
+    log := logger.NewNoop()
+    
+    // All logging calls execute but produce no output
+    log.Info("This message is silently discarded")
+    log.WithFields(map[string]interface{}{
+        "key": "value",
+    }).Debug("This is also discarded")
+    
+    // Can be reconfigured if needed
+    log.SetOutput(os.Stdout)
+    log.SetLogLevel("info")
+    log.Info("Now this will appear") // Now produces output
+}
+```
 
 ## Rotating File Output
 
@@ -162,6 +242,7 @@ customLog.SetFileOutput("logs/custom.log")
 ## Thread Safety
 
 The logger is fully thread-safe for concurrent use. Synchronization protects:
+
 - **Logging operations**: Thread-safe through logrus's internal mutexes
 - **Configuration changes**: Protected by `sync.RWMutex` on global logger config
 - **Concurrent logging and configuration**: Safe to change settings during concurrent logging
@@ -373,6 +454,7 @@ if cliutil.HasFlag(os.Args, "--verbose") {
 ## Error Handling
 
 Logger methods handle errors gracefully:
+
 - Invalid log levels default to "info"
 - Nil values are handled safely
 - Circular references are detected

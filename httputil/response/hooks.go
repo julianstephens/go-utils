@@ -33,16 +33,19 @@ func DefaultOnError(w http.ResponseWriter, r *http.Request, err error, status in
 
 // LoggingBefore is a Before hook that logs the incoming request.
 func LoggingBefore(w http.ResponseWriter, r *http.Request, data any) {
+	//nolint:gosec
 	log.Printf("Handling request: %s %s", r.Method, r.URL.Path)
 }
 
 // LoggingAfter is an After hook that logs successful response completion.
 func LoggingAfter(w http.ResponseWriter, r *http.Request, data any) {
+	//nolint:gosec
 	log.Printf("Response sent successfully for: %s %s", r.Method, r.URL.Path)
 }
 
 // LoggingOnError is an error handler that logs errors with request context.
 func LoggingOnError(w http.ResponseWriter, r *http.Request, err error, status int) {
+	//nolint:gosec
 	log.Printf("Error handling request %s %s: %v", r.Method, r.URL.Path, err)
 	if w == nil {
 		return

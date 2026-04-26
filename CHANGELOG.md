@@ -1,3 +1,22 @@
+## v0.4.4
+
+- logger: improves logging configuration flexibility and adds no-op logger support
+  - adds `NewNoop` constructor for no-op logger instances
+  - adds `NewWithFileAndConsole` constructor for simultaneous file and console logging
+- cliutil: introduces pluggable output formatting via `Formatter` interface and `Console` type
+  - adds `Formatter` interface with semantic methods (`Success`, `Error`, `Warning`, `Info`, `Colored`, `Table`) and visual-element hooks (`ProgressCharFilled`, `ProgressCharEmpty`, `SpinnerFrames`)
+  - adds `Console` type combining a `Formatter` with an `io.Writer`; all writes are mutex-protected for goroutine safety
+  - adds four built-in formatter implementations:
+    - `ColoredFormatter` — ANSI colors and Unicode symbols; replaces previous hardcoded behavior
+    - `PlainTextFormatter` — no ANSI codes, ASCII progress characters, plain prefixes
+    - `AccessibleFormatter` — screen-reader friendly with explicit `[SUCCESS]`/`[ERROR]`/… prefixes
+    - `JSONFormatter` — newline-delimited JSON objects; suppresses animated progress and spinner output
+  - adds `NewConsole(formatter, out)` constructor and `DefaultConsole()` / `SetDefaultConsole()` for package-level configuration
+  - adds `NewProgressBarWithConsole` and `NewSpinnerWithConsole` constructors for injecting a `Console` directly
+  - `ProgressBar` and `Spinner` now render through their `Console`, respecting the active formatter's visual characters
+  - adds automatic `NO_COLOR` environment variable support — default `Console` uses `PlainTextFormatter` when set
+  - existing module-level `Print*` functions are preserved as thin wrappers around `DefaultConsole` for backwards compatibility
+
 ## v0.4.3
 
 - helpers: improves atomic file operations robustness and deprecates string pointer helper

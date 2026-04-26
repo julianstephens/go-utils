@@ -151,6 +151,7 @@ func TestExtractTokenFromHeader(t *testing.T) {
 		expectToken string
 		expectError bool
 	}{
+		//nolint:gosec
 		{
 			name:        "valid bearer token",
 			header:      "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",

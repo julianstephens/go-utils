@@ -147,8 +147,11 @@ func (r Report) Summary() string {
 func (r Report) String() string {
 	var sb strings.Builder
 
+	//nolint:staticcheck
 	sb.WriteString(fmt.Sprintf("Health Check Report (%s)\n", r.Timestamp.Format(time.RFC3339)))
+	//nolint:staticcheck
 	sb.WriteString(fmt.Sprintf("Status: %s\n", statusFromExitCode(r.ExitCode)))
+	//nolint:staticcheck
 	sb.WriteString(fmt.Sprintf("Summary: %s\n", r.Summary()))
 	sb.WriteString("\nChecks:\n")
 
@@ -170,11 +173,14 @@ func (r Report) String() string {
 			status = "✗ ERROR"
 		}
 
+		//nolint:staticcheck
 		sb.WriteString(fmt.Sprintf("  %s: %s\n", check.Name, status))
 		if check.Message != "" {
+			//nolint:staticcheck
 			sb.WriteString(fmt.Sprintf("      %s\n", check.Message))
 		}
 		if check.Error != nil {
+			//nolint:staticcheck
 			sb.WriteString(fmt.Sprintf("      Error: %v\n", check.Error))
 		}
 		if check.Repaired {

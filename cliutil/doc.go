@@ -1,140 +1,158 @@
 /*
 Package cliutil provides helpers and utilities for building command-line interfaces (CLI) in Go projects.
 
-This package offers reusable functions for common CLI patterns such as argument parsing,
-flag handling, interactive prompts, progress indicators, and colored output. It is designed
-to be simple to import, idiomatic, and consistent across julianstephens Go repositories.
+Output formatting is driven by a Formatter interface and a Console type. A Console combines a
+Formatter (which controls how text is styled) with an io.Writer (which controls where output is
+sent). All writes are mutex-protected, so ProgressBar and Spinner goroutines are safe to share
+one Console.
 
-Basic Usage:
+# Formatters
 
-The cliutil package provides functions for various CLI operations:
+Four built-in formatters are provided:
+
+  - ColoredFormatter  — ANSI colors and Unicode symbols (✓ ✗ ! ℹ); the default.
+  - PlainTextFormatter — No ANSI codes, ASCII progress chars, plain prefixes (OK/ERROR/WARN/INFO).
+  - AccessibleFormatter — No ANSI, no symbols, explicit prefixes ([SUCCESS]/[ERROR]/…).
+  - JSONFormatter — Newline-delimited JSON objects; suppresses animated progress and spinner output.
+
+The package-level default Console automatically uses PlainTextFormatter when the NO_COLOR
+environment variable is set (any non-empty value), following the no-color.org convention.
+
+# Basic Usage
 
 	package main
 
 	import (
-		"fmt"
+		"os"
+
 		"github.com/julianstephens/go-utils/cliutil"
 	)
 
 	func main() {
 		// Parse command-line arguments
 		args := cliutil.ParseArgs(os.Args[1:])
-		fmt.Printf("Parsed arguments: %+v\n", args)
 
-		// Interactive prompts
-		name := cliutil.PromptString("Enter your name: ")
-		confirm := cliutil.PromptBool("Continue? (y/n): ")
-
-		// Colored output
-		cliutil.PrintSuccess("Operation completed successfully!")
-		cliutil.PrintError("An error occurred")
-		cliutil.PrintWarning("This is a warning")
-
-		// Progress indicators
-		progress := cliutil.NewProgressBar(100)
-		for i := 0; i <= 100; i++ {
-			progress.Update(i)
-			time.Sleep(10 * time.Millisecond)
+		// Choose a formatter based on flags
+		var f cliutil.Formatter
+		switch {
+		case args.HasFlag("json"):
+			f = cliutil.NewJSONFormatter()
+		case args.HasFlag("no-color"):
+			f = cliutil.NewPlainTextFormatter()
+		default:
+			f = cliutil.NewColoredFormatter()
 		}
-		progress.Finish()
+
+		// Replace the package-level default so all Print* calls use it
+		cliutil.SetDefaultConsole(cliutil.NewConsole(f, os.Stdout))
+
+		// Semantic output via Console
+		c := cliutil.DefaultConsole()
+		c.Success("Deployed successfully")
+		c.Error("Connection refused")
+		c.Warning("Retrying in 5s")
+		c.Info("Listening on :8080")
+
+		// Or use the module-level wrappers (delegate to DefaultConsole)
+		cliutil.PrintSuccess("All done")
 	}
 
-Argument Parsing:
+# Console
 
-The package provides simple argument parsing utilities:
+Create a Console from any Formatter and io.Writer:
 
-	// Parse arguments into a structured format
+	c := cliutil.NewConsole(cliutil.NewColoredFormatter(), os.Stdout)
+	c.Success("ok")
+	c.PrintTable([][]string{
+		{"Name", "Age"},
+		{"Alice", "30"},
+	})
+
+Swap the formatter at runtime (e.g. after parsing --no-color):
+
+	c.SetFormatter(cliutil.NewPlainTextFormatter())
+
+# Testing
+
+Inject a Console backed by a bytes.Buffer to capture and assert on output:
+
+	func TestMyCommand(t *testing.T) {
+		var buf bytes.Buffer
+		c := cliutil.NewConsole(cliutil.NewPlainTextFormatter(), &buf)
+
+		myCommand(c)
+
+		if !strings.Contains(buf.String(), "expected output") {
+			t.Fatalf("unexpected output: %q", buf.String())
+		}
+	}
+
+# Argument Parsing
+
 	args := cliutil.ParseArgs([]string{"--verbose", "--output", "file.txt", "input.txt"})
-
-	// Access flags and positional arguments
 	verbose := args.HasFlag("verbose")
-	output := args.GetFlag("output")
-	files := args.Positional
+	output  := args.GetFlag("output")
+	files   := args.Positional
 
-Flag Handling:
+# Flag Handling
 
-Support for common flag patterns:
-
-	// Check for boolean flags
 	if cliutil.HasFlag(os.Args, "--debug") {
 		// Enable debug mode
 	}
-
-	// Get flag values
 	logLevel := cliutil.GetFlagValue(os.Args, "--log-level", "info")
 
-Interactive Prompts:
+# Interactive Prompts
 
-Functions for user input with validation:
+	name    := cliutil.PromptString("Enter your name: ")
+	proceed := cliutil.PromptBool("Continue? (y/n): ")
+	option  := cliutil.PromptChoice("Select:", []string{"Create", "Open", "Exit"})
 
-	// String input with optional validation
-	email := cliutil.PromptStringWithValidation("Email: ", cliutil.ValidateEmail)
-
-	// Boolean prompts
-	proceed := cliutil.PromptBool("Do you want to continue? (y/n): ")
-
-	// Choice selection
-	option := cliutil.PromptChoice("Select an option:", []string{"Option 1", "Option 2", "Option 3"})
-
-Output Formatting:
-
-Colored output and formatting utilities:
-
-	// Colored text output
-	cliutil.PrintSuccess("✓ Task completed")
-	cliutil.PrintError("✗ Task failed")
-	cliutil.PrintWarning("! Warning message")
-	cliutil.PrintInfo("ℹ Information")
-
-	// Custom colored output
-	cliutil.PrintColored("Custom message", cliutil.ColorBlue)
-
-	// Formatted output
-	cliutil.PrintTable([][]string{
-		{"Name", "Age", "City"},
-		{"John", "30", "New York"},
-		{"Jane", "25", "Boston"},
+	// Secure password input (echo disabled on TTY)
+	pass := cliutil.PromptPassword("Passphrase: ")
+	pass  = cliutil.PromptPasswordWithValidation("Passphrase: ", func(p string) error {
+		if len(p) < 8 {
+			return fmt.Errorf("must be at least 8 characters")
+		}
+		return nil
 	})
 
-Progress Indicators:
+# Progress Indicators
 
-Progress bars and spinners for long-running operations:
-
-	// Progress bar
-	bar := cliutil.NewProgressBar(total)
-	for i := 0; i < total; i++ {
-		// Do work
-		bar.Update(i + 1)
+	// Progress bar — inject a Console for full control
+	c  := cliutil.NewConsole(cliutil.NewColoredFormatter(), os.Stdout)
+	pb := cliutil.NewProgressBarWithConsole(c, total, 40, "Processing")
+	for i := 0; i <= total; i++ {
+		pb.Update(i)
 	}
-	bar.Finish()
+	pb.Finish()
 
-	// Spinner for indeterminate progress
-	spinner := cliutil.NewSpinner("Processing...")
-	spinner.Start()
-	defer spinner.Stop()
+	// Spinner — inject a Console
+	s := cliutil.NewSpinnerWithConsole(c, "Loading...")
+	s.Start()
+	defer s.Stop()
 
-	// Do work
-	time.Sleep(5 * time.Second)
+# Custom Formatter
 
-Integration:
+Implement the Formatter interface to define your own output style:
 
-This package is designed to be used across julianstephens Go repositories for consistent
-CLI development. It integrates well with other go-utils packages like logger and config:
+	type MyFormatter struct{}
 
-	// Use with logger for structured CLI logging
-	if cliutil.HasFlag(os.Args, "--verbose") {
-		logger.SetLogLevel("debug")
-	}
+	func (f *MyFormatter) Success(text string) string                   { return "[+] " + text }
+	func (f *MyFormatter) Error(text string) string                     { return "[-] " + text }
+	func (f *MyFormatter) Warning(text string) string                   { return "[~] " + text }
+	func (f *MyFormatter) Info(text string) string                      { return "[i] " + text }
+	func (f *MyFormatter) Colored(text string, _ cliutil.Color) string  { return text }
+	func (f *MyFormatter) Table(data [][]string) string                 { return "" }
+	func (f *MyFormatter) ProgressCharFilled() string                   { return ">" }
+	func (f *MyFormatter) ProgressCharEmpty() string                    { return "." }
+	func (f *MyFormatter) SpinnerFrames() []string                      { return []string{"-", "\\", "|", "/"} }
 
-	// Use with config for CLI configuration
-	var cfg AppConfig
-	configFile := cliutil.GetFlagValue(os.Args, "--config", "config.yaml")
-	config.LoadFromFile(configFile, &cfg)
+	c := cliutil.NewConsole(&MyFormatter{}, os.Stdout)
 
-Thread Safety:
+# Thread Safety
 
-Progress indicators and interactive prompts are designed to be thread-safe for
-concurrent CLI operations. However, colored output functions should be used
-from a single goroutine to prevent mixed output.
+All Console output methods are mutex-protected. ProgressBar and Spinner, which write from
+background goroutines, safely share the same Console. The module-level Print* functions
+are safe to call concurrently via the package-level default Console.
 */
 package cliutil

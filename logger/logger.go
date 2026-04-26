@@ -63,6 +63,54 @@ func NewWithOptions(output io.Writer, level logrus.Level, formatter logrus.Forma
 	}
 }
 
+// NewNoop creates a no-op Logger that discards all log output.
+// Useful for testing, optional logging, or temporarily disabling logging without code changes.
+// All logging methods execute without side effects.
+func NewNoop() *Logger {
+	logrusLogger := logrus.New()
+	logrusLogger.SetOutput(io.Discard)
+	logrusLogger.SetLevel(logrus.PanicLevel) // Set to panic level to suppress all logs
+	logrusLogger.SetFormatter(&logrus.JSONFormatter{})
+
+	return &Logger{
+		entry: logrus.NewEntry(logrusLogger),
+	}
+}
+
+// NewWithFileAndConsole creates a Logger that writes to both stdout and a rotating file.
+// Logs are duplicated to both destinations with the same format.
+// By default, it uses INFO level and JSON formatting with standard file rotation settings (100MB files, 3 backups, 28 days retention).
+// Returns an error if the filepath is empty or invalid.
+func NewWithFileAndConsole(filepath string) (*Logger, error) {
+	if filepath == "" {
+		return nil, fmt.Errorf("failed to create file and console logger: empty filepath")
+	}
+
+	// Create rotating file logger
+	rotatingFile := &lumberjack.Logger{
+		Filename:   filepath,
+		MaxSize:    defaultMaxSize,
+		MaxBackups: defaultMaxBackups,
+		MaxAge:     defaultMaxAge,
+		Compress:   true,
+	}
+
+	// Create multi-writer for both stdout and file
+	multiOutput := io.MultiWriter(os.Stdout, rotatingFile)
+
+	logrusLogger := logrus.New()
+	logrusLogger.SetOutput(multiOutput)
+	logrusLogger.SetLevel(logrus.InfoLevel)
+	logrusLogger.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat: "2006-01-02T15:04:05.000Z07:00",
+	})
+
+	return &Logger{
+		entry:      logrus.NewEntry(logrusLogger),
+		fileCloser: rotatingFile,
+	}, nil
+}
+
 // SetLogLevel sets the logging level for the logger.
 // Valid levels are: panic, fatal, error, warn, info, debug, trace
 func (l *Logger) SetLogLevel(level string) error {

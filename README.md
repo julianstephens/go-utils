@@ -1,5 +1,7 @@
 # go-utils
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/julianstephens/go-utils.svg)](https://pkg.go.dev/github.com/julianstephens/go-utils)
+
 A collection of reusable Go utilities and helper functions designed to simplify common programming tasks.
 
 ## Available Packages

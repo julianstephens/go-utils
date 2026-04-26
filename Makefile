@@ -1,5 +1,6 @@
 .PHONY: test* lint fmt help install check
 
+GO := $(shell goenv which go)
 
 # Default target
 all: check
@@ -7,18 +8,18 @@ all: check
 ## test: Run all tests
 test:
 	@echo "Running tests..."
-	@go test -v ./...
+	@$(GO) test -v ./...
 
 ## test-race: Run tests with race detector
 test-race:
 	@echo "Running tests with race detector..."
-	@go test -race -v ./...
+	@$(GO) test -race -v ./...
 
 ## test-coverage: Run tests with coverage
 test-coverage:
 	@echo "Running tests with coverage..."
-	@go test -coverprofile=coverage.out -covermode=atomic ./...
-	@go tool cover -html=coverage.out -o coverage.html
+	@$(GO) test -coverprofile=coverage.out -covermode=atomic ./...
+	@$(GO) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
 ## fmt: Format code

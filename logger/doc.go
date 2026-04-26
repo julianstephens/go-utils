@@ -46,6 +46,13 @@ For more control, you can create your own logger instances:
 		&logrus.TextFormatter{FullTimestamp: true},
 	)
 
+	// Create a logger that writes to both console and file
+	dualLogger, err := logger.NewWithFileAndConsole("logs/app.log")
+	if err != nil {
+		panic(err)
+	}
+	defer dualLogger.Close()
+
 Log Levels:
 
 The logger supports the following log levels (from highest to lowest priority):
@@ -89,6 +96,22 @@ the formatter when creating a logger instance:
 			ForceColors:   true,
 		},
 	)
+
+Multi-Output Logging:
+
+For applications that need both real-time console output and persistent file logging, use NewWithFileAndConsole():
+
+	// Logs appear on console and are also written to a rotating file
+	log, err := logger.NewWithFileAndConsole("logs/app.log")
+	if err != nil {
+		panic(err)
+	}
+	defer log.Close()
+
+	log.Infof("Application started") // Appears on console AND in logs/app.log
+
+	// The file automatically rotates when it reaches 100MB, keeping 3 backups for 28 days
+	// with automatic compression of old logs
 
 Integration:
 
